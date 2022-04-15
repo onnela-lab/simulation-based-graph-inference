@@ -5,7 +5,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
 ]
-project = 'TEMPLATE_NAME'
+project = 'simulation_based_graph_inference'
 napoleon_custom_sections = [('Returns', 'params_style')]
 plot_formats = [
     ('png', 144),
