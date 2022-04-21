@@ -3,36 +3,83 @@
 from cython.operator cimport dereference
 import torch as th
 
+cdef node_set_t EMPTY_NODE_SET
+
 
 cdef class Graph:
     """
     Graph comprising nodes connected by edges.
+
+    Args:
+        strict: Whether to use strict validation of arguments. If `True`, method arguments are
+            validated at the cost of some performance. If `False`, method arguments are not
+            validated for improved performance with the risk of unexpected behavior.
     """
+    def __init__(self, strict: bint = True):
+        self.strict = strict
+
+    @property
+    def strict(self):
+        return self.strict
+
+    @strict.setter
+    def strict(self, value: bint):
+        self.strict = value
+
     cpdef count_t get_num_nodes(self):
+        """
+        Get the number of nodes.
+        """
         return self.nodes.size()
 
     cpdef count_t get_num_edges(self):
+        """
+        Get the number of edges.
+        """
         cdef int num_edges = 0
         for pair in self.neighbor_map:
             num_edges += pair.second.size()
         return num_edges // 2
 
     cpdef void add_node(self, node: node_t):
+        """
+        Add a node.
+        """
         self.nodes.insert(node)
 
     cpdef void add_nodes(self, nodes: node_set_t):
+        """
+        Add multiple nodes.
+        """
         for node in nodes:
             self.add_node(node)
 
     cpdef bint has_node(self, node_t node):
+        """
+        Check whether a node exists.
+        """
         return self.nodes.find(node) != self.nodes.end()
 
-    cpdef int assert_node_exists(self, node_t node) except -1:
-        if not self.has_node(node):
+    cdef inline int assert_node_exists(self, node_t node) except -1:
+        """
+        Assert that a node exists.
+
+        Note:
+            This is a no-op if :attr:`strict` is `False`.
+
+        Raises:
+            IndexError: If the node does not exist.
+        """
+        if self.strict and not self.has_node(node):
             raise IndexError(f"node {node} does not exist")
 
     cpdef int remove_node(self, node: node_t) except -1:
-        self.assert_node_exists(node)
+        """
+        Remove a node.
+
+        Raises:
+            IndexError: If the node does not exist.
+        """
         # Remove any edges targeting or originating from this node.
         it = self.neighbor_map.find(node)
         if it != self.neighbor_map.end():
@@ -40,24 +87,32 @@ cdef class Graph:
                 self._remove_directed_edge(neighbor, node)
             self.neighbor_map.erase(it)
 
-        self.nodes.erase(node)
+        # Delete the node and check whether it existed in the first place.
+        if self.strict and not self.nodes.erase(node):
+            raise IndexError(f"node {node} does not exist")
 
     cpdef int add_edge(self, node1: node_t, node2: node_t) except -1:
         """
-        Add a connection between `node1` and `node2`.
+        Add an edge between two nodes.
+
+        Raises:
+            ValueError: If the two nodes are equal because loops are not allowed.
+            IndexError: If either of the two nodes does not exist.
         """
+        if self.strict and node1 == node2:
+            raise ValueError(f"loop for node {node1} is not allowed")
+        self.assert_node_exists(node1)
+        self.assert_node_exists(node2)
         self._add_directed_edge(node1, node2)
         self._add_directed_edge(node2, node1)
 
-    cpdef int add_edges(self, edges: edge_list_t) except -1:
-        for edge in edges:
-            self.add_edge(edge.first, edge.second)
-
     cpdef int _add_directed_edge(self, source: node_t, target: node_t) except -1:
-        if source == target:
-            raise ValueError(f"loop for node {source} is not allowed")
-        self.assert_node_exists(source)
-        self.assert_node_exists(target)
+        """
+        Add a directed edge from a source to a target node.
+
+        Notes:
+            This method does not validate inputs even if :attr:`strict` is `True`.
+        """
         # The element does not exist if the lower bound is the `end` or the key of the lower bound
         # doesn't match the key we care about (see https://stackoverflow.com/a/101980/1150961).
         lb = self.neighbor_map.lower_bound(source)
@@ -65,23 +120,89 @@ cdef class Graph:
             lb = self.neighbor_map.insert(lb, pair_t[node_t, node_set_t](source, node_set_t()))
         dereference(lb).second.insert(target)
 
-    cpdef void _remove_directed_edge(self, source: node_t, target: node_t):
+    cpdef int add_edges(self, edges: edge_list_t) except -1:
+        """
+        Add edges between pairs of nodes.
+
+        Raises:
+            ValueError: If the nodes of any pair are equal because loops are not allowed.
+            IndexError: If either of the two nodes of any pair does not exist.
+        """
+        for edge in edges:
+            self.add_edge(edge.first, edge.second)
+
+    cpdef int _remove_directed_edge(self, source: node_t, target: node_t) except -1:
+        """
+        Remove the edge from a source to a target node.
+
+        Raises:
+            IndexError: If the edge does not exist.
+        """
+        cdef bint exists = False
         it = self.neighbor_map.find(source)
         if it != self.neighbor_map.end():
-            dereference(it).second.erase(target)
+            exists = dereference(it).second.erase(target)
+        if self.strict and not exists:
+            raise IndexError("edge from {source} to {target} does not exist")
 
-    cpdef void remove_edge(self, node1: node_t, node2: node_t):
+    cpdef int remove_edge(self, node1: node_t, node2: node_t) except -1:
+        """
+        Remove an edge between two nodes.
+
+        Raises:
+            IndexError: If the edge does not exist.
+        """
         self._remove_directed_edge(node1, node2)
         self._remove_directed_edge(node2, node1)
 
-    def get_neighbors(self, node: node_t):
+    cdef node_set_t* _get_neighbors_ptr(self, node: node_t) except NULL:
+        """
+        Get a pointer to the neighbors of a node.
+
+        Args:
+            node: Node for which to get neighbors.
+
+        Returns:
+            neighbors: Neighbors of the node.
+
+        Raises:
+            IndexError: If the node does not exist.
+        """
         self.assert_node_exists(node)
         it = self.neighbor_map.find(node)
         if it == self.neighbor_map.end():
-            return set()
-        return dereference(it).second
+            return &EMPTY_NODE_SET
+        return &dereference(it).second
 
-    def to_edge_index(self, edge_index=None):
+    def get_neighbors(self, node: node_t) -> node_set_t:
+        """
+        Get the neighbors of a node.
+
+        Args:
+            node: Node for which to get neighbors.
+
+        Returns:
+            neighbors: Neighbors of the node.
+
+        Raises:
+            IndexError: If the node does not exist.
+        """
+        return dereference(self._get_neighbors_ptr(node))
+
+    def to_edge_index(self, edge_index: th.Tensor = None):
+        """
+        Convert the neighbor map to a :mod:`torch_geometric` edge index.
+
+        Args:
+            edge_index: Preallocated tensor with shape `(2, 2 * num_edges)`. Defaults to a newly
+                allocated tensor.
+
+        Returns:
+            edge_index: Tensor with shape `(2, 2 * num_edges)` encoding the edges.
+
+        Raises:
+            ValueError: If the preallocated `edge_index` has the wrong shape.
+        """
         cdef:
             long[:, :] out
             long i = 0

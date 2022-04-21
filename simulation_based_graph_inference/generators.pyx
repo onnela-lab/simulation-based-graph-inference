@@ -10,10 +10,28 @@ cdef mt19937 random_engine = mt19937(rd())
 
 
 def set_seed(seed: mt19937.result_type) -> None:
+    """
+    Set the `mt19937` random number generator seed.
+
+    Args:
+        seed: Seed value.
+    """
     random_engine.seed(seed)
 
 
 def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: Graph = None) -> Graph:
+    """
+    Grow a graph with Poisson-distributed number of stubs for new nodes that are randomly attached
+    to existing nodes.
+
+    Args:
+        num_nodes: Final number of nodes.
+        rate: Poisson rate for generating stubs.
+        graph: Seed graph to modify in place. If `None`, a new graph is created.
+
+    Returns:
+        graph: Generated graph with `num_nodes` nodes.
+    """
     cdef:
         count_t degree
         vector[node_t] neighbors
