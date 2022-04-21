@@ -74,5 +74,5 @@ def test_to_edge_index():
 def test_no_self_loops():
     graph = Graph()
     graph.add_node(0)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError):
         graph.add_edge(0, 0)
