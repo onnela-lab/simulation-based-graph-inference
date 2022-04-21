@@ -1,8 +1,33 @@
-from .graph cimport Graph
+from libcpp.iterator cimport back_inserter
+from libcpp.utility cimport move
+from libcpp.vector cimport vector
+from .graph cimport count_t, node_t, Graph
+from .libcpp.algorithm cimport sample
+from .libcpp.random cimport mt19937, random_device, poisson_distribution
+
+cdef random_device rd
+cdef mt19937 random_engine = mt19937(rd())
 
 
-def generate_poisson_random_attachment(num_nodes: size_t, rate: double, graph: Graph = None):
-    if graph is None:
-        graph = Graph()
-    _generate_poisson_random_attachment(graph._this, num_nodes, rate)
+def set_seed(seed: mt19937.result_type) -> None:
+    random_engine.seed(seed)
+
+
+def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: Graph = None) -> Graph:
+    cdef:
+        count_t degree
+        vector[node_t] neighbors
+        poisson_distribution[count_t] connection_distribution = poisson_distribution[count_t](rate)
+
+    graph = graph or Graph()
+
+    for node in range(graph.get_num_nodes(), num_nodes):
+        # Sample the degree and obtain neighbors.
+        degree = min(node, connection_distribution(random_engine))
+        sample(graph.nodes.begin(), graph.nodes.end(), back_inserter(neighbors), degree, move(random_engine))
+        # Add the node and connections.
+        graph.add_node(node)
+        for neighbor in neighbors:
+            graph.add_edge(node, neighbor)
+
     return graph
