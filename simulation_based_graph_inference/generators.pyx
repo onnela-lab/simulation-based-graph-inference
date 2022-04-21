@@ -29,5 +29,7 @@ def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: 
         graph.add_node(node)
         for neighbor in neighbors:
             graph.add_edge(node, neighbor)
+        # Reset the neighbors.
+        neighbors.clear()
 
     return graph
