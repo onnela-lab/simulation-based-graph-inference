@@ -1,4 +1,4 @@
-# cython: boundscheck = False
+# -cython: boundscheck = False
 # cython: embedsignature = True
 # distutils: extra_compile_args=-Wall
 # distutils: extra_compile_args=-Wno-c++11-extensions
@@ -50,8 +50,11 @@ cdef class Graph:
             long[:, :] out
             long i = 0
         # Prepare memory.
+        expected_shape = (2, 2 * self.get_num_edges())
         if edge_index is None:
-            edge_index = th.empty((2, 2 * self.get_num_nodes()), dtype=th.long)
+            edge_index = th.empty(expected_shape, dtype=th.long)
+        elif edge_index.shape != expected_shape:
+            raise ValueError(f"expected shape {expected_shape} but got {edge_index.shape}")
         out = edge_index.numpy()
 
         # Fill the memory.
@@ -62,3 +65,6 @@ cdef class Graph:
                 i += 1
 
         return edge_index
+
+    def get_neighbor_map(self):
+        return self._this.neighbor_map
