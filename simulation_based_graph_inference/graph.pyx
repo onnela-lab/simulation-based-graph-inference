@@ -101,6 +101,3 @@ cdef class Graph:
                 i += 1
 
         return edge_index
-
-    def get_neighbor_map(self):
-        return self._this.neighbor_map
