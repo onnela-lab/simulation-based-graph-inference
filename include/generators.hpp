@@ -14,12 +14,12 @@ namespace SimulationBasedGraphInference {
         std::poisson_distribution<size_t> attachment_distribution(rate);
         std::mt19937& engine = get_random_engine();
         for (auto node = graph.get_num_nodes(); node < num_nodes; node++) {
-            graph.add_node(node);
             // Sample the neighbors.
             auto degree = std::min(node, attachment_distribution(engine));
             std::vector<node_t> neighbors;
             std::sample(graph.nodes.begin(), graph.nodes.end(), std::back_inserter(neighbors), degree, engine);
             // Create connections.
+            graph.add_node(node);
             for (auto neighbor : neighbors) {
                 graph.add_edge(node, neighbor);
             }
