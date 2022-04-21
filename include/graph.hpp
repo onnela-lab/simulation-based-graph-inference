@@ -85,6 +85,9 @@ namespace SimulationBasedGraphInference {
         }
 
         void add_edge(node_t node1, node_t node2) {
+            if (node1 == node2) {
+                throw std::runtime_error("self loops are not allowed");
+            }
             assert_has_node(node1);
             assert_has_node(node2);
             add_directed_edge(node1, node2);

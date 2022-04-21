@@ -69,3 +69,10 @@ def test_to_edge_index():
     edge_index_set = {(int(u), int(v)) for u, v in edge_index.T}
     directed_edges = edges | {(v, u) for u, v in edges}
     assert directed_edges == edge_index_set
+
+
+def test_no_self_loops():
+    graph = Graph()
+    graph.add_node(0)
+    with pytest.raises(RuntimeError):
+        graph.add_edge(0, 0)
