@@ -42,5 +42,11 @@ setup(
             "sphinx",
         ]
     },
-    ext_modules=cythonize(extensions, annotate=True),
+    ext_modules=cythonize(
+        extensions,
+        annotate=True,
+        compiler_directives={
+            'embedsignature': True,
+        },
+    ),
 )
