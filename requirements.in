@@ -3,3 +3,5 @@
 # Include additional packages we need for development.
 jupyter
 tqdm
+snakeviz
+line_profiler

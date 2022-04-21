@@ -16,12 +16,18 @@ jobs:
       - uses: "actions/setup-python@v2"
         with:
           python-version: "3.9"
+      - name: "Check GCC version"
+        run: "gcc --version"
       - uses: actions/cache@v2
         with:
           path: ${{ env.pythonLocation }}
           key: ${{ env.pythonLocation }}-${{ hashFiles('test_requirements.txt') }}
       - name: "Install dependencies"
-        run: "pip install -r test_requirements.txt"
+        run: |
+          # Install cython first because we need it for setup.py.
+          pip install `cat test_requirements.txt | grep cython==`
+          pip install `cat test_requirements.txt | grep torch==`
+          pip install -r test_requirements.txt
       - name: "Build the project"
         run: "make build"
         env:

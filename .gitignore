@@ -133,3 +133,6 @@ dmypy.json
 .vscode
 playground/
 workspace/
+
+simulation_based_graph_inference/*.html
+simulation_based_graph_inference/*.cpp
