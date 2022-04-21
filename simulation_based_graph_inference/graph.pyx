@@ -1,8 +1,6 @@
 # cython: boundscheck = False
 
 from cython.operator cimport dereference
-from libcpp.utility cimport pair as pair_t
-from libcpp.string cimport string as string_t
 import torch as th
 
 
@@ -22,7 +20,7 @@ cdef class Graph:
     cpdef void add_node(self, node: node_t):
         self.nodes.insert(node)
 
-    def add_nodes(self, nodes):
+    cpdef void add_nodes(self, nodes: node_set_t):
         for node in nodes:
             self.add_node(node)
 
@@ -34,16 +32,15 @@ cdef class Graph:
             raise IndexError(f"node {node} does not exist")
 
     cpdef int remove_node(self, node: node_t) except -1:
-        cdef string_t message
+        self.assert_node_exists(node)
         # Remove any edges targeting or originating from this node.
         it = self.neighbor_map.find(node)
         if it != self.neighbor_map.end():
             for neighbor in dereference(it).second:
                 self._remove_directed_edge(neighbor, node)
             self.neighbor_map.erase(it)
-        # Remove the node.
-        if not self.nodes.erase(node):
-            raise IndexError(f"node {node} does not exist")
+
+        self.nodes.erase(node)
 
     cpdef int add_edge(self, node1: node_t, node2: node_t) except -1:
         """
@@ -52,9 +49,9 @@ cdef class Graph:
         self._add_directed_edge(node1, node2)
         self._add_directed_edge(node2, node1)
 
-    def add_edges(self, edges):
-        for node1, node2 in edges:
-            self.add_edge(node1, node2)
+    cpdef int add_edges(self, edges: edge_list_t) except -1:
+        for edge in edges:
+            self.add_edge(edge.first, edge.second)
 
     cpdef int _add_directed_edge(self, source: node_t, target: node_t) except -1:
         if source == target:
