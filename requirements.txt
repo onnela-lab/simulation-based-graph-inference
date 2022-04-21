@@ -53,6 +53,10 @@ cycler==0.11.0
     # via
     #   -r test_requirements.txt
     #   matplotlib
+cython==0.29.28
+    # via
+    #   -r test_requirements.txt
+    #   simulation-based-graph-inference
 debugpy==1.6.0
     # via ipykernel
 decorator==5.1.1

@@ -21,6 +21,7 @@ setup(
     packages=find_packages(),
     version="0.1.0",
     install_requires=[
+        "cython",
         "matplotlib",
         "numpy",
         "torch",

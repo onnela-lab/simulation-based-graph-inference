@@ -20,6 +20,8 @@ coverage[toml]==6.3.2
     # via pytest-cov
 cycler==0.11.0
     # via matplotlib
+cython==0.29.28
+    # via simulation-based-graph-inference
 docutils==0.17.1
     # via sphinx
 flake8==4.0.1
