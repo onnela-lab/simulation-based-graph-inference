@@ -1,6 +1,7 @@
 #ifndef SIMULATION_BASED_GRAPH_INFERENCE_GENERATORS_HPP_
 #define SIMULATION_BASED_GRAPH_INFERENCE_GENERATORS_HPP_
 
+#include <algorithm>
 #include <random>
 #include "graph.hpp"
 
