@@ -21,7 +21,10 @@ jobs:
           path: ${{ env.pythonLocation }}
           key: ${{ env.pythonLocation }}-${{ hashFiles('test_requirements.txt') }}
       - name: "Install dependencies"
-        run: "pip install -r test_requirements.txt"
+        run: |
+          # Install cython first because we need it for setup.py.
+          pip install `cat requirements.txt | grep cython`
+          pip install -r test_requirements.txt
       - name: "Build the project"
         run: "make build"
         env:
