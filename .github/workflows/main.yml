@@ -23,7 +23,8 @@ jobs:
       - name: "Install dependencies"
         run: |
           # Install cython first because we need it for setup.py.
-          pip install `cat requirements.txt | grep cython`
+          pip install `cat test_requirements.txt | grep cython==`
+          pip install `cat test_requirements.txt | grep torch==`
           pip install -r test_requirements.txt
       - name: "Build the project"
         run: "make build"
