@@ -63,3 +63,22 @@ def test_no_self_loops():
     graph.add_node(0)
     with pytest.raises(ValueError):
         graph.add_edge(0, 0)
+
+
+def test_copy():
+    graph = Graph()
+    graph.add_nodes({0, 1, 2})
+    graph.add_edges({(0, 1), (0, 2)})
+
+    # Check that nodes aren't affected.
+    other = Graph(graph)
+    graph.remove_node(1)
+    assert 1 in other
+    other.remove_node(2)
+    assert 2 in graph
+
+    # Check that edges aren't affected.
+    other = Graph(graph)
+    graph.remove_edge(0, 2)
+    assert (0, 2) in other
+

@@ -24,12 +24,26 @@ cdef class Graph:
     Graph comprising nodes connected by edges.
 
     Args:
+        other: If given, create a copy of the graph and ignore the `strict` flag.
         strict: Whether to use strict validation of arguments. If `True`, method arguments are
             validated at the cost of some performance. If `False`, method arguments are not
             validated for improved performance with the risk of unexpected behavior.
     """
-    def __init__(self, strict: bint = True):
-        self.strict = strict
+    def __init__(self, other: Graph = None, strict: bint = True):
+        if other:
+            self.nodes = other.nodes
+            self.neighbor_map = other.neighbor_map
+            self.strict = other.strict
+        else:
+            self.strict = strict
+
+    def __contains__(self, value):
+        if isinstance(value, int):
+            return self.has_node(value)
+        elif isinstance(value, tuple):
+            return self.has_edge(*value)
+        else:
+            raise TypeError(value)
 
     @property
     def strict(self):
@@ -103,6 +117,15 @@ cdef class Graph:
         # Delete the node and check whether it existed in the first place.
         if self.strict and not self.nodes.erase(node):
             raise IndexError(f"node {node} does not exist")
+
+    cpdef bint has_edge(self, node1: node_t, node2: node_t):
+        """
+        Check whether an edge exists.
+        """
+        it = self.neighbor_map.find(node1)
+        if it == self.neighbor_map.end():
+            return False
+        return dereference(it).second.find(node2) != dereference(it).second.end()
 
     cpdef int add_edge(self, node1: node_t, node2: node_t) except -1:
         """
