@@ -6,6 +6,7 @@ from .graph cimport count_t, node_t, node_set_t, Graph
 from .libcpp.algorithm cimport sample
 from .libcpp.random cimport mt19937, random_device, poisson_distribution, bernoulli_distribution, \
     binomial_distribution
+from .util import assert_interval
 
 __PYI_HEADER = """
 from .graph import Graph
@@ -21,14 +22,6 @@ __PYI_TYPEDEFS = {
 
 cdef random_device rd
 cdef mt19937 random_engine = mt19937(rd())
-
-
-def assert_interval(x, low, high, name):
-    """
-    Assert that a value belongs to a certain interval and raise a `ValueError` if not.
-    """
-    if (low is not None and x < low) or (high is not None and x > high):
-        raise ValueError(f"{name} must belong to the interval [{low}, {high}] but is {x}")
 
 
 def set_seed(seed: mt19937.result_type) -> None:
@@ -64,7 +57,8 @@ def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: 
         vector_t[node_t] neighbors
         poisson_distribution[count_t] connection_distribution = poisson_distribution[count_t](rate)
 
-    assert_interval(rate, 0, None, "rate")
+    assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
+    assert_interval("rate", rate, 0, None, inclusive_low=False)
     graph = graph or Graph()
 
     for node in range(graph.get_num_nodes(), num_nodes):
@@ -124,8 +118,9 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
         bernoulli_distribution dist_interaction = bernoulli_distribution(interaction_proba)
         bernoulli_distribution dist_divergence = bernoulli_distribution(divergence_proba)
 
-    assert_interval(divergence_proba, 0, 1, "divergence_proba")
-    assert_interval(interaction_proba, 0, 1, "interaction_proba")
+    assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
+    assert_interval("divergence_proba", divergence_proba, 0, 1)
+    assert_interval("interaction_proba", interaction_proba, 0, 1)
     graph = graph or Graph()
     # Ensure there is at least one node in the graph.
     if not graph.get_num_nodes():
@@ -196,8 +191,9 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         bernoulli_distribution dist_delete = bernoulli_distribution(deletion_proba)
         vector_t[node_t] neighbors
 
-    assert_interval(mutation_proba, 0, 1, "mutation_proba")
-    assert_interval(deletion_proba, 0, 1, "deletion_proba")
+    assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
+    assert_interval("mutation_proba", mutation_proba, 0, 1)
+    assert_interval("deletion_proba", deletion_proba, 0, 1)
     graph = graph or Graph()
 
     # Ensure there is at least one node in the graph.
@@ -269,6 +265,9 @@ def generate_redirection(num_nodes: count_t, num_connections: count_t, redirecti
         vector_t[node_t] neighbors
         bernoulli_distribution dist_redirect = bernoulli_distribution(redirection_proba)
 
+    assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
+    assert_interval("num_connections", num_connections, 0, None, inclusive_low=False)
+    assert_interval("redirection_proba", redirection_proba, 0, 1)
     graph = graph or Graph()
 
     for node in range(graph.get_num_nodes(), num_nodes):
