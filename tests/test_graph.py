@@ -1,4 +1,4 @@
-from simulation_based_graph_inference.graph import Graph
+from simulation_based_graph_inference.graph import Graph, reindex_nodes
 import pytest
 
 
@@ -81,6 +81,19 @@ def test_copy():
     other = Graph(graph)
     graph.remove_edge(0, 2)
     assert (0, 2) in other
+
+
+def test_reindex_nodes():
+    offset = 7
+    nodes = {0, 1, 2}
+    edges = {(0, 1), (1, 2)}
+    graph = Graph()
+    graph.add_nodes({offset + i for i in nodes})
+    graph.add_edges({(u + offset, v + offset) for u, v in edges})
+
+    other = reindex_nodes(graph)
+    assert other.nodes == nodes
+    assert other.edges == edges
 
 
 def test_repr():

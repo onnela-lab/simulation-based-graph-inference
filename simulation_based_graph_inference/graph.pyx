@@ -254,3 +254,28 @@ cdef class Graph:
     def __repr__(self):
         return f"Graph(num_nodes={self.get_num_nodes()}, num_edges={self.get_num_edges()})"
 
+
+def reindex_nodes(graph: Graph) -> Graph:
+    """
+    Create a copy of the graph with reset node indices such that they are consecutive in the range
+    `[0, num_nodes)`.
+    """
+    cdef node_t i = 0
+    cdef node_set_t neighbors
+    cdef map_t[node_t, node_t] mapping
+    cdef Graph other = Graph()
+
+    # Construct the mapping.
+    for node in graph.nodes:
+        mapping[node] = i
+        other.nodes.insert(i)
+        i += 1
+
+    # Create the relabeled edges.
+    for pair in graph.neighbor_map:
+        neighbors = node_set_t()
+        for neighbor in pair.second:
+            neighbors.insert(mapping[neighbor])
+        other.neighbor_map[mapping[pair.first]] = neighbors
+
+    return other
