@@ -103,7 +103,7 @@ def generate_stubs(obj, typedefs, sep="\n") -> str:
         members = inspect.getmembers(obj, inspect.isroutine)
         sep = "\n\n"
     elif inspect.isroutine(obj):
-        if obj.__class__.__name__ == "cython_function_or_method":
+        if inspect._signature_is_builtin(obj):
             obj = get_stub(obj, typedefs)
         lines.append(format_stub(obj))
         members = []
