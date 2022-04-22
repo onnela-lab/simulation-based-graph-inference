@@ -23,6 +23,14 @@ cdef random_device rd
 cdef mt19937 random_engine = mt19937(rd())
 
 
+def assert_interval(x, low, high, name):
+    """
+    Assert that a value belongs to a certain interval and raise a `ValueError` if not.
+    """
+    if (low is not None and x < low) or (high is not None and x > high):
+        raise ValueError(f"{name} must belong to the interval [{low}, {high}] but is {x}")
+
+
 def set_seed(seed: mt19937.result_type) -> None:
     """
     Set the `mt19937` random number generator seed.
@@ -56,6 +64,7 @@ def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: 
         vector_t[node_t] neighbors
         poisson_distribution[count_t] connection_distribution = poisson_distribution[count_t](rate)
 
+    assert_interval(rate, 0, None, "rate")
     graph = graph or Graph()
 
     for node in range(graph.get_num_nodes(), num_nodes):
@@ -112,9 +121,11 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
     cdef:
         node_t source
         bernoulli_distribution dist_original = bernoulli_distribution(0.5)
-        bernoulli_distribution dist_divergence = bernoulli_distribution(divergence_proba)
         bernoulli_distribution dist_interaction = bernoulli_distribution(interaction_proba)
+        bernoulli_distribution dist_divergence = bernoulli_distribution(divergence_proba)
 
+    assert_interval(divergence_proba, 0, 1, "divergence_proba")
+    assert_interval(interaction_proba, 0, 1, "interaction_proba")
     graph = graph or Graph()
     # Ensure there is at least one node in the graph.
     if not graph.get_num_nodes():
@@ -181,11 +192,14 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
     cdef:
         node_t source
         count_t num_extra_connections
-        bernoulli_distribution dist_delete = bernoulli_distribution(deletion_proba)
         binomial_distribution[count_t] dist_num_extra_connections
+        bernoulli_distribution dist_delete = bernoulli_distribution(deletion_proba)
         vector_t[node_t] neighbors
 
+    assert_interval(mutation_proba, 0, 1, "mutation_proba")
+    assert_interval(deletion_proba, 0, 1, "deletion_proba")
     graph = graph or Graph()
+
     # Ensure there is at least one node in the graph.
     if not graph.get_num_nodes():
         graph.add_node(0)
@@ -200,7 +214,6 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         # Pick one of the nodes and duplicate it.
         sample(graph.nodes.begin(), graph.nodes.end(), &source, 1, move(random_engine))
         graph.add_node(node)
-
 
         # Create connections to neighbors of source node.
         for neighbor in dereference(graph._get_neighbors_ptr(source)):
@@ -277,7 +290,6 @@ def generate_redirection(num_nodes: count_t, num_connections: count_t, redirecti
         graph.add_node(node)
         for neighbor in neighbors:
             graph.add_edge(node, neighbor)
-
         neighbors.clear()
 
     return graph
