@@ -1,3 +1,4 @@
+# cython: cdivision = True
 from cython.operator cimport dereference
 from libcpp.iterator cimport back_inserter
 from libcpp.utility cimport move
@@ -185,7 +186,7 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
        _plot_generated_graph(generators.generate_duplication_mutation_random, 0.5, 0.2)
     """
     cdef:
-        node_t source
+        node_t source, node
         count_t num_extra_connections
         binomial_distribution[count_t] dist_num_extra_connections
         bernoulli_distribution dist_delete = bernoulli_distribution(deletion_proba)
