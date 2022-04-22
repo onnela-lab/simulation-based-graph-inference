@@ -10,6 +10,7 @@ from .libcpp.random cimport mt19937, random_device, poisson_distribution, bernou
 from .util import assert_interval
 
 __PYI_HEADER = """
+import numbers
 from .graph import Graph
 """
 __PYI_TYPEDEFS = {

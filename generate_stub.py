@@ -80,7 +80,7 @@ def format_stub(stub, include_doc: bool = True) -> str:
 def get_docstring_lines(obj) -> list[str]:
     if doc := textwrap.dedent(obj.__doc__).strip():
         return [
-            INDENT + TQUOTE,
+            f"{INDENT}r{TQUOTE}",
             textwrap.indent(doc, INDENT),
             INDENT + TQUOTE,
         ]
