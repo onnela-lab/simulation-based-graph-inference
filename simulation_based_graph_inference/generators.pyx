@@ -76,7 +76,7 @@ def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: 
     """
     cdef:
         count_t degree
-        vector_t[node_t] neighbors
+        node_list_t neighbors
         poisson_distribution[count_t] connection_distribution = poisson_distribution[count_t](rate)
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
@@ -211,7 +211,7 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         count_t num_extra_connections
         binomial_distribution[count_t] dist_num_extra_connections
         bernoulli_distribution dist_delete = bernoulli_distribution(deletion_proba)
-        vector_t[node_t] neighbors
+        node_list_t neighbors
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("mutation_proba", mutation_proba, 0, 1)
@@ -283,7 +283,7 @@ def generate_redirection(num_nodes: count_t, num_connections: count_t, redirecti
     cdef:
         node_t node, neighbor
         node_set_t* neighbors_ptr
-        vector_t[node_t] neighbors
+        node_list_t neighbors
         bernoulli_distribution dist_redirect = bernoulli_distribution(redirection_proba)
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
@@ -300,8 +300,11 @@ def generate_redirection(num_nodes: count_t, num_connections: count_t, redirecti
         it = neighbors.begin()
         while it != neighbors.end():
             if dist_redirect(random_engine):
-                # Workaround to assign to iterator (https://stackoverflow.com/a/56838542/1150961).
-                (&dereference(it))[0] = sample_one(graph._get_neighbors_ptr(neighbor))
+                neighbors_ptr = graph._get_neighbors_ptr(dereference(it))
+                # We can only redirect if there are neighbors.
+                if neighbors_ptr.size():
+                    # Hack to assign to iterator (https://stackoverflow.com/a/56838542/1150961).
+                    (&dereference(it))[0] = sample_one(neighbors_ptr)
             preincrement(it)
 
         # Add the node and connect neighbors.
