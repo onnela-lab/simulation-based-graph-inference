@@ -1,12 +1,11 @@
-simulation_based_graph_inference
+Simulation-based graph inference
 ================================
 
 .. image:: https://github.com/tillahoffmann/simulation-based-graph-inference/actions/workflows/main.yml/badge.svg
   :target: https://github.com/tillahoffmann/simulation-based-graph-inference/actions/workflows/main.yml
 
+.. toctree::
 
-.. doctest::
-
-  >>> # A simple doctest.
-  >>> 2 + 2
-  4
+  docs/convert
+  docs/graph
+  docs/generators

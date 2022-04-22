@@ -1,26 +1,22 @@
-# cython: boundscheck = False
-
 from cython.operator cimport dereference
-import torch as th
 
 cdef node_set_t EMPTY_NODE_SET
 
 
 __PYI_HEADER = """
-import torch
 import typing
 """
 __PYI_TYPEDEFS = {
-        'node_t': 'int',
-        'edge_list_t': 'typing.Iterable[typing.Tuple[int, int]]',
-        'void': 'None',
-        'node_set_t': 'typing.Set[int]',
-        'count_t': 'int',
-        'double': 'float',
-        'Graph': 'Graph',
-        'bint': 'bool',
-        'th': 'torch',
-    }
+    'node_t': 'int',
+    'edge_list_t': 'typing.Iterable[typing.Tuple[int, int]]',
+    'void': 'None',
+    'node_set_t': 'typing.Set[int]',
+    'count_t': 'int',
+    'double': 'float',
+    'Graph': 'Graph',
+    'bint': 'bool',
+    'th': 'torch',
+}
 
 
 cdef class Graph:
@@ -205,37 +201,3 @@ cdef class Graph:
             IndexError: If the node does not exist.
         """
         return dereference(self._get_neighbors_ptr(node))
-
-    def to_edge_index(self, edge_index: th.Tensor = None):
-        """
-        Convert the neighbor map to a :mod:`torch_geometric` edge index.
-
-        Args:
-            edge_index: Preallocated tensor with shape `(2, 2 * num_edges)`. Defaults to a newly
-                allocated tensor.
-
-        Returns:
-            edge_index: Tensor with shape `(2, 2 * num_edges)` encoding the edges.
-
-        Raises:
-            ValueError: If the preallocated `edge_index` has the wrong shape.
-        """
-        cdef:
-            long[:, :] out
-            long i = 0
-        # Prepare memory.
-        expected_shape = (2, 2 * self.get_num_edges())
-        if edge_index is None:
-            edge_index = th.empty(expected_shape, dtype=th.long)
-        elif edge_index.shape != expected_shape:
-            raise ValueError(f"expected shape {expected_shape} but got {edge_index.shape}")
-        out = edge_index.numpy()
-
-        # Fill the memory.
-        for pair in self.neighbor_map:
-            for neighbor in pair.second:
-                out[0, i] = pair.first
-                out[1, i] = neighbor
-                i += 1
-
-        return edge_index

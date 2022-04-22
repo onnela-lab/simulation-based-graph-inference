@@ -50,6 +50,8 @@ matplotlib==3.5.1
     # via simulation-based-graph-inference
 mccabe==0.6.1
     # via flake8
+networkx==2.8
+    # via simulation-based-graph-inference
 numpy==1.22.3
     # via
     #   matplotlib

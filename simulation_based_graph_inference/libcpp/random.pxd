@@ -22,3 +22,13 @@ cdef extern from "<random>" namespace "std" nogil:
         poisson_distribution() except +
         poisson_distribution(double) except +
         T operator()[Generator](Generator&) except +
+
+    cdef cppclass binomial_distribution[T]:
+        binomial_distribution() except +
+        binomial_distribution(T, double) except +
+        T operator()[Generator](Generator&) except +
+
+    cdef cppclass bernoulli_distribution:
+        bernoulli_distribution() except +
+        bernoulli_distribution(double) except +
+        bint operator()[Generator](Generator&) except +
