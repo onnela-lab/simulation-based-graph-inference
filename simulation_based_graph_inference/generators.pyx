@@ -5,6 +5,18 @@ from .graph cimport count_t, node_t, Graph
 from .libcpp.algorithm cimport sample
 from .libcpp.random cimport mt19937, random_device, poisson_distribution
 
+__PYI_HEADER = """
+from .graph import Graph
+"""
+__PYI_TYPEDEFS = {
+    "count_t": "int",
+    "double": "float",
+    "Graph": "Graph",
+    "mt19937": {
+        "result_type": "int",
+    },
+}
+
 cdef random_device rd
 cdef mt19937 random_engine = mt19937(rd())
 

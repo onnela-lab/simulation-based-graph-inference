@@ -47,6 +47,7 @@ setup(
         annotate=True,
         compiler_directives={
             'embedsignature': True,
+            'binding': True,
         },
     ),
 )
