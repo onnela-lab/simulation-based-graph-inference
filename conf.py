@@ -10,3 +10,7 @@ napoleon_custom_sections = [('Returns', 'params_style')]
 plot_formats = [
     ('png', 144),
 ]
+plot_pre_code = """
+from simulation_based_graph_inference.util import _plot_generated_graph
+from simulation_based_graph_inference import generators
+"""
