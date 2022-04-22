@@ -58,19 +58,6 @@ def test_neighbors_of_missing_node():
         graph.get_neighbors(0)
 
 
-def test_to_edge_index():
-    graph = Graph()
-    graph.add_nodes([0, 1, 2, 3])
-    edges = {(0, 1), (1, 2), (2, 3), (3, 0)}
-    graph.add_edges(edges)
-    edge_index = graph.to_edge_index()
-    assert edge_index.shape == (2, 2 * graph.get_num_edges())
-    # Check that directed edge indices have been created for all edges.
-    edge_index_set = {(int(u), int(v)) for u, v in edge_index.T}
-    directed_edges = edges | {(v, u) for u, v in edges}
-    assert directed_edges == edge_index_set
-
-
 def test_no_self_loops():
     graph = Graph()
     graph.add_node(0)

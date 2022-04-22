@@ -23,6 +23,7 @@ setup(
     install_requires=[
         "cython",
         "matplotlib",
+        "networkx",
         "numpy",
         "torch",
         "torch-geometric",
