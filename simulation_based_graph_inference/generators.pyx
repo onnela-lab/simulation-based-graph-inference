@@ -1,5 +1,5 @@
 # cython: cdivision = True
-from cython.operator cimport dereference
+from cython.operator cimport dereference, preincrement
 from libcpp.iterator cimport back_inserter
 from libcpp.utility cimport move
 from libcpp.vector cimport vector as vector_t
@@ -23,6 +23,27 @@ __PYI_TYPEDEFS = {
 
 cdef random_device rd
 cdef mt19937 random_engine = mt19937(rd())
+
+
+ctypedef vector_t[node_t] node_list_t
+ctypedef fused node_container_t:
+    node_set_t
+    node_list_t
+
+
+cdef node_t sample_one(node_container_t *container):
+    """
+    Sample a single node from a container.
+
+    Args:
+        container: Pointer to a node container to sample from.
+
+    Returns:
+        node: Node sampled from the container.
+    """
+    cdef node_t node
+    sample(container.begin(), container.end(), &node, 1, move(random_engine))
+    return node
 
 
 def set_seed(seed: mt19937.result_type) -> None:
@@ -129,7 +150,7 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
 
     for node in range(graph.get_num_nodes(), num_nodes):
         # Pick one of the nodes and duplicate it.
-        sample(graph.nodes.begin(), graph.nodes.end(), &source, 1, move(random_engine))
+        source = sample_one(&graph.nodes)
         graph.add_node(node)
         # Create or remove connections with neighbors.
         for neighbor in dereference(graph._get_neighbors_ptr(source)):
@@ -209,7 +230,7 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
                num_extra_connections, move(random_engine))
 
         # Pick one of the nodes and duplicate it.
-        sample(graph.nodes.begin(), graph.nodes.end(), &source, 1, move(random_engine))
+        source = sample_one(&graph.nodes)
         graph.add_node(node)
 
         # Create connections to neighbors of source node.
@@ -260,7 +281,6 @@ def generate_redirection(num_nodes: count_t, num_connections: count_t, redirecti
        _plot_generated_graph(generators.generate_redirection, 3, 0.5)
     """
     cdef:
-        int i
         node_t node, neighbor
         node_set_t* neighbors_ptr
         vector_t[node_t] neighbors
@@ -277,14 +297,12 @@ def generate_redirection(num_nodes: count_t, num_connections: count_t, redirecti
                min(num_connections, node), move(random_engine))
 
         # Redirect for each neighbor with some probability.
-        i = 0
-        for neighbor in neighbors:
+        it = neighbors.begin()
+        while it != neighbors.end():
             if dist_redirect(random_engine):
-                neighbors_ptr = graph._get_neighbors_ptr(neighbor)
-                sample(neighbors_ptr.begin(), neighbors_ptr.end(), &neighbor, 1,
-                       move(random_engine))
-                neighbors[i] = neighbor
-            i += 1
+                # Workaround to assign to iterator (https://stackoverflow.com/a/56838542/1150961).
+                (&dereference(it))[0] = sample_one(graph._get_neighbors_ptr(neighbor))
+            preincrement(it)
 
         # Add the node and connect neighbors.
         graph.add_node(node)
