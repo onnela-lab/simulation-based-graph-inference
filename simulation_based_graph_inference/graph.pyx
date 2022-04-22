@@ -24,12 +24,35 @@ cdef class Graph:
     Graph comprising nodes connected by edges.
 
     Args:
+        other: If given, create a copy of the graph and ignore the `strict` flag.
         strict: Whether to use strict validation of arguments. If `True`, method arguments are
             validated at the cost of some performance. If `False`, method arguments are not
             validated for improved performance with the risk of unexpected behavior.
+
+    Attributes:
+        edges (edge_set_t): Set of undirected edges.
+        neighbor_map (neighbor_map_t): Mapping from nodes to their neighbors.
+        nodes (node_set_t): Nodes in the graph.
     """
-    def __init__(self, strict: bint = True):
-        self.strict = strict
+    def __init__(self, other: Graph = None, strict: bint = True):
+        if other:
+            self.nodes = other.nodes
+            self.neighbor_map = other.neighbor_map
+            self.strict = other.strict
+        else:
+            self.strict = strict
+
+    def __contains__(self, value):
+        if isinstance(value, int):
+            return self.has_node(value)
+        elif isinstance(value, tuple):
+            return self.has_edge(*value)
+        else:
+            raise TypeError(value)
+
+    def __iter__(self):
+        for node in self.nodes:
+            yield node
 
     @property
     def strict(self):
@@ -38,6 +61,23 @@ cdef class Graph:
     @strict.setter
     def strict(self, value: bint):
         self.strict = value
+
+    @property
+    def neighbor_map(self):
+        return self.neighbor_map
+
+    @property
+    def nodes(self):
+        return self.nodes
+
+    @property
+    def edges(self):
+        edges = set()
+        for pair in self.neighbor_map:
+            for neighbor in pair.second:
+                if pair.first < neighbor:
+                    edges.add((pair.first, neighbor))
+        return edges
 
     cpdef count_t get_num_nodes(self):
         """
@@ -103,6 +143,15 @@ cdef class Graph:
         # Delete the node and check whether it existed in the first place.
         if self.strict and not self.nodes.erase(node):
             raise IndexError(f"node {node} does not exist")
+
+    cpdef bint has_edge(self, node1: node_t, node2: node_t):
+        """
+        Check whether an edge exists.
+        """
+        it = self.neighbor_map.find(node1)
+        if it == self.neighbor_map.end():
+            return False
+        return dereference(it).second.find(node2) != dereference(it).second.end()
 
     cpdef int add_edge(self, node1: node_t, node2: node_t) except -1:
         """
@@ -201,3 +250,32 @@ cdef class Graph:
             IndexError: If the node does not exist.
         """
         return dereference(self._get_neighbors_ptr(node))
+
+    def __repr__(self):
+        return f"Graph(num_nodes={self.get_num_nodes()}, num_edges={self.get_num_edges()})"
+
+
+def reindex_nodes(graph: Graph) -> Graph:
+    """
+    Create a copy of the graph with reset node indices such that they are consecutive in the range
+    `[0, num_nodes)`.
+    """
+    cdef node_t i = 0
+    cdef node_set_t neighbors
+    cdef map_t[node_t, node_t] mapping
+    cdef Graph other = Graph()
+
+    # Construct the mapping.
+    for node in graph.nodes:
+        mapping[node] = i
+        other.nodes.insert(i)
+        i += 1
+
+    # Create the relabeled edges.
+    for pair in graph.neighbor_map:
+        neighbors = node_set_t()
+        for neighbor in pair.second:
+            neighbors.insert(mapping[neighbor])
+        other.neighbor_map[mapping[pair.first]] = neighbors
+
+    return other
