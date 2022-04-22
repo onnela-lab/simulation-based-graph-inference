@@ -82,3 +82,16 @@ def test_copy():
     graph.remove_edge(0, 2)
     assert (0, 2) in other
 
+
+def test_repr():
+    graph = Graph()
+    graph.add_nodes({0, 1, 2})
+    graph.add_edges({(0, 1), (1, 2)})
+    assert repr(graph) == "Graph(num_nodes=3, num_edges=2)"
+
+
+def test_iter():
+    graph = Graph()
+    nodes = {0, 1, 2}
+    graph.add_nodes(nodes)
+    assert set(graph) == nodes

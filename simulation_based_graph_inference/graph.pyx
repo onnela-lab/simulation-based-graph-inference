@@ -28,6 +28,11 @@ cdef class Graph:
         strict: Whether to use strict validation of arguments. If `True`, method arguments are
             validated at the cost of some performance. If `False`, method arguments are not
             validated for improved performance with the risk of unexpected behavior.
+
+    Attributes:
+        edges (edge_set_t): Set of undirected edges.
+        neighbor_map (neighbor_map_t): Mapping from nodes to their neighbors.
+        nodes (node_set_t): Nodes in the graph.
     """
     def __init__(self, other: Graph = None, strict: bint = True):
         if other:
@@ -45,6 +50,10 @@ cdef class Graph:
         else:
             raise TypeError(value)
 
+    def __iter__(self):
+        for node in self.nodes:
+            yield node
+
     @property
     def strict(self):
         return self.strict
@@ -52,6 +61,23 @@ cdef class Graph:
     @strict.setter
     def strict(self, value: bint):
         self.strict = value
+
+    @property
+    def neighbor_map(self):
+        return self.neighbor_map
+
+    @property
+    def nodes(self):
+        return self.nodes
+
+    @property
+    def edges(self):
+        edges = set()
+        for pair in self.neighbor_map:
+            for neighbor in pair.second:
+                if pair.first < neighbor:
+                    edges.add((pair.first, neighbor))
+        return edges
 
     cpdef count_t get_num_nodes(self):
         """
@@ -224,3 +250,7 @@ cdef class Graph:
             IndexError: If the node does not exist.
         """
         return dereference(self._get_neighbors_ptr(node))
+
+    def __repr__(self):
+        return f"Graph(num_nodes={self.get_num_nodes()}, num_edges={self.get_num_edges()})"
+
