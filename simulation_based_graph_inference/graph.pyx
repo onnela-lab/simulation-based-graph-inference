@@ -259,6 +259,12 @@ def reindex_nodes(graph: Graph) -> Graph:
     """
     Create a copy of the graph with reset node indices such that they are consecutive in the range
     `[0, num_nodes)`.
+
+    Args:
+        graph: Graph to reindex.
+
+    Returns:
+        reindexed: Graph with reindexed nodes.
     """
     cdef node_t i = 0
     cdef node_set_t neighbors
@@ -277,5 +283,32 @@ def reindex_nodes(graph: Graph) -> Graph:
         for neighbor in pair.second:
             neighbors.insert(mapping[neighbor])
         other.neighbor_map[mapping[pair.first]] = neighbors
+
+    return other
+
+
+def extract_subgraph(graph: Graph, nodes: node_set_t) -> Graph:
+    """
+    Extract a subgraph comprising the specified nodes.
+
+    Args:
+        graph: Graph from which to extract a subgraph.
+        nodes: Nodes that define the subgraph.
+
+    Returns:
+        subgraph: Graph comprising only the specified nodes and their connections.
+    """
+    cdef Graph other = Graph()
+
+    # Ensure all nodes exist and copy over the nodes.
+    for node in nodes:
+        graph.assert_node_exists(node)
+        other.nodes.insert(node)
+
+    # Copy over all edges for which both nodes are in the desired set.
+    for node in nodes:
+        for neighbor in dereference(graph._get_neighbors_ptr(node)):
+            if nodes.find(neighbor) != nodes.end():
+                other.add_edge(node, neighbor)
 
     return other

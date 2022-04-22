@@ -1,4 +1,4 @@
-from simulation_based_graph_inference.graph import Graph, reindex_nodes
+from simulation_based_graph_inference.graph import Graph, reindex_nodes, extract_subgraph
 import pytest
 
 
@@ -108,3 +108,16 @@ def test_iter():
     nodes = {0, 1, 2}
     graph.add_nodes(nodes)
     assert set(graph) == nodes
+
+
+def test_extract_subgraph():
+    # Create a five-node ring graph.
+    graph = Graph()
+    graph.add_nodes({0, 1, 2, 3, 4})
+    graph.add_edges({(0, 1), (1, 2), (2, 3), (3, 4), (0, 4)})
+
+    # Get a subgraph with the first three nodes which should be a line.
+    nodes = {0, 1, 2}
+    subgraph = extract_subgraph(graph, nodes)
+    assert subgraph.nodes == nodes
+    assert subgraph.edges == {(0, 1), (1, 2)}
