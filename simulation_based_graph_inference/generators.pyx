@@ -2,7 +2,7 @@ from cython.operator cimport dereference
 from libcpp.iterator cimport back_inserter
 from libcpp.utility cimport move
 from libcpp.vector cimport vector as vector_t
-from .graph cimport count_t, node_t, Graph
+from .graph cimport count_t, node_t, node_set_t, Graph
 from .libcpp.algorithm cimport sample
 from .libcpp.random cimport mt19937, random_device, poisson_distribution, bernoulli_distribution, \
     binomial_distribution
@@ -49,7 +49,7 @@ def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: 
 
     .. plot::
 
-        _plot_generated_graph(generators.generate_poisson_random_attachment, 10, 4)
+        _plot_generated_graph(generators.generate_poisson_random_attachment, 4)
     """
     cdef:
         count_t degree
@@ -91,8 +91,8 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
 
     The growth process proceeds in three stages at each step:
 
-    1. A node :math:`i` is chosen at random and duplicated to obtain node :math:`i'`, including all of its
-       connections.
+    1. A node :math:`i` is chosen at random and duplicated to obtain node :math:`i'`, including all
+       of its connections.
     2. With probability `interaction_proba` (often denoted :math:`p`) the two nodes :math:`i` and
        :math:`i'` are connected.
     3. For each of the neighbors :math:`j`, we choose one of the edges :math:`(i, j)` and
@@ -107,7 +107,7 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
 
     .. plot::
 
-        _plot_generated_graph(generators.generate_duplication_mutation_complementation, 10, 0.5, 0.2)
+       _plot_generated_graph(generators.generate_duplication_mutation_complementation, 0.5, 0.2)
     """
     cdef:
         node_t source
@@ -176,7 +176,7 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
 
     .. plot::
 
-        _plot_generated_graph(generators.generate_duplication_mutation_random, 10, 0.5, 0.2)
+       _plot_generated_graph(generators.generate_duplication_mutation_random, 0.5, 0.2)
     """
     cdef:
         node_t source
@@ -210,6 +210,74 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         # Create connections to random nodes.
         for neighbor in neighbors:
             graph.add_edge(node, neighbor)
+        neighbors.clear()
+
+    return graph
+
+
+def generate_redirection(num_nodes: count_t, num_connections: count_t, redirection_proba: double,
+                         graph: Graph = None) -> Graph:
+    """
+    Generate a graph by random attachment with probabilistic redirection as described by
+    `Krapivsky et al. (2001) <https://doi.org/10.1103/PhysRevE.63.066123>`_.
+
+    Args:
+        num_nodes: Final number of nodes.
+        redirection_proba: Probability that connections are redirected to a neighbor.
+        graph: Seed graph to modify in place. If `None`, a new graph is created.
+
+    Returns:
+        graph: Generated graph with `num_nodes` nodes.
+
+    The growth process proceeds in three stages at each step:
+
+    1. We sample `min(num_connections, num_current_nodes)` nodes from the graph as potential
+       neighbors.
+    2. For each potential neighbor, we replace it by one of its randomly chosen neighbors with
+       proability `redirection_proba`.
+    3. We create a new node and connect it to the chosen neighbors.
+
+    Note:
+        The model differs slightly from the reference description in two ways: first, connections
+        are undirected. Second, we may create more than one edge per new node.
+
+        If `redirection_proba` is zero, the model reduces to a random growth model. If
+        `redirection_proba` is one, the model is equivalent to a linear preferential attachment
+        model.
+
+    .. plot::
+
+       _plot_generated_graph(generators.generate_redirection, 3, 0.5)
+    """
+    cdef:
+        int i
+        node_t node, neighbor
+        node_set_t* neighbors_ptr
+        vector_t[node_t] neighbors
+        bernoulli_distribution dist_redirect = bernoulli_distribution(redirection_proba)
+
+    graph = graph or Graph()
+
+    for node in range(graph.get_num_nodes(), num_nodes):
+        # Sample new neighbors.
+        sample(graph.nodes.begin(), graph.nodes.end(), back_inserter(neighbors),
+               min(num_connections, node), move(random_engine))
+
+        # Redirect for each neighbor with some probability.
+        i = 0
+        for neighbor in neighbors:
+            if dist_redirect(random_engine):
+                neighbors_ptr = graph._get_neighbors_ptr(neighbor)
+                sample(neighbors_ptr.begin(), neighbors_ptr.end(), &neighbor, 1,
+                       move(random_engine))
+                neighbors[i] = neighbor
+            i += 1
+
+        # Add the node and connect neighbors.
+        graph.add_node(node)
+        for neighbor in neighbors:
+            graph.add_edge(node, neighbor)
+
         neighbors.clear()
 
     return graph

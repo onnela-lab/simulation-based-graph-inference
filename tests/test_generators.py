@@ -37,6 +37,12 @@ def test_generate_duplication_random(graph: Graph, num_nodes: int):
                                                     graph)
 
 
+def test_generate_redirection(graph: Graph, num_nodes: int):
+    num_connections = th.distributions.Poisson(3).sample()
+    redirection_proba = th.distributions.Uniform(0, 1).sample()
+    generators.generate_redirection(num_nodes, num_connections, redirection_proba, graph)
+
+
 def test_seed():
     edge_indices = []
     for _ in range(2):
