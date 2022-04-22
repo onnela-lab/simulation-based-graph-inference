@@ -6,6 +6,23 @@ import torch as th
 cdef node_set_t EMPTY_NODE_SET
 
 
+__PYI_HEADER = """
+import torch
+import typing
+"""
+__PYI_TYPEDEFS = {
+        'node_t': 'int',
+        'edge_list_t': 'typing.Iterable[typing.Tuple[int, int]]',
+        'void': 'None',
+        'node_set_t': 'typing.Set[int]',
+        'count_t': 'int',
+        'double': 'float',
+        'Graph': 'Graph',
+        'bint': 'bool',
+        'th': 'torch',
+    }
+
+
 cdef class Graph:
     """
     Graph comprising nodes connected by edges.
@@ -54,7 +71,7 @@ cdef class Graph:
         for node in nodes:
             self.add_node(node)
 
-    cpdef bint has_node(self, node_t node):
+    cpdef bint has_node(self, node: node_t):
         """
         Check whether a node exists.
         """
