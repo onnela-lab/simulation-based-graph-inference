@@ -1,4 +1,5 @@
-from simulation_based_graph_inference.graph import Graph, reindex_nodes, extract_subgraph
+from simulation_based_graph_inference.graph import Graph, reindex_nodes, extract_subgraph, \
+    extract_neighborhood
 import pytest
 
 
@@ -121,3 +122,32 @@ def test_extract_subgraph():
     subgraph = extract_subgraph(graph, nodes)
     assert subgraph.nodes == nodes
     assert subgraph.edges == {(0, 1), (1, 2)}
+
+
+@pytest.mark.parametrize('depth', [0, 1, 2, 3])
+def test_extract_neighborhood(depth):
+    # Create a line graph.
+    num_nodes = 11
+    graph = Graph()
+    graph.add_nodes(range(num_nodes))
+    graph.add_edges({(i, i + 1) for i in range(num_nodes - 1)})
+
+    # Extract the neighborhood starting from the middle.
+    seed = num_nodes // 2
+    neighborhood = extract_neighborhood(graph, {seed}, depth)
+    expected_neighborhood = set(range(seed - depth, seed + depth + 1))
+    assert neighborhood == expected_neighborhood
+
+
+@pytest.mark.parametrize('depth', [0, 1, 2, 3])
+def test_extract_neighborhood_multiseed(depth):
+    # Create a line graph.
+    num_nodes = 11
+    graph = Graph()
+    graph.add_nodes(range(num_nodes))
+    graph.add_edges({(i, i + 1) for i in range(num_nodes - 1)})
+
+    # Seed at the left and right.
+    neighborhood = extract_neighborhood(graph, {0, num_nodes - 1}, depth)
+    expected_neighborhood = set(range(1 + depth)) | {num_nodes - 1 - i for i in range(1 + depth)}
+    assert neighborhood == expected_neighborhood
