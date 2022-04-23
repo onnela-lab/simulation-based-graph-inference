@@ -1,4 +1,5 @@
-from simulation_based_graph_inference.graph import Graph, reindex_nodes
+from simulation_based_graph_inference.graph import Graph, reindex_nodes, extract_subgraph, \
+    extract_neighborhood, extract_neighborhood_subgraph
 import pytest
 
 
@@ -108,3 +109,58 @@ def test_iter():
     nodes = {0, 1, 2}
     graph.add_nodes(nodes)
     assert set(graph) == nodes
+
+
+def test_extract_subgraph():
+    # Create a five-node ring graph.
+    graph = Graph()
+    graph.add_nodes({0, 1, 2, 3, 4})
+    graph.add_edges({(0, 1), (1, 2), (2, 3), (3, 4), (0, 4)})
+
+    # Get a subgraph with the first three nodes which should be a line.
+    nodes = {0, 1, 2}
+    subgraph = extract_subgraph(graph, nodes)
+    assert subgraph.nodes == nodes
+    assert subgraph.edges == {(0, 1), (1, 2)}
+
+
+def _line_graph(num_nodes: int) -> Graph:
+    graph = Graph()
+    graph.add_nodes(range(num_nodes))
+    graph.add_edges({(i, i + 1) for i in range(num_nodes - 1)})
+    return graph
+
+
+@pytest.mark.parametrize('depth', [0, 1, 2, 3])
+def test_extract_neighborhood(depth):
+    num_nodes = 11
+    graph = _line_graph(num_nodes)
+
+    # Extract the neighborhood starting from the middle.
+    seed = num_nodes // 2
+    neighborhood = extract_neighborhood(graph, {seed}, depth)
+    expected_neighborhood = set(range(seed - depth, seed + depth + 1))
+    assert neighborhood == expected_neighborhood
+
+
+@pytest.mark.parametrize('depth', [0, 1, 2, 3])
+def test_extract_neighborhood_multiseed(depth):
+    num_nodes = 11
+    graph = _line_graph(num_nodes)
+
+    # Seed at the left and right.
+    neighborhood = extract_neighborhood(graph, {0, num_nodes - 1}, depth)
+    expected_neighborhood = set(range(1 + depth)) | {num_nodes - 1 - i for i in range(1 + depth)}
+    assert neighborhood == expected_neighborhood
+
+
+@pytest.mark.parametrize('depth', [0, 1, 2, 3])
+def test_extract_neighborhood_subgraph(depth):
+    num_nodes = 11
+    graph = _line_graph(num_nodes)
+
+    # Extract the subgraph from the middle.
+    seed = num_nodes // 2
+    subgraph = extract_neighborhood_subgraph(graph, {seed}, depth)
+    expected_neighborhood = set(range(seed - depth, seed + depth + 1))
+    assert set(subgraph) == expected_neighborhood

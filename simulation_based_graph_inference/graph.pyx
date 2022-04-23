@@ -1,4 +1,6 @@
 from cython.operator cimport dereference
+from libcpp.queue cimport queue as queue_t
+from libcpp.utility cimport pair as pair_t
 
 cdef node_set_t EMPTY_NODE_SET
 
@@ -259,6 +261,12 @@ def reindex_nodes(graph: Graph) -> Graph:
     """
     Create a copy of the graph with reset node indices such that they are consecutive in the range
     `[0, num_nodes)`.
+
+    Args:
+        graph: Graph to reindex.
+
+    Returns:
+        reindexed: Graph with reindexed nodes.
     """
     cdef node_t i = 0
     cdef node_set_t neighbors
@@ -279,3 +287,78 @@ def reindex_nodes(graph: Graph) -> Graph:
         other.neighbor_map[mapping[pair.first]] = neighbors
 
     return other
+
+
+cpdef Graph extract_subgraph(graph: Graph, nodes: node_set_t):
+    """
+    Extract a subgraph comprising the specified nodes.
+
+    Args:
+        graph: Graph from which to extract a subgraph.
+        nodes: Nodes that define the subgraph.
+
+    Returns:
+        subgraph: Graph comprising only the specified nodes and their connections.
+    """
+    cdef Graph other = Graph()
+
+    # Ensure all nodes exist and copy over the nodes.
+    for node in nodes:
+        graph.assert_node_exists(node)
+        other.nodes.insert(node)
+
+    # Copy over all edges for which both nodes are in the desired set.
+    for node in nodes:
+        for neighbor in dereference(graph._get_neighbors_ptr(node)):
+            if nodes.find(neighbor) != nodes.end():
+                other.add_edge(node, neighbor)
+
+    return other
+
+
+cpdef node_set_t extract_neighborhood(graph: Graph, nodes: node_set_t, depth: count_t = 1):
+    """
+    Extract nodes within the neighborhood of seed nodes at a given depth.
+
+    Args:
+        graph: Graph from which to extract the neighborhood.
+        nodes: Seed nodes for the neighborhood extraction.
+        depth: Depth of the neighborhood.
+
+    Returns:
+        neighborhood: Nodes within the neighborhood at a given depth, including seed nodes.
+    """
+    cdef:
+        node_set_t neighborhood
+        queue_t[pair_t[node_t, count_t]] queue
+
+    # Population the initial queue.
+    for node in nodes:
+        queue.push(pair_t[node_t, count_t](node, 0))
+
+    # Process elements of the queue.
+    while not queue.empty():
+        pair = queue.front()
+        queue.pop()
+        neighborhood.insert(pair.first)
+        if pair.second < depth:
+            for node in dereference(graph._get_neighbors_ptr(pair.first)):
+                queue.push(pair_t[node_t, count_t](node, pair.second + 1))
+
+    return neighborhood
+
+
+cpdef Graph extract_neighborhood_subgraph(graph: Graph, nodes: node_set_t, depth: count_t = 1):
+    """
+    Extract a subgraph comprising nodes within the neighborhood of seed nodes at a given depth.
+
+    Args:
+        graph: Graph from which to extract the neighborhood.
+        nodes: Seed nodes for the neighborhood extraction.
+        depth: Depth of the neighborhood.
+
+    Returns:
+        subgraph: Subgraph comprising nodes within the neighborhood at a given depth, including seed
+            nodes.
+    """
+    return extract_subgraph(graph, extract_neighborhood(graph, nodes, depth))
