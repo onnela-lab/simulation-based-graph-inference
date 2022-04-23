@@ -346,3 +346,19 @@ cpdef node_set_t extract_neighborhood(graph: Graph, nodes: node_set_t, depth: co
                 queue.push(pair_t[node_t, count_t](node, pair.second + 1))
 
     return neighborhood
+
+
+cpdef Graph extract_neighborhood_subgraph(graph: Graph, nodes: node_set_t, depth: count_t = 1):
+    """
+    Extract a subgraph comprising nodes within the neighborhood of seed nodes at a given depth.
+
+    Args:
+        graph: Graph from which to extract the neighborhood.
+        nodes: Seed nodes for the neighborhood extraction.
+        depth: Depth of the neighborhood.
+
+    Returns:
+        subgraph: Subgraph comprising nodes within the neighborhood at a given depth, including seed
+            nodes.
+    """
+    return extract_subgraph(graph, extract_neighborhood(graph, nodes, depth))
