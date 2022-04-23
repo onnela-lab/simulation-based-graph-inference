@@ -44,9 +44,12 @@ def get_stub(func: typing.Callable, typedefs: typing.Mapping[str, typing.Any] = 
     Returns:
         stub: Function stub.
     """
-    # Get the signature and substitute duplicate type hints.
     signature, *lines = func.__doc__.split("\n", 1)
-    signature = re.sub(r"[\w:]+ (?P<name>\w+): (?P<type>[\w.]+)", r"\1: \2", signature)
+    # Substitute duplicate type hints.
+    signature = re.sub(r"[\w:]+ (?P<name>\w+): (?P<type>[\w.]+)", r"\g<name>: \g<type>", signature)
+    # Substitute C-style type hints.
+    signature = re.sub(r"(?P<type>[\w+:]\w+)\s+(?P<name>\w+)(?P<sep>[,)])",
+                       r"\g<name>: \g<type>\g<sep>", signature)
     # Replace leading parent type specifiers for methods.
     signature = re.sub(r"^(?:\w+\.)+", "", signature)
     # Execute and retrieve the stub.
@@ -96,11 +99,12 @@ def generate_stubs(obj, typedefs, sep="\n") -> str:
         init = get_stub(obj, typedefs)
         parts.extend(get_docstring_lines(init))
         lines.append(NEWLINE.join(parts))
-        # Add the init function.
+        # Add __init__ to the members. We fake the name to ensure it's included in the stub.
         init.__name__ = '__init__'
-        lines.append(textwrap.indent(format_stub(init, False), INDENT))
+        init.__doc__ = ''
+        members = [('..init..', init)]
         # Get members to process.
-        members = inspect.getmembers(obj, inspect.isroutine)
+        members.extend(inspect.getmembers(obj, inspect.isroutine))
         sep = "\n\n"
     elif inspect.isroutine(obj):
         if inspect._signature_is_builtin(obj):

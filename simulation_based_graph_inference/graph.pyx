@@ -6,6 +6,7 @@ cdef node_set_t EMPTY_NODE_SET
 
 
 __PYI_HEADER = """
+from __future__ import annotations
 import typing
 """
 __PYI_TYPEDEFS = {
@@ -289,7 +290,7 @@ def reindex_nodes(graph: Graph) -> Graph:
     return other
 
 
-cpdef Graph extract_subgraph(graph: Graph, nodes: node_set_t):
+cpdef Graph extract_subgraph(graph: Graph, node_set_t &nodes):
     """
     Extract a subgraph comprising the specified nodes.
 
@@ -316,7 +317,7 @@ cpdef Graph extract_subgraph(graph: Graph, nodes: node_set_t):
     return other
 
 
-cpdef node_set_t extract_neighborhood(graph: Graph, nodes: node_set_t, depth: count_t = 1):
+cpdef node_set_t extract_neighborhood(graph: Graph, node_set_t &nodes, depth: count_t = 1):
     """
     Extract nodes within the neighborhood of seed nodes at a given depth.
 
@@ -348,7 +349,7 @@ cpdef node_set_t extract_neighborhood(graph: Graph, nodes: node_set_t, depth: co
     return neighborhood
 
 
-cpdef Graph extract_neighborhood_subgraph(graph: Graph, nodes: node_set_t, depth: count_t = 1):
+cpdef Graph extract_neighborhood_subgraph(graph: Graph, node_set_t &nodes, depth: count_t = 1):
     """
     Extract a subgraph comprising nodes within the neighborhood of seed nodes at a given depth.
 
