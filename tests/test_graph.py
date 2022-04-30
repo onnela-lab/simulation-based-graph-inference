@@ -1,4 +1,4 @@
-from simulation_based_graph_inference.graph import Graph, reindex_nodes, extract_subgraph, \
+from simulation_based_graph_inference.graph import Graph, normalize_node_labels, extract_subgraph, \
     extract_neighborhood, extract_neighborhood_subgraph
 import pytest
 
@@ -84,7 +84,7 @@ def test_copy():
     assert (0, 2) in other
 
 
-def test_reindex_nodes():
+def test_normalize_node_labels():
     offset = 7
     nodes = {0, 1, 2}
     edges = {(0, 1), (1, 2)}
@@ -92,7 +92,7 @@ def test_reindex_nodes():
     graph.add_nodes({offset + i for i in nodes})
     graph.add_edges({(u + offset, v + offset) for u, v in edges})
 
-    other = reindex_nodes(graph)
+    other = normalize_node_labels(graph)
     assert other.nodes == nodes
     assert other.edges == edges
 

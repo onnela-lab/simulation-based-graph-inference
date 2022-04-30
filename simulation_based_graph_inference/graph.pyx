@@ -1,4 +1,4 @@
-from cython.operator cimport dereference
+from cython.operator cimport dereference, preincrement
 from libcpp.queue cimport queue as queue_t
 from libcpp.utility cimport pair as pair_t
 
@@ -258,16 +258,16 @@ cdef class Graph:
         return f"Graph(num_nodes={self.get_num_nodes()}, num_edges={self.get_num_edges()})"
 
 
-def reindex_nodes(graph: Graph) -> Graph:
+def normalize_node_labels(graph: Graph) -> Graph:
     """
     Create a copy of the graph with reset node indices such that they are consecutive in the range
     `[0, num_nodes)`.
 
     Args:
-        graph: Graph to reindex.
+        graph: Graph whose nodes to normalize.
 
     Returns:
-        reindexed: Graph with reindexed nodes.
+        relabeled: Graph with normalized node labels.
     """
     cdef node_t i = 0
     cdef node_set_t neighbors
@@ -315,6 +315,29 @@ cpdef Graph extract_subgraph(graph: Graph, node_set_t &nodes):
                 other.add_edge(node, neighbor)
 
     return other
+
+
+cpdef assert_normalized_nodel_labels(graph: Graph):
+    """
+    Assert that node labels are consecutive starting at zero.
+
+    Args:
+        graph: Graph whose node labels to check.
+
+    Raises:
+        ValueError: If the node labels are not normalized.
+    """
+    cdef node_t previous
+    if graph.get_num_nodes() == 0:
+        return
+    it = graph.nodes.begin()
+    previous = dereference(it)
+    preincrement(it)
+    while it != graph.nodes.end():
+        if dereference(it) - previous != 1:
+            ValueError(f"expected normalized node labels but got {previous} and {dereference(it)}")
+        previous = dereference(it)
+        preincrement(it)
 
 
 cpdef node_set_t extract_neighborhood(graph: Graph, node_set_t &nodes, depth: count_t = 1):
