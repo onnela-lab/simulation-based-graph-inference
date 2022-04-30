@@ -247,14 +247,15 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
     return graph
 
 
-def generate_redirection(num_nodes: count_t, num_connections: count_t, redirection_proba: double,
-                         graph: Graph = None) -> Graph:
+def generate_redirection(num_nodes: count_t, max_num_connections: count_t,
+                         redirection_proba: double, graph: Graph = None) -> Graph:
     """
     Generate a graph by random attachment with probabilistic redirection as described by
     `Krapivsky et al. (2001) <https://doi.org/10.1103/PhysRevE.63.066123>`_.
 
     Args:
         num_nodes: Final number of nodes.
+        max_num_connections: Maximum number of connections added to new nodes.
         redirection_proba: Probability that connections are redirected to a neighbor.
         graph: Seed graph to modify in place. If `None`, a new graph is created.
 
@@ -288,14 +289,14 @@ def generate_redirection(num_nodes: count_t, num_connections: count_t, redirecti
         bernoulli_distribution dist_redirect = bernoulli_distribution(redirection_proba)
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
-    assert_interval("num_connections", num_connections, 0, None, inclusive_low=False)
+    assert_interval("max_num_connections", max_num_connections, 0, None, inclusive_low=False)
     assert_interval("redirection_proba", redirection_proba, 0, 1)
     graph = graph or Graph()
 
     for node in range(graph.get_num_nodes(), num_nodes):
         # Sample new neighbors.
         sample(graph.nodes.begin(), graph.nodes.end(), back_inserter(neighbors),
-               min(num_connections, node), move(random_engine))
+               min(max_num_connections, node), move(random_engine))
 
         # Redirect for each neighbor with some probability.
         it = neighbors.begin()
