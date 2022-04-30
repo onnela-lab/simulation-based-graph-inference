@@ -1,5 +1,3 @@
-import os
-import re
 from setuptools import find_packages, setup
 from setuptools.extension import Extension
 from Cython.Build import cythonize
@@ -29,21 +27,6 @@ ext_modules = cythonize(
         'linetrace': True,
     },
 )
-
-# Run find-replace on all generated cpp files (cf. https://github.com/cython/cython/issues/3929).
-sources = {source for ext_module in ext_modules for source in ext_module.sources}
-for source in sources:
-    base, ext = os.path.splitext(source)
-    assert not os.path.isabs(base), f"expected relative path but got {source}"
-    assert ext == '.cpp', f"expected cpp extension but got {source}"
-    relpath = base + ".pyx"
-    abspath = os.path.join(os.getcwd(), relpath)
-    with open(source) as fp:
-        text = fp.read()
-    text = re.sub(f"(?<!/){relpath}", abspath, text)
-    with open(source, "w") as fp:
-        fp.write(text)
-
 
 setup(
     name="simulation_based_graph_inference",
