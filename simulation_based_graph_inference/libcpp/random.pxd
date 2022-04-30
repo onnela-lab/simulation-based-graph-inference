@@ -28,6 +28,11 @@ cdef extern from "<random>" namespace "std" nogil:
         binomial_distribution(T, double) except +
         T operator()[Generator](Generator&) except +
 
+    cpdef cppclass uniform_int_distribution[T]:
+        uniform_int_distribution() except +
+        uniform_int_distribution(T, T) except +
+        T operator()[Generator](Generator&) except +
+
     cdef cppclass bernoulli_distribution:
         bernoulli_distribution() except +
         bernoulli_distribution(double) except +
