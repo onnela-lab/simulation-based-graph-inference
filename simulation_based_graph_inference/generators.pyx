@@ -4,6 +4,7 @@ from libcpp.iterator cimport back_inserter
 from libcpp.utility cimport move
 from libcpp.vector cimport vector as vector_t
 from .graph cimport count_t, node_t, node_set_t, Graph
+from .graph import assert_normalized_nodel_labels
 from .libcpp.algorithm cimport sample
 from .libcpp.random cimport mt19937, random_device, poisson_distribution, bernoulli_distribution, \
     binomial_distribution
@@ -145,13 +146,14 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
     assert_interval("divergence_proba", divergence_proba, 0, 1)
     assert_interval("interaction_proba", interaction_proba, 0, 1)
     graph = graph or Graph()
+    assert_normalized_nodel_labels(graph)
     # Ensure there is at least one node in the graph.
     if not graph.get_num_nodes():
         graph.add_node(0)
 
     for node in range(graph.get_num_nodes(), num_nodes):
         # Pick one of the nodes and duplicate it.
-        source = sample_one(&graph.nodes)
+        source = random_engine() % node
         graph.add_node(node)
         # Create or remove connections with neighbors.
         for neighbor in dereference(graph._get_neighbors_ptr(source)):
@@ -225,13 +227,14 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
 
     for node in range(graph.get_num_nodes(), num_nodes):
         # First pick the additional neighbors.
-        dist_num_extra_connections = binomial_distribution[count_t](node, mutation_proba / node)
+        dist_num_extra_connections = binomial_distribution[count_t](node - 1, mutation_proba / node)
         num_extra_connections = dist_num_extra_connections(random_engine)
         sample(graph.nodes.begin(), graph.nodes.end(), back_inserter(neighbors),
-               num_extra_connections, move(random_engine))
+               num_extra_connections + 1, move(random_engine))
 
         # Pick one of the nodes and duplicate it.
-        source = sample_one(&graph.nodes)
+        source = neighbors.back()
+        neighbors.pop_back()
         graph.add_node(node)
 
         # Create connections to neighbors of source node.
