@@ -1,7 +1,7 @@
 import argparse
 import time
 import torch as th
-from simulation_based_graph_inference import generators
+from simulation_based_graph_inference import generators  # Absolute import for line_profiler CLI.
 
 
 GENERATORS = [
@@ -12,13 +12,11 @@ GENERATORS = [
 ]
 
 
-def __main__(args=None):
+def __main__(args: list[str] = None):
     parser = argparse.ArgumentParser()
     parser.add_argument("generator", choices=GENERATORS)
     parser.add_argument("--num_nodes", "-n", help="number of nodes", default=10000, type=int)
     parser.add_argument("--num_samples", "-s", help="number of independent graph samples", type=int)
-    parser.add_argument("--parameter", "-p", help="parameter value in the format [name]:[value]",
-                        nargs="*")
     args = parser.parse_args(args)
 
     # Generate parameters for each method.
@@ -50,7 +48,7 @@ def __main__(args=None):
         generator = profile(generator)
     except NameError as ex:
         if str(ex) != "name 'profile' is not defined":
-            raise
+            raise  # pragma: no cover
 
     # Generate samples.
     start = time.time()
@@ -64,4 +62,4 @@ def __main__(args=None):
 
 
 if __name__ == "__main__":
-    __main__()
+    __main__()  # pragma: no cover
