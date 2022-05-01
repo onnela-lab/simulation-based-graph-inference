@@ -1,6 +1,8 @@
+import networkx as nx
+import numpy as np
 import pytest
 from simulation_based_graph_inference.graph import Graph
-from simulation_based_graph_inference.convert import to_edge_index, to_networkx
+from simulation_based_graph_inference.convert import to_edge_index, to_networkx, to_adjacency
 import torch as th
 
 
@@ -34,3 +36,14 @@ def test_to_networkx():
     nxgraph = to_networkx(graph)
     assert nxgraph.number_of_nodes() == graph.get_num_nodes()
     assert edges == set(nxgraph.edges)
+
+
+def test_to_adjacency():
+    graph, _ = _get_graph_and_edges()
+    adjacency = to_adjacency(graph)
+    nxgraph = to_networkx(graph)
+    nxadjacency = nx.to_numpy_array(nxgraph)
+    np.testing.assert_array_equal(adjacency, nxadjacency)
+
+    with pytest.raises(ValueError):
+        to_adjacency(graph, th.zeros(1))

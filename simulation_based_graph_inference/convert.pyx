@@ -52,6 +52,39 @@ def to_edge_index(graph: Graph, edge_index: th.Tensor = None) -> th.Tensor:
     return edge_index
 
 
+def to_adjacency(graph: Graph, adjacency: th.Tensor = None) -> th.Tensor:
+    """
+    Convert a graph to a square adjacency matrix.
+
+    Args:
+        graph: Graph to convert.
+        adjacency: Preallocated tensor with shape `(num_nodes, num_nodes)`. Defaults to a newly
+            allocated tensor.
+
+    Returns:
+        adjacency: Tensor with shape `(num_nodes, num_nodes)` encoding the edges.
+
+    Raises:
+        ValueError: If the preallocated `adjacency` has the wrong shape.
+    """
+    cdef:
+        long[:, :] out
+    # Prepare memory.
+    expected_shape = (graph.get_num_nodes(), graph.get_num_nodes())
+    if adjacency is None:
+        adjacency = th.zeros(expected_shape, dtype=th.long)
+    elif adjacency.shape != expected_shape:
+        raise ValueError(f"expected shape {expected_shape} but got {adjacency.shape}")
+    out = adjacency.numpy()
+
+    # Fill the memory.
+    for pair in graph.neighbor_map:
+        for neighbor in pair.second:
+            out[pair.first, neighbor] = 1
+
+    return adjacency
+
+
 def to_networkx(graph: Graph) -> nx.Graph:
     """
     Convert a graph to an undirected :mod:`networkx` graph.
