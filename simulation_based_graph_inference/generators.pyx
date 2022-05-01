@@ -21,20 +21,41 @@ __PYI_TYPEDEFS = {
     "mt19937": {
         "result_type": "int",
     },
+    "unordered_node_set_t": "set",
 }
 
 cdef random_device rd
 cdef mt19937 random_engine = mt19937(rd())
 
 
-cdef unordered_node_set_t rejection_sample(population_size : count_t, sample_size : count_t):
+cpdef unordered_node_set_t rejection_sample(population_size : count_t, sample_size : count_t):
+    """
+    Draw samples without replacement using rejection sampling.
+
+    Args:
+        population_size: Size of the population to sample from.
+        sample_size: Size of the desired sample.
+
+    Returns:
+        result: Sample of the desired size drawn from the population without replacement.
+    """
     cdef unordered_node_set_t result
     while result.size() < sample_size:
         result.insert(random_engine() % population_size)
     return result
 
 
-cdef unordered_node_set_t knuth_sample(population_size : count_t, sample_size : count_t):
+cpdef unordered_node_set_t knuth_sample(population_size : count_t, sample_size : count_t):
+    """
+    Draw samples without replacement using Knuth's algorithm.
+
+    Args:
+        population_size: Size of the population to sample from.
+        sample_size: Size of the desired sample.
+
+    Returns:
+        result: Sample of the desired size drawn from the population without replacement.
+    """
     cdef unordered_node_set_t result
     cdef int i = 0
 
@@ -47,7 +68,18 @@ cdef unordered_node_set_t knuth_sample(population_size : count_t, sample_size : 
     return result
 
 
-cdef unordered_node_set_t adaptive_sample(population_size : count_t, sample_size : count_t):
+cpdef unordered_node_set_t adaptive_sample(population_size : count_t, sample_size : count_t):
+    """
+    Draw samples without replacement using :func:`rejection_sample` or :func:`knuth_sample`
+    depending on the relative size of the population and sample.
+
+    Args:
+        population_size: Size of the population to sample from.
+        sample_size: Size of the desired sample.
+
+    Returns:
+        result: Sample of the desired size drawn from the population without replacement.
+    """
     if 2 * sample_size < population_size:
         return rejection_sample(population_size, sample_size)
     else:

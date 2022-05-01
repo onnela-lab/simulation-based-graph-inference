@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 from simulation_based_graph_inference.graph import Graph
 from simulation_based_graph_inference import generators
@@ -42,3 +43,22 @@ def test_seed():
         graph = generators.generate_poisson_random_attachment(10, 3)
         edge_sets.append(graph.edges)
     assert edge_sets[0] == edge_sets[1]
+
+
+@pytest.mark.parametrize('method', [
+    generators.adaptive_sample,
+    generators.knuth_sample,
+    generators.rejection_sample,
+])
+def test_sample(method):
+    population_size = 20
+    sample_size = 5
+    num_repeats = 10000
+    count = 0
+    for _ in range(num_repeats):
+        sample = list(method(population_size, sample_size))
+        count = count + np.bincount(sample, minlength=population_size)
+    # Make sure that we get roughly the expected number of hits per bin.
+    expected = sample_size * num_repeats / population_size
+    np.testing.assert_array_less(.9 * expected, count)
+    np.testing.assert_array_less(count, 1.1 * expected)
