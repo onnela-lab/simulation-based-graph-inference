@@ -3,7 +3,7 @@ from cython.operator cimport dereference, preincrement
 from libcpp.iterator cimport back_inserter
 from libcpp.utility cimport move
 from libcpp.vector cimport vector as vector_t
-from .graph cimport count_t, node_t, node_set_t, unordered_node_set_t, Graph
+from .graph cimport count_t, node_t, node_set_t, node_set_t, Graph
 from .graph import assert_normalized_nodel_labels
 from .libcpp.algorithm cimport sample
 from .libcpp.random cimport mt19937, random_device, poisson_distribution, bernoulli_distribution, \
@@ -21,14 +21,14 @@ __PYI_TYPEDEFS = {
     "mt19937": {
         "result_type": "int",
     },
-    "unordered_node_set_t": "set",
+    "node_set_t": "set",
 }
 
 cdef random_device rd
 cdef mt19937 random_engine = mt19937(rd())
 
 
-cpdef unordered_node_set_t rejection_sample(population_size : count_t, sample_size : count_t):
+cpdef node_set_t rejection_sample(population_size : count_t, sample_size : count_t):
     """
     Draw samples without replacement using rejection sampling.
 
@@ -39,13 +39,13 @@ cpdef unordered_node_set_t rejection_sample(population_size : count_t, sample_si
     Returns:
         result: Sample of the desired size drawn from the population without replacement.
     """
-    cdef unordered_node_set_t result
+    cdef node_set_t result
     while result.size() < sample_size:
         result.insert(random_engine() % population_size)
     return result
 
 
-cpdef unordered_node_set_t knuth_sample(population_size : count_t, sample_size : count_t):
+cpdef node_set_t knuth_sample(population_size : count_t, sample_size : count_t):
     """
     Draw samples without replacement using Knuth's algorithm.
 
@@ -56,7 +56,7 @@ cpdef unordered_node_set_t knuth_sample(population_size : count_t, sample_size :
     Returns:
         result: Sample of the desired size drawn from the population without replacement.
     """
-    cdef unordered_node_set_t result
+    cdef node_set_t result
     cdef int i = 0
 
     while sample_size:
@@ -68,7 +68,7 @@ cpdef unordered_node_set_t knuth_sample(population_size : count_t, sample_size :
     return result
 
 
-cpdef unordered_node_set_t adaptive_sample(population_size : count_t, sample_size : count_t):
+cpdef node_set_t adaptive_sample(population_size : count_t, sample_size : count_t):
     """
     Draw samples without replacement using :func:`rejection_sample` or :func:`knuth_sample`
     depending on the relative size of the population and sample.
@@ -116,7 +116,7 @@ def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: 
     """
     cdef:
         count_t degree
-        unordered_node_set_t neighbors
+        node_set_t neighbors
         poisson_distribution[count_t] connection_distribution = poisson_distribution[count_t](rate)
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
@@ -252,7 +252,7 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         count_t num_extra_connections
         binomial_distribution[count_t] dist_num_extra_connections
         bernoulli_distribution dist_delete = bernoulli_distribution(deletion_proba)
-        unordered_node_set_t neighbors
+        node_set_t neighbors
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("mutation_proba", mutation_proba, 0, 1)
@@ -327,7 +327,7 @@ def generate_redirection(num_nodes: count_t, max_num_connections: count_t,
     cdef:
         node_t node, neighbor
         node_set_t* neighbors_ptr
-        unordered_node_set_t candidates, neighbors
+        node_set_t candidates, neighbors
         bernoulli_distribution dist_redirect = bernoulli_distribution(redirection_proba)
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
