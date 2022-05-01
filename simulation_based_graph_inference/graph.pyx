@@ -321,6 +321,9 @@ cpdef assert_normalized_nodel_labels(graph: Graph):
     Args:
         graph: Graph whose node labels to check.
 
+    Note:
+        This operation is relatively expensive because it makes a copy of the unordered node set.
+
     Raises:
         ValueError: If the node labels are not normalized.
     """
