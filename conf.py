@@ -14,3 +14,5 @@ plot_pre_code = """
 from simulation_based_graph_inference.util import _plot_generated_graph
 from simulation_based_graph_inference import generators
 """
+html_theme = "nature"
+add_module_names = False
