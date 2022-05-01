@@ -87,7 +87,7 @@ def test_copy():
 def test_normalize_node_labels():
     offset = 7
     nodes = {0, 1, 2}
-    edges = {(0, 1), (1, 2)}
+    edges = {(0, 1), (1, 2), (0, 2)}
     graph = Graph()
     graph.add_nodes({offset + i for i in nodes})
     graph.add_edges({(u + offset, v + offset) for u, v in edges})

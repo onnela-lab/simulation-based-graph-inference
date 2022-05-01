@@ -178,12 +178,8 @@ cdef class Graph:
         Notes:
             This method does not validate inputs even if :attr:`strict` is `True`.
         """
-        # The element does not exist if the lower bound is the `end` or the key of the lower bound
-        # doesn't match the key we care about (see https://stackoverflow.com/a/101980/1150961).
-        lb = self.neighbor_map.lower_bound(source)
-        if lb == self.neighbor_map.end() or source != dereference(lb).first:
-            lb = self.neighbor_map.insert(lb, pair_t[node_t, node_set_t](source, node_set_t()))
-        dereference(lb).second.insert(target)
+        it = self.neighbor_map.insert(pair_t[node_t, node_set_t](source, node_set_t()))
+        dereference(it.first).second.insert(target)
 
     cpdef int add_edges(self, edges: edge_list_t) except -1:
         """
@@ -271,7 +267,7 @@ def normalize_node_labels(graph: Graph) -> Graph:
     """
     cdef node_t i = 0
     cdef node_set_t neighbors
-    cdef map_t[node_t, node_t] mapping
+    cdef unordered_map_t[node_t, node_t] mapping
     cdef Graph other = Graph()
 
     # Construct the mapping.

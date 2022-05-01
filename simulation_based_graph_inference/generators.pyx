@@ -3,7 +3,7 @@ from cython.operator cimport dereference, preincrement
 from libcpp.iterator cimport back_inserter
 from libcpp.utility cimport move
 from libcpp.vector cimport vector as vector_t
-from .graph cimport count_t, node_t, node_set_t, Graph
+from .graph cimport count_t, node_t, node_set_t, node_set_t, Graph
 from .graph import assert_normalized_nodel_labels
 from .libcpp.algorithm cimport sample
 from .libcpp.random cimport mt19937, random_device, poisson_distribution, bernoulli_distribution, \
@@ -21,31 +21,69 @@ __PYI_TYPEDEFS = {
     "mt19937": {
         "result_type": "int",
     },
+    "node_set_t": "set",
 }
 
 cdef random_device rd
 cdef mt19937 random_engine = mt19937(rd())
 
 
-ctypedef vector_t[node_t] node_list_t
-ctypedef fused node_container_t:
-    node_set_t
-    node_list_t
-
-
-cdef node_t sample_one(node_container_t *container):
+cpdef node_set_t rejection_sample(population_size : count_t, sample_size : count_t):
     """
-    Sample a single node from a container.
+    Draw samples without replacement using rejection sampling.
 
     Args:
-        container: Pointer to a node container to sample from.
+        population_size: Size of the population to sample from.
+        sample_size: Size of the desired sample.
 
     Returns:
-        node: Node sampled from the container.
+        result: Sample of the desired size drawn from the population without replacement.
     """
-    cdef node_t node
-    sample(container.begin(), container.end(), &node, 1, move(random_engine))
-    return node
+    cdef node_set_t result
+    while result.size() < sample_size:
+        result.insert(random_engine() % population_size)
+    return result
+
+
+cpdef node_set_t knuth_sample(population_size : count_t, sample_size : count_t):
+    """
+    Draw samples without replacement using Knuth's algorithm.
+
+    Args:
+        population_size: Size of the population to sample from.
+        sample_size: Size of the desired sample.
+
+    Returns:
+        result: Sample of the desired size drawn from the population without replacement.
+    """
+    cdef node_set_t result
+    cdef int i = 0
+
+    while sample_size:
+        if random_engine() % (population_size - i) < sample_size:
+            result.insert(i)
+            sample_size -= 1
+        i += 1
+
+    return result
+
+
+cpdef node_set_t adaptive_sample(population_size : count_t, sample_size : count_t):
+    """
+    Draw samples without replacement using :func:`rejection_sample` or :func:`knuth_sample`
+    depending on the relative size of the population and sample.
+
+    Args:
+        population_size: Size of the population to sample from.
+        sample_size: Size of the desired sample.
+
+    Returns:
+        result: Sample of the desired size drawn from the population without replacement.
+    """
+    if 2 * sample_size < population_size:
+        return rejection_sample(population_size, sample_size)
+    else:
+        return knuth_sample(population_size, sample_size)
 
 
 def set_seed(seed: mt19937.result_type) -> None:
@@ -78,18 +116,18 @@ def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: 
     """
     cdef:
         count_t degree
-        node_list_t neighbors
+        node_set_t neighbors
         poisson_distribution[count_t] connection_distribution = poisson_distribution[count_t](rate)
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("rate", rate, 0, None, inclusive_low=False)
     graph = graph or Graph()
+    assert_normalized_nodel_labels(graph)
 
     for node in range(graph.get_num_nodes(), num_nodes):
         # Sample the degree and obtain neighbors.
         degree = min(node, connection_distribution(random_engine))
-        sample(graph.nodes.begin(), graph.nodes.end(), back_inserter(neighbors), degree,
-               move(random_engine))
+        neighbors = adaptive_sample(node, degree)
         # Add the node and connections.
         graph.add_node(node)
         for neighbor in neighbors:
@@ -214,12 +252,13 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         count_t num_extra_connections
         binomial_distribution[count_t] dist_num_extra_connections
         bernoulli_distribution dist_delete = bernoulli_distribution(deletion_proba)
-        node_list_t neighbors
+        node_set_t neighbors
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("mutation_proba", mutation_proba, 0, 1)
     assert_interval("deletion_proba", deletion_proba, 0, 1)
     graph = graph or Graph()
+    assert_normalized_nodel_labels(graph)
 
     # Ensure there is at least one node in the graph.
     if not graph.get_num_nodes():
@@ -229,12 +268,12 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         # First pick the additional neighbors.
         dist_num_extra_connections = binomial_distribution[count_t](node - 1, mutation_proba / node)
         num_extra_connections = dist_num_extra_connections(random_engine)
-        sample(graph.nodes.begin(), graph.nodes.end(), back_inserter(neighbors),
-               num_extra_connections + 1, move(random_engine))
+        neighbors = adaptive_sample(node, num_extra_connections + 1)
 
         # Pick one of the nodes and duplicate it.
-        source = neighbors.back()
-        neighbors.pop_back()
+        it = neighbors.begin()
+        source = dereference(it)
+        neighbors.erase(it)
         graph.add_node(node)
 
         # Create connections to neighbors of source node.
@@ -288,29 +327,29 @@ def generate_redirection(num_nodes: count_t, max_num_connections: count_t,
     cdef:
         node_t node, neighbor
         node_set_t* neighbors_ptr
-        node_list_t neighbors
+        node_set_t candidates, neighbors
         bernoulli_distribution dist_redirect = bernoulli_distribution(redirection_proba)
 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("max_num_connections", max_num_connections, 0, None, inclusive_low=False)
     assert_interval("redirection_proba", redirection_proba, 0, 1)
     graph = graph or Graph()
+    assert_normalized_nodel_labels(graph)
 
     for node in range(graph.get_num_nodes(), num_nodes):
         # Sample new neighbors.
-        sample(graph.nodes.begin(), graph.nodes.end(), back_inserter(neighbors),
-               min(max_num_connections, node), move(random_engine))
+        candidates = adaptive_sample(node, min(max_num_connections, node))
 
         # Redirect for each neighbor with some probability.
-        it = neighbors.begin()
-        while it != neighbors.end():
+        for candidate in candidates:
+            neighbor = candidate
             if dist_redirect(random_engine):
-                neighbors_ptr = graph._get_neighbors_ptr(dereference(it))
+                neighbors_ptr = graph._get_neighbors_ptr(candidate)
                 # We can only redirect if there are neighbors.
                 if neighbors_ptr.size():
-                    # Hack to assign to iterator (https://stackoverflow.com/a/56838542/1150961).
-                    (&dereference(it))[0] = sample_one(neighbors_ptr)
-            preincrement(it)
+                    sample(neighbors_ptr.begin(), neighbors_ptr.end(), &neighbor, 1,
+                           move(random_engine))
+            neighbors.insert(neighbor)
 
         # Add the node and connect neighbors.
         graph.add_node(node)
