@@ -122,7 +122,8 @@ def generate_poisson_random_attachment(num_nodes: count_t, rate: double, graph: 
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("rate", rate, 0, None, inclusive_low=False)
     graph = graph or Graph()
-    assert_normalized_nodel_labels(graph)
+    if graph.strict:
+        assert_normalized_nodel_labels(graph)
 
     for node in range(graph.get_num_nodes(), num_nodes):
         # Sample the degree and obtain neighbors.
@@ -184,7 +185,8 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
     assert_interval("divergence_proba", divergence_proba, 0, 1)
     assert_interval("interaction_proba", interaction_proba, 0, 1)
     graph = graph or Graph()
-    assert_normalized_nodel_labels(graph)
+    if graph.strict:
+        assert_normalized_nodel_labels(graph)
     # Ensure there is at least one node in the graph.
     if not graph.get_num_nodes():
         graph.add_node(0)
@@ -258,7 +260,8 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
     assert_interval("mutation_proba", mutation_proba, 0, 1)
     assert_interval("deletion_proba", deletion_proba, 0, 1)
     graph = graph or Graph()
-    assert_normalized_nodel_labels(graph)
+    if graph.strict:
+        assert_normalized_nodel_labels(graph)
 
     # Ensure there is at least one node in the graph.
     if not graph.get_num_nodes():
@@ -334,7 +337,8 @@ def generate_redirection(num_nodes: count_t, max_num_connections: count_t,
     assert_interval("max_num_connections", max_num_connections, 0, None, inclusive_low=False)
     assert_interval("redirection_proba", redirection_proba, 0, 1)
     graph = graph or Graph()
-    assert_normalized_nodel_labels(graph)
+    if graph.strict:
+        assert_normalized_nodel_labels(graph)
 
     for node in range(graph.get_num_nodes(), num_nodes):
         # Sample new neighbors.

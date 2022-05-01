@@ -1,5 +1,5 @@
 from simulation_based_graph_inference.graph import Graph, normalize_node_labels, extract_subgraph, \
-    extract_neighborhood, extract_neighborhood_subgraph
+    extract_neighborhood, extract_neighborhood_subgraph, assert_normalized_nodel_labels
 import pytest
 
 
@@ -164,3 +164,54 @@ def test_extract_neighborhood_subgraph(depth):
     subgraph = extract_neighborhood_subgraph(graph, {seed}, depth)
     expected_neighborhood = set(range(seed - depth, seed + depth + 1))
     assert set(subgraph) == expected_neighborhood
+
+
+def test_contains_type_error():
+    with pytest.raises(TypeError):
+        None in Graph()
+
+
+def test_strict_get_set():
+    graph = Graph()
+    assert graph.strict
+    with pytest.raises(IndexError):
+        graph.add_edge(0, 1)
+    graph.strict = False
+    graph.add_edge(0, 1)
+
+
+def test_neighbor_map():
+    graph = Graph()
+    graph.add_nodes({0, 1, 2})
+    graph.add_edges({(0, 1), (1, 2)})
+    assert graph.neighbor_map == {
+        0: {1},
+        1: {0, 2},
+        2: {1},
+    }
+
+
+def test_does_not_have_edge():
+    assert (0, 1) not in Graph()
+    with pytest.raises(IndexError):
+        Graph().remove_edge(0, 1)
+
+
+def test_assert_normalized_node_labels():
+    graph = Graph()
+    assert_normalized_nodel_labels(graph)
+
+    graph.add_node(0)
+    assert_normalized_nodel_labels(graph)
+
+    graph.add_nodes({1, 2})
+    assert_normalized_nodel_labels(graph)
+
+    graph.add_node(7)
+    with pytest.raises(ValueError):
+        assert_normalized_nodel_labels(graph)
+    graph.remove_node(7)
+
+    graph.remove_node(0)
+    with pytest.raises(ValueError):
+        assert_normalized_nodel_labels(graph)

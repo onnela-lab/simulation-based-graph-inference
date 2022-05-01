@@ -1,4 +1,5 @@
 from cython.operator cimport dereference, preincrement
+from libcpp.algorithm cimport sort
 from libcpp.queue cimport queue as queue_t
 from libcpp.utility cimport pair as pair_t
 
@@ -324,14 +325,22 @@ cpdef assert_normalized_nodel_labels(graph: Graph):
         ValueError: If the node labels are not normalized.
     """
     cdef node_t previous
+    cdef node_list_t nodes
     if graph.get_num_nodes() == 0:
         return
-    it = graph.nodes.begin()
+
+    nodes.assign(graph.nodes.begin(), graph.nodes.end())
+    sort(nodes.begin(), nodes.end())
+
+    it = nodes.begin()
     previous = dereference(it)
+    if previous != 0:
+        raise ValueError(f"normalized node labels must start at 0")
     preincrement(it)
-    while it != graph.nodes.end():
+
+    while it != nodes.end():
         if dereference(it) - previous != 1:
-            ValueError(f"expected normalized node labels but got {previous} and {dereference(it)}")
+            raise ValueError(f"expected normalized node labels but got {previous} and {dereference(it)}")
         previous = dereference(it)
         preincrement(it)
 

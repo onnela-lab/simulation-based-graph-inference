@@ -10,6 +10,7 @@ ctypedef pair_t[node_t, node_t] edge_t
 ctypedef vector_t[edge_t] edge_list_t
 ctypedef unordered_set_t[node_t] node_set_t
 ctypedef unordered_map_t[node_t, node_set_t] neighbor_map_t
+ctypedef vector_t[node_t] node_list_t
 
 cdef class Graph:
     cdef neighbor_map_t neighbor_map
