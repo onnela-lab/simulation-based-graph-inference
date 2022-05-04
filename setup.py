@@ -1,6 +1,11 @@
+import os
 from setuptools import find_packages, setup
 from setuptools.extension import Extension
 from Cython.Build import cythonize
+
+define_macros = []
+if os.environ.get('CYTHON_TRACE'):
+    define_macros.append(('CYTHON_TRACE', '1'))
 
 extensions = [
     Extension(
@@ -13,7 +18,7 @@ extensions = [
         include_dirs=[
             "include",
         ],
-        define_macros=[('CYTHON_TRACE', '1')],
+        define_macros=define_macros,
     ),
 ]
 
