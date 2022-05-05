@@ -1,4 +1,3 @@
-import argparse
 from datetime import datetime
 import pickle
 import torch as th
@@ -6,6 +5,7 @@ import torch_geometric as tg
 import torch_scatter as ts
 from tqdm import tqdm
 import typing
+from .util import get_parser, get_prior
 from ..convert import to_edge_index
 from ..data import SimulatedDataset
 from .. import generators
@@ -115,9 +115,7 @@ def generate(generator: typing.Callable, num_nodes: int, prior: typing.Callable)
 
 
 def __main__(args: typing.Optional[list[str]] = None) -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--num_nodes", "-n", help="number of nodes in the simulation", type=int,
-                        default=100)
+    parser = get_parser(100)
     parser.add_argument("--batch_size", "-b", help="batch size for each optimization step",
                         type=int, default=32)
     parser.add_argument("--steps_per_epoch", "-e", help="number of optimization steps per epoch",
@@ -126,47 +124,27 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                         "epochs without loss improvement after which to terminate training")
     parser.add_argument("--test", "-t", help="path at which to store one epoch of test data, "
                         "including evaluation")
-    parser.add_argument("--seed", "-s", help="random number generator seed", type=int)
-    parser.add_argument("model", help="network model to simulate from", choices=GENERATORS)
     parser.add_argument("num_sGIN_layers", help="number of feature extraction layers", type=int)
     args = parser.parse_args(args)
 
-    if (seed := args.seed) is not None:
-        th.manual_seed(seed)
-        generators.set_seed(seed)
-
     # Set up the generator and model.
-    generator = getattr(generators, args.model)
+    generator = getattr(generators, args.generator)
+    prior = get_prior(generator)
     if generator is generators.generate_duplication_mutation_complementation:
-        prior = {
-            "interaction_proba": th.distributions.Uniform(0, 1),
-            "divergence_proba": th.distributions.Uniform(0, 1),
-        }
         dists = {
             "interaction_proba": (2, evaluate_parameterized_beta),
             "divergence_proba": (2, evaluate_parameterized_beta),
         }
     elif generator is generators.generate_duplication_mutation_random:
-        prior = {
-            "mutation_proba": th.distributions.Uniform(0, 1),
-            "deletion_proba": th.distributions.Uniform(0, 1),
-        }
         dists = {
             "mutation_proba": (2, evaluate_parameterized_beta),
             "deletion_proba": (2, evaluate_parameterized_beta),
         }
     elif generator is generators.generate_poisson_random_attachment:
-        prior = {
-            "rate": th.distributions.Gamma(2, 1),
-        }
         dists = {
             "rate": (2, evaluate_parameterized_gamma),
         }
     elif generator is generators.generate_redirection:
-        prior = {
-            "max_num_connections": th.distributions.Binomial(2, 1),
-            "redirection_proba": th.distributions.Uniform(0, 1),
-        }
         dists = {
             "redirection_proba": (2, evaluate_parameterized_beta),
         }
