@@ -24,7 +24,7 @@ def __main__(args: list[str] = None):
 
     # Set up line profiling if desired.
     try:
-        generator = profile(generator)
+        generator = profile(generator)  # pyright: reportUndefinedVariable=false
     except NameError as ex:
         if str(ex) != "name 'profile' is not defined":
             raise  # pragma: no cover
