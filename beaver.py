@@ -1,7 +1,7 @@
 import beaver_build as bb
 import itertools as it
 import os
-from simulation_based_graph_inference.scripts.sinm2022 import GENERATORS
+from simulation_based_graph_inference.scripts.util import GENERATORS
 
 bb.Subprocess.ENV.update({
     "NUMEXPR_NUM_THREADS": 1,

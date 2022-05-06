@@ -4,14 +4,6 @@ from simulation_based_graph_inference.graph import Graph
 from simulation_based_graph_inference.scripts import util
 
 
-GENERATORS = [
-    "generate_duplication_mutation_complementation",
-    "generate_duplication_mutation_random",
-    "generate_poisson_random_attachment",
-    "generate_redirection",
-]
-
-
 def __main__(args: list[str] = None):
     parser = util.get_parser(10_000)
     parser.add_argument("--num_samples", "-m", help="number of independent graph samples", type=int)

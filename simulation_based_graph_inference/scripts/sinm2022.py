@@ -11,15 +11,6 @@ from ..data import SimulatedDataset
 from .. import generators
 from ..graph import Graph
 
-
-GENERATORS = [
-    "generate_duplication_mutation_complementation",
-    "generate_duplication_mutation_random",
-    "generate_poisson_random_attachment",
-    "generate_redirection",
-]
-
-
 class Model(th.nn.Module):
     """
     Model for conditional posterior density estimation for networks.
