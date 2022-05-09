@@ -19,6 +19,11 @@ DEPTHS = range(CONFIG["MAX_DEPTH"])
 SEEDS = range(CONFIG["NUM_SEEDS"])
 for generator, depth, seed in it.product(GENERATORS, DEPTHS, SEEDS):
     with bb.group_artifacts("workspace", "sinm2022", generator, f"depth_{depth}"):
+        dense = "64,64"
+        if depth == 0:
+            conv = "none"
+        else:
+            conv = "_".join(["simple"] + ["norm"] * (depth - 1))
         args = ["$!", "-m", "simulation_based_graph_inference.scripts.sinm2022", "--test=$@",
-                f"--seed={seed}", generator, depth]
+                f"--seed={seed}", generator, conv, dense]
         bb.Subprocess(f"seed_{seed}.pkl", None, args)
