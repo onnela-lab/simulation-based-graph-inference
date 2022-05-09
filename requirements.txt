@@ -7,9 +7,13 @@
 -e file:
     # via -r test_requirements.txt
 aiohttp==3.8.1
-    # via beaver-build
+    # via
+    #   -r test_requirements.txt
+    #   beaver-build
 aiosignal==1.2.0
-    # via aiohttp
+    # via
+    #   -r test_requirements.txt
+    #   aiohttp
 alabaster==0.7.12
     # via
     #   -r test_requirements.txt
@@ -25,7 +29,9 @@ argon2-cffi-bindings==21.2.0
 asttokens==2.0.5
     # via stack-data
 async-timeout==4.0.2
-    # via aiohttp
+    # via
+    #   -r test_requirements.txt
+    #   aiohttp
 attrs==21.4.0
     # via
     #   -r test_requirements.txt
@@ -41,7 +47,7 @@ backcall==0.2.0
 beautifulsoup4==4.11.1
     # via nbconvert
 beaver-build==0.1.3
-    # via -r requirements.in
+    # via -r test_requirements.txt
 bleach==5.0.0
     # via nbconvert
 certifi==2021.10.8
@@ -93,6 +99,7 @@ fonttools==4.32.0
     #   matplotlib
 frozenlist==1.3.0
     # via
+    #   -r test_requirements.txt
     #   aiohttp
     #   aiosignal
 idna==3.3
@@ -196,6 +203,7 @@ mistune==0.8.4
     # via nbconvert
 multidict==6.0.2
     # via
+    #   -r test_requirements.txt
     #   aiohttp
     #   yarl
 nbclient==0.6.0
@@ -462,7 +470,9 @@ webencodings==0.5.1
 widgetsnbextension==3.6.0
     # via ipywidgets
 yarl==1.7.2
-    # via aiohttp
+    # via
+    #   -r test_requirements.txt
+    #   aiohttp
 zipp==3.8.0
     # via
     #   -r test_requirements.txt
