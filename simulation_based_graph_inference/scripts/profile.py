@@ -1,6 +1,7 @@
 import time
 from simulation_based_graph_inference import generators  # Absolute import for line_profiler CLI.
 from simulation_based_graph_inference.graph import Graph
+from simulation_based_graph_inference import models
 from simulation_based_graph_inference.scripts import util
 
 
@@ -12,7 +13,7 @@ def __main__(args: list[str] = None):
 
     # Generate parameters for each method.
     generator = getattr(generators, args.generator)
-    prior = util.get_prior(generator)
+    prior = models.get_prior(generator)
 
     # Set up line profiling if desired.
     try:

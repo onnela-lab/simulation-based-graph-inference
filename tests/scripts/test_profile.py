@@ -1,8 +1,8 @@
 import pytest
-from simulation_based_graph_inference.scripts import profile
+from simulation_based_graph_inference.scripts import profile, util
 
 
-@pytest.fixture(params=profile.GENERATORS)
+@pytest.fixture(params=util.GENERATORS)
 def generator(request):
     return request.param
 

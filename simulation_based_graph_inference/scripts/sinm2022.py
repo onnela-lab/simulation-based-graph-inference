@@ -2,107 +2,11 @@ from datetime import datetime
 import pickle
 import torch as th
 import torch_geometric as tg
-import torch_scatter as ts
 from tqdm import tqdm
 import typing
-from .util import get_parser, get_prior
-from ..convert import to_edge_index
+from .util import get_parser
 from ..data import SimulatedDataset
-from .. import generators
-from ..graph import Graph
-
-class Model(th.nn.Module):
-    """
-    Model for conditional posterior density estimation for networks.
-
-    Args:
-        depth: Depth of the simple graph isomorphism feature extractor.
-        dists: Mapping of `(num_el, dist)` keyed by parameter name. `num_el` is the number of
-            elements (per batch) passed to `dist` which returns a
-            :class:`th.distributions.Distribution`.
-        hidden_units: Number of units per hidden layer.
-        activation: Nonlinear activation function applied between layers.
-    """
-    def __init__(self, depth: int, dists: typing.Mapping[str, typing.Tuple[int, typing.Callable]],
-                 hidden_units: typing.Tuple[int] = (64, 64),
-                 activation: typing.Optional[th.nn.Module] = None):
-        super().__init__()
-        self.depth = depth
-        self.dists = dists
-        self.activation = activation or th.nn.Tanh()
-        self.conv = tg.nn.GINConv(lambda x: x)
-
-        # Dense network to transform the features from the sGIN.
-        layers = []
-        previous = max(self.depth, 1)
-        for num_hidden in hidden_units:
-            layers.append(th.nn.Linear(previous, num_hidden))
-            layers.append(self.activation)
-            previous = num_hidden
-        self.dense = th.nn.Sequential(*layers)
-
-        # Mapping from dense layer to parameters that we can pass into distributions.
-        self.params = th.nn.ModuleDict({key: th.nn.Linear(num_hidden, num_el)
-                                        for key, (num_el, _) in self.dists.items()})
-
-    def evaluate_features(self, batch):
-        """
-        Evaluate representations of graphs using mean-pooled hidden layers of simple graph
-        isomorphism networks.
-        """
-        # We use constant features if there are no layers. Not useful except for demonstrating
-        # uninformative features extracted by zero-depth networks.
-        if not self.depth:
-            return th.ones((batch.num_graphs, 1))
-
-        # Successively construct features by appling sGIN layers.
-        x = th.ones((batch.num_nodes, 1))
-        xs = []
-        for _ in range(self.depth):
-            x = self.conv(x, batch.edge_index)
-            xs.append(x)
-        x = th.concat(xs, dim=1)
-        assert x.shape == (batch.num_nodes, self.depth)
-        # Mean-pool stratified by graph.
-        x = ts.scatter(x, batch.batch, dim=0, reduce='mean')
-        assert x.shape == (batch.num_graphs, self.depth)
-        # Normalise by mean degree for each graph in the batch to bring the representations of
-        # layers to vaguely similar scales.
-        return x / x[:, 0, None] ** th.arange(self.depth)
-
-    def forward(self, batch):
-        # Extract features, transform using the dense network, then estimate the distributions.
-        x = self.evaluate_features(batch)
-        x = self.dense(x)
-        dists = {}
-        for key, (num_el, dist) in self.dists.items():
-            y = self.params[key](x)
-            assert y.shape[-1] == num_el, f"expected {num_el} elements but got {y.shape[-1]}"
-            dists[key] = dist(y)
-        return dists
-
-
-def evaluate_parameterized_beta(x: th.Tensor) -> th.distributions.Beta:
-    a, b = x.exp().split(1, dim=-1)
-    return th.distributions.Beta(a.squeeze(dim=-1), b.squeeze(dim=-1))
-
-
-def evaluate_parameterized_gamma(x: th.Tensor) -> th.distributions.Gamma:
-    a, b = x.exp().split(1, dim=-1)
-    return th.distributions.Gamma(a.squeeze(dim=-1), b.squeeze(dim=-1))
-
-
-def generate(generator: typing.Callable, num_nodes: int, prior: typing.Callable) -> tg.data.Data:
-    """
-    Generate a graph with the desired number of nodes using the given generator.
-    """
-    graph = Graph(strict=False)
-    params = {key: dist.sample() for key, dist in prior.items()}
-    generator(num_nodes, **params, graph=graph)
-    assert graph.get_num_nodes() == num_nodes
-    edge_index = to_edge_index(graph)
-    return tg.data.Data(edge_index=edge_index, num_nodes=num_nodes,
-                        **{key: param[None] for key, param in params.items()})
+from .. import generators, models
 
 
 def __main__(args: typing.Optional[list[str]] = None) -> None:
@@ -115,36 +19,42 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                         "epochs without loss improvement after which to terminate training")
     parser.add_argument("--test", "-t", help="path at which to store one epoch of test data, "
                         "including evaluation")
-    parser.add_argument("num_sGIN_layers", help="number of feature extraction layers", type=int)
+    parser.add_argument("conv", help="sequence of graph isomorphism convolutional layers separated "
+                        "by underscores; e.g. `simple_8,8_norm` denotes a three-layer network "
+                        "comprising a simple layer, a two-layer transform, and a normalized simple "
+                        "layer")
+    parser.add_argument("dense", help="sequence of number of hidden units for the dense "
+                        "graph-level transform")
     args = parser.parse_args(args)
 
     # Set up the generator and model.
     generator = getattr(generators, args.generator)
-    prior = get_prior(generator)
-    if generator is generators.generate_duplication_mutation_complementation:
-        dists = {
-            "interaction_proba": (2, evaluate_parameterized_beta),
-            "divergence_proba": (2, evaluate_parameterized_beta),
-        }
-    elif generator is generators.generate_duplication_mutation_random:
-        dists = {
-            "mutation_proba": (2, evaluate_parameterized_beta),
-            "deletion_proba": (2, evaluate_parameterized_beta),
-        }
-    elif generator is generators.generate_poisson_random_attachment:
-        dists = {
-            "rate": (2, evaluate_parameterized_gamma),
-        }
-    elif generator is generators.generate_redirection:
-        dists = {
-            "redirection_proba": (2, evaluate_parameterized_beta),
-        }
+    prior = models.get_prior(generator)
+
+    # Set up the convoluational network for node-level representations.
+    activation = th.nn.Tanh()
+    if args.conv == "none":
+        conv = None
     else:
-        raise ValueError(args.model)  # pragma: no cover
-    model = Model(args.num_sGIN_layers, dists)
+        conv = []
+        for layer in args.conv.split('_'):
+            if layer == "simple":
+                conv.append(tg.nn.GINConv(lambda x: x))
+            elif layer == "norm":
+                conv.append(models.Normalize(tg.nn.GINConv(lambda x: x)))
+            else:
+                nn = models.create_dense_nn(map(int, layer.split(',')), activation, True)
+                conv.append(tg.nn.GINConv(nn))
+
+    # Set up the dense network for transforming graph-level representations.
+    dense = models.create_dense_nn(map(int, args.dense.split(',')), activation, True)
+
+    # Set up the parameterized distributions and model.
+    dists = models.get_parameterized_posterior_density_estimator(generator)
+    model = models.Model(conv, dense, dists)
 
     # Prepare the dataset and optimizer.
-    dataset = SimulatedDataset(generate, (generator, args.num_nodes, prior),
+    dataset = SimulatedDataset(models.generate_data, (generator, args.num_nodes, prior),
                                length=args.batch_size * args.steps_per_epoch)
     loader = tg.loader.DataLoader(dataset, batch_size=args.batch_size)
     optimizer = th.optim.Adam(model.parameters(), lr=0.01)
