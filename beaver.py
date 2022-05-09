@@ -10,16 +10,16 @@ bb.Subprocess.ENV.update({
 })
 
 CONFIG = {
-    "MAX_DEPTH": (int, 5),
+    "MAX_DEPTH": (int, 4),
     "NUM_SEEDS": (int, 10),
 }
 CONFIG = {key: type(os.environ.get(key, default)) for key, (type, default) in CONFIG.items()}
 
-DEPTHS = range(CONFIG["MAX_DEPTH"])
+DEPTHS = range(CONFIG["MAX_DEPTH"] + 1)
 SEEDS = range(CONFIG["NUM_SEEDS"])
 for generator, depth, seed in it.product(GENERATORS, DEPTHS, SEEDS):
     with bb.group_artifacts("workspace", "sinm2022", generator, f"depth_{depth}"):
-        dense = "64,64"
+        dense = "8,8"
         if depth == 0:
             conv = "none"
         else:
