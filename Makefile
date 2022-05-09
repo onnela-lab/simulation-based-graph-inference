@@ -1,6 +1,6 @@
-.PHONY : docs doctests lint sync tests clean clean_docs
+.PHONY : docs doctests lint sync tests clean clean-docs beaver-list
 
-build : lint tests docs doctests stubs
+build : lint tests docs doctests stubs beaver-list
 
 lint :
 	flake8
@@ -32,10 +32,12 @@ ${STUB_TARGETS} : simulation_based_graph_inference/%.pyi : \
 		generate_stub.py simulation_based_graph_inference/%.pyx
 	python $< simulation_based_graph_inference.$* > $@
 
-clean_docs :
+clean-docs :
 	rm -rf docs/_build
+	${MAKE} docs
 
-clean : clean_docs
+clean :
+	rm -rf docs/_build
 	rm -f simulation_based_graph_inference/*.pyi
 	rm -f simulation_based_graph_inference/*.so
 	rm -f simulation_based_graph_inference/*.html
@@ -61,3 +63,6 @@ ${LPROFILE_TARGETS} : workspace/lprofile/%.lprof : simulation_based_graph_infere
 	kernprof -l -z -o $@.tmp $< $*
 	python -m line_profiler $@.tmp > $@
 	rm -rf $@.tmp
+
+beaver-list : beaver.py
+	beaver list --all
