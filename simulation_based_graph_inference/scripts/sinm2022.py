@@ -93,6 +93,9 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                                          f"best loss: {best_loss:.3f}")
 
     if args.test:
+        # Reset the seed so we compare like with like independent of how long the training took.
+        if args.seed is not None:
+            generators.set_seed(args.seed)
         # Full batch evaluation.
         loader = tg.loader.DataLoader(dataset, batch_size=len(dataset))
         with th.no_grad():
