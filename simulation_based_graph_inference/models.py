@@ -3,9 +3,12 @@ import torch as th
 import torch_geometric as tg
 import torch_scatter as ts
 import typing
+import warnings
 from .convert import to_edge_index
 from . import generators
 from .graph import Graph
+
+warnings.filterwarnings("ignore", message="Lazy modules are a new feature")
 
 
 class DistributionModule(th.nn.Module):
