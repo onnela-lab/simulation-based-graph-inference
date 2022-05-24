@@ -196,7 +196,7 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
         source = random_engine() % node
         graph.add_node(node)
         # Create or remove connections with neighbors.
-        for neighbor in dereference(graph._get_neighbors_ptr(source)):
+        for neighbor in graph.neighbor_map[source]:
             if dist_original(random_engine):
                 if dist_divergence(random_engine):
                     graph.remove_edge(source, neighbor)
@@ -280,7 +280,7 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         graph.add_node(node)
 
         # Create connections to neighbors of source node.
-        for neighbor in dereference(graph._get_neighbors_ptr(source)):
+        for neighbor in graph.neighbor_map[source]:
             if not dist_delete(random_engine):
                 graph.add_edge(node, neighbor)
 
@@ -329,7 +329,7 @@ def generate_redirection(num_nodes: count_t, max_num_connections: count_t,
     """
     cdef:
         node_t node, neighbor
-        node_set_t* neighbors_ptr
+        node_set_t* candidate_neighbors
         node_set_t candidates, neighbors
         bernoulli_distribution dist_redirect = bernoulli_distribution(redirection_proba)
 
@@ -348,10 +348,10 @@ def generate_redirection(num_nodes: count_t, max_num_connections: count_t,
         for candidate in candidates:
             neighbor = candidate
             if dist_redirect(random_engine):
-                neighbors_ptr = graph._get_neighbors_ptr(candidate)
+                candidate_neighbors = &graph.neighbor_map[candidate]
                 # We can only redirect if there are neighbors.
-                if neighbors_ptr.size():
-                    sample(neighbors_ptr.begin(), neighbors_ptr.end(), &neighbor, 1,
+                if candidate_neighbors.size():
+                    sample(candidate_neighbors.begin(), candidate_neighbors.end(), &neighbor, 1,
                            move(random_engine))
             neighbors.insert(neighbor)
 

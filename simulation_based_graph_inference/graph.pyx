@@ -103,6 +103,7 @@ cdef class Graph:
         Add a node.
         """
         self.nodes.insert(node)
+        self.neighbor_map.insert(pair_t[node_t, node_set_t](node, node_set_t()))
 
     cpdef void add_nodes(self, nodes: node_set_t):
         """
@@ -137,16 +138,16 @@ cdef class Graph:
         Raises:
             IndexError: If the node does not exist.
         """
+        cdef bint exists = self.nodes.erase(node)
+        if not exists:
+            # Delete the node and check whether it existed in the first place.
+            if self.strict:
+                raise IndexError(f"node {node} does not exist")
+            return 0
         # Remove any edges targeting or originating from this node.
-        it = self.neighbor_map.find(node)
-        if it != self.neighbor_map.end():
-            for neighbor in dereference(it).second:
-                self._remove_directed_edge(neighbor, node)
-            self.neighbor_map.erase(it)
-
-        # Delete the node and check whether it existed in the first place.
-        if self.strict and not self.nodes.erase(node):
-            raise IndexError(f"node {node} does not exist")
+        for neighbor in self.neighbor_map[node]:
+            self._remove_directed_edge(neighbor, node)
+        self.neighbor_map.erase(node)
 
     cpdef bint has_edge(self, node1: node_t, node2: node_t):
         """
@@ -179,8 +180,7 @@ cdef class Graph:
         Notes:
             This method does not validate inputs even if :attr:`strict` is `True`.
         """
-        it = self.neighbor_map.insert(pair_t[node_t, node_set_t](source, node_set_t()))
-        dereference(it.first).second.insert(target)
+        self.neighbor_map[source].insert(target)
 
     cpdef int add_edges(self, edges: edge_list_t) except -1:
         """
@@ -200,10 +200,7 @@ cdef class Graph:
         Raises:
             IndexError: If the edge does not exist.
         """
-        cdef bint exists = False
-        it = self.neighbor_map.find(source)
-        if it != self.neighbor_map.end():
-            exists = dereference(it).second.erase(target)
+        cdef bint exists = self.neighbor_map[source].erase(target)
         if self.strict and not exists:
             raise IndexError("edge from {source} to {target} does not exist")
 
@@ -216,25 +213,6 @@ cdef class Graph:
         """
         self._remove_directed_edge(node1, node2)
         self._remove_directed_edge(node2, node1)
-
-    cdef node_set_t* _get_neighbors_ptr(self, node: node_t) except NULL:
-        """
-        Get a pointer to the neighbors of a node.
-
-        Args:
-            node: Node for which to get neighbors.
-
-        Returns:
-            neighbors: Neighbors of the node.
-
-        Raises:
-            IndexError: If the node does not exist.
-        """
-        self.assert_node_exists(node)
-        it = self.neighbor_map.find(node)
-        if it == self.neighbor_map.end():
-            return &EMPTY_NODE_SET
-        return &dereference(it).second
 
     def get_neighbors(self, node: node_t) -> node_set_t:
         """
@@ -249,7 +227,10 @@ cdef class Graph:
         Raises:
             IndexError: If the node does not exist.
         """
-        return dereference(self._get_neighbors_ptr(node))
+        it = self.neighbor_map.find(node)
+        if self.strict and it == self.neighbor_map.end():
+            raise IndexError(f"node {node} does not exist")
+        return dereference(it).second
 
     def __repr__(self):
         return f"Graph(num_nodes={self.get_num_nodes()}, num_edges={self.get_num_edges()})"
@@ -307,7 +288,7 @@ cpdef Graph extract_subgraph(graph: Graph, node_set_t &nodes):
 
     # Copy over all edges for which both nodes are in the desired set.
     for node in nodes:
-        for neighbor in dereference(graph._get_neighbors_ptr(node)):
+        for neighbor in graph.neighbor_map[node]:
             if nodes.find(neighbor) != nodes.end():
                 other.add_edge(node, neighbor)
 
@@ -374,7 +355,7 @@ cpdef node_set_t extract_neighborhood(graph: Graph, node_set_t &nodes, depth: co
         queue.pop()
         neighborhood.insert(pair.first)
         if pair.second < depth:
-            for node in dereference(graph._get_neighbors_ptr(pair.first)):
+            for node in graph.neighbor_map[pair.first]:
                 queue.push(pair_t[node_t, count_t](node, pair.second + 1))
 
     return neighborhood

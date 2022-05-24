@@ -30,5 +30,4 @@ cdef class Graph:
     cpdef int _add_directed_edge(self, node_t, node_t) except -1
     cpdef int remove_edge(self, node_t, node_t) except -1
     cpdef int _remove_directed_edge(self, node_t, node_t) except -1
-    cdef node_set_t* _get_neighbors_ptr(self, node_t) except NULL
     cpdef bint has_edge(self, node_t, node_t)
