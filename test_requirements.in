@@ -1,2 +1,2 @@
 -e file:[tests,docs]
-beaver-build
+beaver-build>=0.1.4

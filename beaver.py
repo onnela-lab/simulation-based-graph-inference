@@ -4,7 +4,7 @@ import os
 from simulation_based_graph_inference.scripts.util import GENERATORS
 
 # Prevent each process from parallelizing which can lead to competition across processes.
-bb.Subprocess.ENV.update({
+bb.Subprocess.set_global_env({
     "NUMEXPR_NUM_THREADS": 1,
     "OPENBLAS_NUM_THREADS": 1,
     "OMP_NUM_THREADS": 1,

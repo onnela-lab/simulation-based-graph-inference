@@ -46,7 +46,7 @@ backcall==0.2.0
     # via ipython
 beautifulsoup4==4.11.1
     # via nbconvert
-beaver-build==0.1.3
+beaver-build==0.1.4
     # via -r test_requirements.txt
 bleach==5.0.0
     # via nbconvert
