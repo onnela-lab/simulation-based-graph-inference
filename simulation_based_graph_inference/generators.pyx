@@ -197,12 +197,12 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
         graph.add_node(node)
         # Create or remove connections with neighbors.
         for neighbor in graph.neighbor_map[source]:
-            if dist_original(random_engine):
-                if dist_divergence(random_engine):
+            if dist_divergence(random_engine):
+                if dist_original(random_engine):
                     graph.remove_edge(source, neighbor)
-            else:
-                if not dist_divergence(random_engine):
                     graph.add_edge(node, neighbor)
+            else:
+                graph.add_edge(node, neighbor)
         # Create a connection between the nodes.
         if dist_interaction(random_engine):
             graph.add_edge(source, node)
