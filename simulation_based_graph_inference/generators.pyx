@@ -267,8 +267,9 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
     if not graph.get_num_nodes():
         graph.add_node(0)
 
-    for node in range(graph.get_num_nodes(), num_nodes):
-        # First pick the additional neighbors.
+    while graph.get_num_nodes() < num_nodes:
+        node = graph.get_num_nodes()
+        # First pick the additional neighbors, we sample one additional one as the seed.
         dist_num_extra_connections = binomial_distribution[count_t](node - 1, mutation_proba / node)
         num_extra_connections = dist_num_extra_connections(random_engine)
         neighbors = adaptive_sample(node, num_extra_connections + 1)
@@ -277,14 +278,14 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         it = neighbors.begin()
         source = dereference(it)
         neighbors.erase(it)
-        graph.add_node(node)
 
         # Create connections to neighbors of source node.
         for neighbor in graph.neighbor_map[source]:
             if not dist_delete(random_engine):
-                graph.add_edge(node, neighbor)
+                neighbors.insert(neighbor)
 
-        # Create connections to random nodes.
+        # Create connections.
+        graph.add_node(node)
         for neighbor in neighbors:
             graph.add_edge(node, neighbor)
         neighbors.clear()
