@@ -39,6 +39,7 @@ setup(
     version="0.1.0",
     install_requires=[
         "cython",
+        "doit-interface",
         "matplotlib",
         "networkx",
         "numpy",

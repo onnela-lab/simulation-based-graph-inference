@@ -1,10 +1,12 @@
-import beaver_build as bb
+import doit_interface as di
 import itertools as it
 import os
 from simulation_based_graph_inference.scripts.util import GENERATORS
 
+manager = di.Manager.get_instance()
+
 # Prevent each process from parallelizing which can lead to competition across processes.
-bb.Subprocess.set_global_env({
+di.SubprocessAction.set_global_env({
     "NUMEXPR_NUM_THREADS": 1,
     "OPENBLAS_NUM_THREADS": 1,
     "OMP_NUM_THREADS": 1,
@@ -50,7 +52,9 @@ for depth in DEPTHS:
 
 # Generate targets for the different configurations.
 for generator, seed, (key, specification) in it.product(GENERATORS, SEEDS, SPECIFICATIONS.items()):
-    with bb.group_artifacts("workspace", "sinm2022", generator, *key):
-        args = ["$!", "-m", "simulation_based_graph_inference.scripts.sinm2022", "--test=$@",
-                f"--seed={seed}", generator, specification["conv"], specification["dense"]]
-        bb.Subprocess(f"seed-{seed}.pkl", None, args)
+    args = ["$!", "-m", "simulation_based_graph_inference.scripts.sinm2022", "--test=$@",
+            f"--seed={seed}", generator, specification["conv"], specification["dense"]]
+    name = f"seed-{seed}"
+    basename = f"sinm2022/{generator}/{key[0]}/{key[1]}"
+    target = f"workspace/{basename}/{name}.pkl"
+    manager(basename=basename, name=name, actions=[args], targets=[target], uptodate=[True])
