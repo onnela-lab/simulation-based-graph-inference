@@ -1,6 +1,6 @@
-.PHONY : docs doctests lint sync tests clean clean-docs beaver-list
+.PHONY : docs doctests lint sync tests clean clean-docs doit-list
 
-build : lint tests docs doctests stubs beaver-list
+build : lint tests docs doctests stubs doit-list
 
 lint :
 	flake8
@@ -64,5 +64,5 @@ ${LPROFILE_TARGETS} : workspace/lprofile/%.lprof : simulation_based_graph_infere
 	python -m line_profiler $@.tmp > $@
 	rm -rf $@.tmp
 
-beaver-list : beaver.py
-	beaver list --all
+doit-list : dodo.py
+	doit list
