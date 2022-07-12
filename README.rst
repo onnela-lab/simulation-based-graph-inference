@@ -9,3 +9,4 @@ Simulation-based graph inference
   docs/convert
   docs/graph
   docs/generators
+  docs/models

@@ -196,13 +196,13 @@ def generate_duplication_mutation_complementation(num_nodes: count_t, interactio
         source = random_engine() % node
         graph.add_node(node)
         # Create or remove connections with neighbors.
-        for neighbor in dereference(graph._get_neighbors_ptr(source)):
-            if dist_original(random_engine):
-                if dist_divergence(random_engine):
+        for neighbor in graph.neighbor_map[source]:
+            if dist_divergence(random_engine):
+                if dist_original(random_engine):
                     graph.remove_edge(source, neighbor)
-            else:
-                if not dist_divergence(random_engine):
                     graph.add_edge(node, neighbor)
+            else:
+                graph.add_edge(node, neighbor)
         # Create a connection between the nodes.
         if dist_interaction(random_engine):
             graph.add_edge(source, node)
@@ -267,8 +267,9 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
     if not graph.get_num_nodes():
         graph.add_node(0)
 
-    for node in range(graph.get_num_nodes(), num_nodes):
-        # First pick the additional neighbors.
+    while graph.get_num_nodes() < num_nodes:
+        node = graph.get_num_nodes()
+        # First pick the additional neighbors, we sample one additional one as the seed.
         dist_num_extra_connections = binomial_distribution[count_t](node - 1, mutation_proba / node)
         num_extra_connections = dist_num_extra_connections(random_engine)
         neighbors = adaptive_sample(node, num_extra_connections + 1)
@@ -277,14 +278,14 @@ def generate_duplication_mutation_random(num_nodes: count_t, mutation_proba: dou
         it = neighbors.begin()
         source = dereference(it)
         neighbors.erase(it)
-        graph.add_node(node)
 
         # Create connections to neighbors of source node.
-        for neighbor in dereference(graph._get_neighbors_ptr(source)):
+        for neighbor in graph.neighbor_map[source]:
             if not dist_delete(random_engine):
-                graph.add_edge(node, neighbor)
+                neighbors.insert(neighbor)
 
-        # Create connections to random nodes.
+        # Create connections.
+        graph.add_node(node)
         for neighbor in neighbors:
             graph.add_edge(node, neighbor)
         neighbors.clear()
@@ -329,7 +330,7 @@ def generate_redirection(num_nodes: count_t, max_num_connections: count_t,
     """
     cdef:
         node_t node, neighbor
-        node_set_t* neighbors_ptr
+        node_set_t* candidate_neighbors
         node_set_t candidates, neighbors
         bernoulli_distribution dist_redirect = bernoulli_distribution(redirection_proba)
 
@@ -348,10 +349,10 @@ def generate_redirection(num_nodes: count_t, max_num_connections: count_t,
         for candidate in candidates:
             neighbor = candidate
             if dist_redirect(random_engine):
-                neighbors_ptr = graph._get_neighbors_ptr(candidate)
+                candidate_neighbors = &graph.neighbor_map[candidate]
                 # We can only redirect if there are neighbors.
-                if neighbors_ptr.size():
-                    sample(neighbors_ptr.begin(), neighbors_ptr.end(), &neighbor, 1,
+                if candidate_neighbors.size():
+                    sample(candidate_neighbors.begin(), candidate_neighbors.end(), &neighbor, 1,
                            move(random_engine))
             neighbors.insert(neighbor)
 
