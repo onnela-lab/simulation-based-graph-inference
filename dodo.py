@@ -3,6 +3,7 @@ import itertools as it
 import os
 from simulation_based_graph_inference.scripts.util import GENERATORS
 
+DOIT_CONFIG = di.DOIT_CONFIG
 manager = di.Manager.get_instance()
 
 # Prevent each process from parallelizing which can lead to competition across processes.
