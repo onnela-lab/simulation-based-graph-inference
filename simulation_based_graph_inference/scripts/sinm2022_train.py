@@ -1,0 +1,178 @@
+import contextlib
+from datetime import datetime
+import pickle
+import torch as th
+import torch_geometric as tg
+from torch_geometric.loader import DataLoader
+from tqdm import tqdm
+import typing
+from .util import get_parser
+from ..data import PersistentDataset
+from ..util import ensure_long_edge_index
+from .. import generators, models
+
+
+@contextlib.contextmanager
+def null_context(*args, **kwargs):
+    yield
+
+
+def run_epoch(model: th.nn.Module, loader: DataLoader, optimizer: th.optim.Optimizer = None,
+              max_num_batches: int = None):
+    """
+    Run one epoch for the model using data from the given loader.
+
+    Args:
+        model: Model to estimate posterior densities.
+        loader: Data loader yielding batches of graphs.
+        optimizer: Optimizer to train the model. The model is not trained if no optimizer is given.
+        max_num_batches: Maximum number of optimization steps for this epoch.
+
+    Returns:
+        epoch_loss: Mean negative log-probability loss evaluated on data provided by the loader.
+        dists: Posterior density estimates for the last batch keyed by parameter name.
+    """
+    epoch_loss = 0
+    num_batches = 0
+    for batch in loader:
+        # Reset gradients if we're training the model.
+        if optimizer:
+            optimizer.zero_grad()
+
+        # Apply the model to get posterior estimates and evaluate the loss.
+        with (null_context() if optimizer else th.no_grad()):
+            dists = model(batch)
+            assert batch.num_graphs == loader.batch_size or num_batches == len(loader) - 1
+            assert all(dist.batch_shape == (batch.num_graphs,) for dist in dists.values())
+            log_prob = sum(dist.log_prob(batch[key]) for key, dist in dists.items())
+            loss = - log_prob.mean()
+
+        # Update the model weights if desired.
+        if optimizer:
+            loss.backward()
+            optimizer.step()
+
+        epoch_loss += loss.item()
+        num_batches += 1
+
+        if max_num_batches and num_batches >= max_num_batches:
+            break
+
+    return {
+        "batch": batch,
+        "dists": dists,
+        "log_prob": log_prob,
+        "epoch_loss": epoch_loss / num_batches,
+        "num_batches": num_batches,
+    }
+
+
+def __main__(args: typing.Optional[list[str]] = None) -> None:
+    parser = get_parser(100)
+    parser.add_argument("--batch_size", "-b", help="batch size for each optimization step",
+                        type=int, default=32)
+    parser.add_argument("--steps_per_epoch", "-e", help="number of optimization steps per epoch",
+                        type=int, default=32)
+    parser.add_argument("--patience", "-p", type=int, default=50, help="number of consecutive "
+                        "epochs without loss improvement after which to terminate training")
+    parser.add_argument("--result", help="path at which to store evaluation on test set",
+                        required=True)
+    parser.add_argument("--conv", help="sequence of graph isomorphism convolutional layers "
+                        "separated by underscores; e.g. `simple_8,8_norm` denotes a three-layer "
+                        "network comprising a simple layer, a two-layer transform, and a "
+                        "normalized simple layer", required=True)
+    parser.add_argument("--dense", help="sequence of number of hidden units for the dense "
+                        "graph-level transform", required=True)
+    parser.add_argument("--test", help="path to test set", required=True)
+    parser.add_argument("--validation", help="path to validation set", required=True)
+    parser.add_argument("--train", help="path to training set", required=True)
+    args = parser.parse_args(args)
+
+    # Set up the generator and model.
+    generator = getattr(generators, args.generator)
+    prior = models.get_prior(generator)
+
+    # Set up the convoluational network for node-level representations.
+    activation = th.nn.Tanh()
+    if args.conv == "none":
+        conv = None
+    else:
+        conv = []
+        for layer in args.conv.split('_'):
+            if layer == "simple":
+                conv.append(tg.nn.GINConv(lambda x: x))
+            elif layer == "norm":
+                conv.append(models.Normalize(tg.nn.GINConv(lambda x: x)))
+            else:
+                nn = models.create_dense_nn(map(int, layer.split(',')), activation, True)
+                conv.append(tg.nn.GINConv(nn))
+
+    # Set up the dense network for transforming graph-level representations.
+    dense = models.create_dense_nn(map(int, args.dense.split(',')), activation, True)
+
+    # Set up the parameterized distributions and model.
+    dists = models.get_parameterized_posterior_density_estimator(generator)
+    model = models.Model(conv, dense, dists)
+
+    # Prepare the datasets and optimizer.
+    datasets = {key: PersistentDataset(getattr(args, key), transform=ensure_long_edge_index)
+                for key in ["train", "test", "validation"]}
+    loaders = {
+        "train": DataLoader(datasets["train"], shuffle=True, batch_size=args.batch_size),
+        "validation": DataLoader(datasets["validation"], shuffle=True, batch_size=args.batch_size),
+    }
+    optimizer = th.optim.Adam(model.parameters(), lr=0.01)
+    scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, verbose=True, factor=0.5, cooldown=20, min_lr=1e-6
+    )
+
+    losses = {}
+    best_loss = float("inf")
+    num_bad_epochs = 0
+
+    start = datetime.now()
+    with tqdm() as progress:
+        while num_bad_epochs < args.patience:
+            # Run one training epoch and evaluate the validation loss.
+            train_loss = run_epoch(model, loaders["train"], optimizer,
+                                   args.steps_per_epoch)["epoch_loss"]
+            validation_loss = run_epoch(model, loaders["validation"])["epoch_loss"]
+            losses.setdefault("train", []).append(train_loss)
+            losses.setdefault("validation", []).append(validation_loss)
+            progress.update()
+            scheduler.step(validation_loss)
+
+            if validation_loss < best_loss:
+                best_loss = validation_loss
+                num_bad_epochs = 0
+            else:
+                num_bad_epochs += 1
+            progress.set_description_str(
+                f"bad epochs: {num_bad_epochs}; loss: {validation_loss:.3f}; "
+                f"best loss: {best_loss:.3f}"
+            )
+
+    # Evaluate on the test set using full batch evaluation.
+    dataset = datasets["test"]
+    result = run_epoch(model, DataLoader(dataset, len(dataset)))
+    assert result["num_batches"] == 1, "got more than one evaluation batch"
+    assert result["log_prob"].shape == (len(dataset),)
+
+    # Store the distributions, batch parameters, and the evaluated log probability.
+    end = datetime.now()
+    result = {
+        "start": start,
+        "end": end,
+        "duration": (end - start).total_seconds(),
+        "dists": result["dists"],
+        "params": {key: result["batch"][key] for key in result["dists"]},
+        "log_prob": result["log_prob"],
+        "prior": prior,
+        "batch": result["batch"],
+    }
+    with open(args.result, "wb") as fp:
+        pickle.dump(result, fp)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    __main__()
