@@ -80,7 +80,7 @@ def test_normalize_mean_degree(batch):
     ]
     model = models.Model(conv, None, None)
     graph_features = model.evaluate_graph_features(batch)
-    th.testing.assert_allclose(graph_features, th.ones((batch.num_graphs, 1)))
+    th.testing.assert_close(graph_features, th.ones((batch.num_graphs, 1)))
 
 
 @pytest.mark.parametrize("final_activation", [False, True])

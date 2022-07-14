@@ -25,7 +25,7 @@ def test_gin(graph: Graph, adjacency: th.Tensor, edge_index: th.Tensor):
     x = th.randn(graph.get_num_nodes(), 3)
     y = torch_geometric.nn.GINConv(lambda x: x)(x, edge_index)
     z = (adjacency + th.eye(adjacency.shape[0])) @ x
-    th.testing.assert_allclose(y, z)
+    th.testing.assert_close(y, z)
 
 
 def test_gcn(graph: Graph, adjacency: th.Tensor, edge_index: th.Tensor):
@@ -36,4 +36,4 @@ def test_gcn(graph: Graph, adjacency: th.Tensor, edge_index: th.Tensor):
     degree = matrix.sum(axis=0)
     matrix = matrix / (degree[:, None] * degree).sqrt()
     z = matrix @ x @ conv.lin.weight.T
-    th.testing.assert_allclose(y, z)
+    th.testing.assert_close(y, z)
