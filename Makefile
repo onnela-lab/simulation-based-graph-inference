@@ -6,7 +6,7 @@ lint :
 	flake8
 
 tests :
-	pytest -v --cov=simulation_based_graph_inference --cov-fail-under=100 --cov-report=term-missing --cov-report=html
+	pytest tests -v --cov=simulation_based_graph_inference --cov-fail-under=100 --cov-report=term-missing --cov-report=html
 
 docs :
 	rm -rf docs/_build/plot_directive
