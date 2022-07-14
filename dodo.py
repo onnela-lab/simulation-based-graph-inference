@@ -20,7 +20,7 @@ di.SubprocessAction.set_global_env({
 # Load basic configuration from the environment.
 CONFIG = {
     "MAX_DEPTH": (int, 4),
-    "NUM_SEEDS": (int, 10),
+    "NUM_SEEDS": (int, 5),
 }
 CONFIG = {key: type(os.environ.get(key, default)) for key, (type, default) in CONFIG.items()}
 
