@@ -1,6 +1,92 @@
 import itertools as it
+import numbers
+import pathlib
+import shutil
 import torch as th
+from tqdm import tqdm
 import typing
+
+
+class PersistentDataset(th.utils.data.Dataset):
+    """
+    Persistent dataset for simulated graphs.
+
+    Note:
+        Multiple iterations over the dataset will return the same results unless the dataset was
+        :meth:`reset`.
+
+    Args:
+        root: Directory for storing simulated graphs.
+        length: Number of graphs to generate (loaded from `[root]/length` if not given).
+        func: Callable to generate graphs (can be omitted for a pre-generated dataset).
+        args: Positional arguments passed to `func`.
+        kwargs: Keyword arguments passed to `func`.
+        progress: Whether to show a progress bar or a callable that can wrap an iterable.
+        transform: Callable to transform an item in the dataset.
+    """
+    def __init__(self, root: str, length: int = None, func: typing.Callable = None,
+                 args: typing.Iterable = None, kwargs: typing.Mapping = None,
+                 progress: bool = False, transform: typing.Callable = None) -> None:
+        self.root = pathlib.Path(root)
+
+        # Load the length if it is missing and validate it.
+        if not length:
+            try:
+                with open(self.root / "length") as fp:
+                    length = int(fp.read().strip())
+            except FileNotFoundError as ex:
+                raise ValueError("length cannot be loaded from the root directory and must be "
+                                 "given") from ex
+        if not isinstance(length, numbers.Integral) or length <= 0:
+            raise ValueError("length must be a positive integer")
+
+        self.length = length
+        self.func = func
+        self.args = args or []
+        self.kwargs = kwargs or {}
+        self.transform = transform
+
+        # Prepare the iterator for loading data.
+        self.root.mkdir(parents=True, exist_ok=True)
+        steps = range(self.length)
+        if isinstance(progress, typing.Callable):
+            steps = progress(steps)
+        elif progress:
+            steps = tqdm(steps)
+
+        # Generate the data.
+        for i in steps:
+            path = self._get_path(i)
+            if path.is_file():
+                continue
+            if self.func is None:
+                raise RuntimeError(f"func to generate data must be given because element {i} does "
+                                   f"not exist at {path}")
+            data = self.func(*self.args, **self.kwargs)
+            th.save(data, path)
+
+        with open(self.root / "length", "w") as fp:
+            fp.write(str(self.length))
+
+    def _get_path(self, index: int) -> pathlib.Path:
+        return self.root / f"{index}.pt"
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, index):
+        if index >= self.length:
+            raise StopIteration
+        item = th.load(self._get_path(index))
+        if self.transform:
+            item = self.transform(item)
+        return item
+
+    def reset(self):
+        """
+        Reset the dataset by deleting the root directory.
+        """
+        shutil.rmtree(self.root)
 
 
 class SimulatedDataset(th.utils.data.IterableDataset):

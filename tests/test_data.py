@@ -51,3 +51,47 @@ def test_interleaved_dataset(longest):
     for i, (X, y) in enumerate(interleaved):
         if i < 50:
             np.testing.assert_allclose(X, i % len(datasets))
+
+
+def test_persistent_dataset(tmpwd: str):
+    # First step to generate the dataset.
+    length = 10
+    dataset = data.PersistentDataset(tmpwd, length, th.randn, [3, 4])
+    assert len(dataset) == length
+    result = th.vstack(list(dataset))
+    assert result.shape == (length * 3, 4)
+
+    # Do it again.
+    dataset = data.PersistentDataset(tmpwd)
+    assert len(dataset) == length
+    other = result = th.vstack(list(dataset))
+    np.testing.assert_array_equal(result, other)
+
+
+def test_persistent_dataset_uninitialized(tmpwd: str):
+    with pytest.raises(ValueError):
+        data.PersistentDataset(tmpwd)
+
+
+def test_invalid_length(tmpwd: str):
+    with pytest.raises(ValueError):
+        data.PersistentDataset(tmpwd, 0)
+    with pytest.raises(ValueError):
+        data.PersistentDataset(tmpwd, "3")
+
+
+def test_missing_func(tmpwd: str):
+    with pytest.raises(RuntimeError):
+        data.PersistentDataset(tmpwd, 3)
+
+
+def test_reset(tmpwd: str):
+    dataset = data.PersistentDataset("data", 3, th.randn, [5])
+    assert dataset.root.is_dir()
+    dataset.reset()
+    assert not dataset.root.is_dir()
+
+
+@pytest.mark.parametrize("progress", [True, False, lambda x: x])
+def test_progress(tmpwd: str, progress):
+    data.PersistentDataset("data", 3, th.randn, [5], progress=progress)
