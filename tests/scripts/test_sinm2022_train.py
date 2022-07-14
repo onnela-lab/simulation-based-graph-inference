@@ -20,6 +20,7 @@ def test_sinm2022(generator: str, dense: str, conv: str, tmpwd: str):
     args = dict2args(
         patience=1, num_nodes=1, result=filename, batch_size=batch_size, generator=generator,
         seed=13, conv=conv, dense=dense, train="data", test="data", validation="data",
+        steps_per_epoch=steps_per_epoch,
     )
     sinm2022_train.__main__(args)
     with open(filename, "rb") as fp:
