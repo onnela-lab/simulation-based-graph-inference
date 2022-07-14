@@ -95,7 +95,7 @@ doit==0.36.0
     # via
     #   -r test_requirements.txt
     #   doit-interface
-doit-interface==0.1.4
+doit-interface==0.1.5
     # via
     #   -r test_requirements.txt
     #   simulation-based-graph-inference

@@ -42,7 +42,7 @@ docutils==0.18.1
     # via sphinx
 doit==0.36.0
     # via doit-interface
-doit-interface==0.1.4
+doit-interface==0.1.5
     # via simulation-based-graph-inference
 flake8==4.0.1
     # via simulation-based-graph-inference
