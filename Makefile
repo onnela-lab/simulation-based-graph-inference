@@ -38,10 +38,10 @@ clean-docs :
 
 clean :
 	rm -rf docs/_build
-	rm -f simulation_based_graph_inference/*.pyi
-	rm -f simulation_based_graph_inference/*.so
-	rm -f simulation_based_graph_inference/*.html
-	rm -f simulation_based_graph_inference/*.cpp
+	rm -f simulation_based_graph_inference/**/*.pyi
+	rm -f simulation_based_graph_inference/**/*.so
+	rm -f simulation_based_graph_inference/**/*.html
+	rm -f simulation_based_graph_inference/**/*.cpp
 
 
 GENERATORS = generate_duplication_mutation_complementation generate_duplication_mutation_random \

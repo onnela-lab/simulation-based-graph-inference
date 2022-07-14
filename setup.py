@@ -10,7 +10,7 @@ if os.environ.get('CYTHON_TRACE'):
 extensions = [
     Extension(
         name="*",
-        sources=["simulation_based_graph_inference/*.pyx"],
+        sources=["simulation_based_graph_inference/**/*.pyx"],
         extra_compile_args=[
             "-std=c++17",
         ],
