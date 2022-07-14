@@ -172,8 +172,8 @@ def get_parameterized_posterior_density_estimator(generator) \
 
 
 def generate_data(generator: typing.Callable, num_nodes: int,
-                  prior: typing.Mapping[str, th.distributions.Distribution], strict: bool = False) \
-        -> tg.data.Data:
+                  prior: typing.Mapping[str, th.distributions.Distribution], strict: bool = False,
+                  dtype=th.long) -> tg.data.Data:
     """
     Generate a graph in :mod:`torch_geometric` data format.
 
@@ -190,7 +190,7 @@ def generate_data(generator: typing.Callable, num_nodes: int,
     generator(num_nodes, **params, graph=graph)
     if graph.get_num_nodes() != num_nodes:  # pragma: no cover
         raise ValueError(f"expected {num_nodes} but {generator} generated {graph.get_num_nodes()}")
-    edge_index = to_edge_index(graph)
+    edge_index = to_edge_index(graph, dtype=dtype)
     return tg.data.Data(edge_index=edge_index, num_nodes=num_nodes,
                         **{key: param[None] for key, param in params.items()})
 

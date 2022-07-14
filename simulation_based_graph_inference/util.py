@@ -1,6 +1,8 @@
 from matplotlib import pyplot as plt
 import networkx as nx
 import numbers
+import torch as th
+from torch_geometric.data import Data
 import typing
 from .convert import to_networkx
 
@@ -51,3 +53,11 @@ def assert_interval(name: str, value: numbers.Number, low: numbers.Number, high:
         raise ValueError(f"{name} must belong to the interval {'[' if inclusive_low else '('}"
                          f"{'-inf' if low is None else low}, {'inf' if high is None else high}"
                          f"{']' if inclusive_high else ')'} but got {value}")
+
+
+def ensure_long_edge_index(data: Data) -> Data:
+    """
+    Ensure that the `edge_index` of the data is a long tensor.
+    """
+    data.edge_index = data.edge_index.to(th.long)
+    return data
