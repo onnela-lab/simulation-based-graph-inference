@@ -4,6 +4,8 @@
 #
 #    pip-compile --output-file=test_requirements.txt test_requirements.in
 #
+--extra-index-url https://data.pyg.org/whl/torch-1.12.0+cpu.html
+
 -e file:
     # via -r test_requirements.in
 aiohttp==3.8.1
