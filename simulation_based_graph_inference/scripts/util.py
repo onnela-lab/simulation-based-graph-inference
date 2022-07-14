@@ -27,6 +27,6 @@ def get_parser(default_num_nodes: int) -> argparse.ArgumentParser:
     parser.add_argument("--num_nodes", "-n", help="number of nodes", default=default_num_nodes,
                         type=int)
     parser.add_argument("--seed", "-s", help="random number generator seed", type=_apply_seed)
-    parser.add_argument("generator", help="generator to use for sampling graphs",
-                        choices=GENERATORS)
+    parser.add_argument("--generator", help="generator to use for sampling graphs",
+                        choices=GENERATORS, required=True)
     return parser
