@@ -116,19 +116,20 @@ def duplication_mutation(
     assert_interval("mutation_proba", mutation_proba, 0, 1)
     assert_interval("deletion_proba", deletion_proba, 0, 1)
     rng = rng or np.random
+    if not graph:
+        graph = nx.Graph()
+        graph.add_edge(0, 1)
+    elif len(graph) == 1:  # pragma: no cover
+        raise ValueError("cannot generate duplication mutation graph from single node")
     graph = graph or nx.Graph()
     assert_normalized_nodel_labels(graph)
-
-    # Ensure there is at least one node in the graph.
-    if not len(graph):
-        graph.add_node(0)
 
     keep_sequence = random_sequence(rng.binomial, 1, 1 - deletion_proba)
 
     while (node := len(graph)) < num_nodes:
         # First pick the additional neighbors, we sample one additional one as the seed.
-        num_extra_connections = rng.binomial(node, mutation_proba / node)
-        source, *random_neighbors = rng.choice(node, num_extra_connections + 1)
+        num_extra_connections = rng.binomial(node - 1, mutation_proba / node)
+        source, *random_neighbors = rng.choice(node, num_extra_connections + 1, replace=False)
 
         # Create connections to neighbors of source node.
         for neighbor in graph.neighbors(source):
