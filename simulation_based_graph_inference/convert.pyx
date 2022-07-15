@@ -32,7 +32,7 @@ def _to_edge_index(graph: Graph, integral[:, :] out, dtype):
             i += 1
 
 
-def to_edge_index(graph: Graph, edge_index: th.Tensor = None, dtype=th.long) -> th.Tensor:
+def to_edge_index(graph, edge_index: th.Tensor = None, dtype=th.long) -> th.Tensor:
     """
     Convert a graph to a :mod:`torch_geometric` edge index.
 
@@ -48,13 +48,22 @@ def to_edge_index(graph: Graph, edge_index: th.Tensor = None, dtype=th.long) -> 
         ValueError: If the preallocated `edge_index` has the wrong shape.
     """
     # Prepare memory.
-    expected_shape = (2, 2 * graph.get_num_edges())
+    num_edges = graph.get_num_edges() if isinstance(graph, Graph) else graph.number_of_edges()
+    expected_shape = (2, 2 * num_edges)
     if edge_index is None:
         edge_index = th.empty(expected_shape, dtype=dtype)
     elif edge_index.shape != expected_shape:
         raise ValueError(f"expected shape {expected_shape} but got {edge_index.shape}")
 
-    _to_edge_index(graph, edge_index.numpy(), dtype)
+    if isinstance(graph, Graph):
+        _to_edge_index(graph, edge_index.numpy(), dtype)
+    elif isinstance(graph, nx.Graph):
+        graph = graph.to_directed()
+        for i, (u, v) in enumerate(graph.edges):
+            edge_index[0, i] = u
+            edge_index[1, i] = v
+    else:
+        raise TypeError(graph)  # pragma: no cover
     return edge_index
 
 

@@ -6,18 +6,26 @@ from simulation_based_graph_inference.convert import to_edge_index, to_networkx,
 import torch as th
 
 
-def _get_graph_and_edges() -> tuple[Graph, set]:
-    graph = Graph()
-    graph.add_nodes([0, 1, 2, 3])
+def _get_graph_and_edges(networkx: bool = False) -> tuple[Graph, set]:
+    nodes = [0, 1, 2, 3]
     edges = {(0, 1), (1, 2), (2, 3), (0, 3)}
-    graph.add_edges(edges)
+    if networkx:
+        graph = nx.Graph()
+        graph.add_nodes_from(nodes)
+        graph.add_edges_from(edges)
+    else:
+        graph = Graph()
+        graph.add_nodes(nodes)
+        graph.add_edges(edges)
     return graph, edges
 
 
-def test_to_edge_index():
-    graph, edges = _get_graph_and_edges()
+@pytest.mark.parametrize("networkx", [False, True])
+def test_to_edge_index(networkx: bool):
+    graph, edges = _get_graph_and_edges(networkx)
     edge_index = to_edge_index(graph)
-    assert edge_index.shape == (2, 2 * graph.get_num_edges())
+    num_edges = graph.number_of_edges() if networkx else graph.get_num_edges()
+    assert edge_index.shape == (2, 2 * num_edges)
     # Check that directed edge indices have been created for all edges.
     edge_index_set = {(int(u), int(v)) for u, v in edge_index.T}
     directed_edges = edges | {(v, u) for u, v in edges}
@@ -47,3 +55,12 @@ def test_to_adjacency():
 
     with pytest.raises(ValueError):
         to_adjacency(graph, th.zeros(1))
+
+
+@pytest.mark.parametrize("edge", [(0, 100_000), (100_000, 0)])
+def test_invalid_dtype(edge):
+    graph = Graph()
+    graph.add_nodes(edge)
+    graph.add_edge(*edge)
+    with pytest.raises(ValueError):
+        to_edge_index(graph, dtype=th.int16)
