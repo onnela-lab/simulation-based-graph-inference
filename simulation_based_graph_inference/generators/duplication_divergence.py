@@ -1,6 +1,6 @@
 import networkx as nx
 import numpy as np
-from ..util import assert_interval, assert_normalized_nodel_labels, randint
+from ..util import assert_interval, assert_normalized_nodel_labels, randint, random_sequence
 
 
 def duplication_complementation(
@@ -51,13 +51,15 @@ def duplication_complementation(
     if not len(graph):
         graph.add_node(0)
 
+    divergence_sequence = random_sequence(rng.binomial, 1, divergence_proba)
+
     for node in range(len(graph), num_nodes):
         # Pick one of the nodes and duplicate it.
         source = randint(rng, node)
         graph.add_node(node)
         # Create or remove connections with neighbors.
         for neighbor in list(graph.neighbors(source)):
-            if rng.binomial(1, divergence_proba):
+            if next(divergence_sequence):
                 if rng.binomial(1, 0.5):
                     graph.remove_edge(source, neighbor)
                     graph.add_edge(node, neighbor)
@@ -122,6 +124,8 @@ def duplication_mutation(
     if not len(graph):
         graph.add_node(0)
 
+    keep_sequence = random_sequence(rng.binomial, 1, 1 - deletion_proba)
+
     while (node := len(graph)) < num_nodes:
         # First pick the additional neighbors, we sample one additional one as the seed.
         num_extra_connections = rng.binomial(node, mutation_proba / node)
@@ -129,7 +133,7 @@ def duplication_mutation(
 
         # Create connections to neighbors of source node.
         for neighbor in graph.neighbors(source):
-            if not rng.binomial(1, deletion_proba):
+            if next(keep_sequence):
                 graph.add_edge(node, neighbor)
 
         graph.add_edges_from((node, neighbor) for neighbor in random_neighbors)

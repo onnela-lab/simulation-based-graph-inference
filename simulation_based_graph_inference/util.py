@@ -126,3 +126,38 @@ def to_edge_index(graph: nx.Graph, edge_index: th.Tensor = None, dtype: th.dtype
         edge_index[1, i] = v
 
     return edge_index
+
+
+class random_sequence:
+    """
+    Generate an infinite random sequence using a generator efficiently by sampling batches.
+
+    Args:
+        generator: Callable to sample a batch of random variables.
+        *args: Positional arguments passed to `generator`.
+        size: Shape of each sample.
+        batch_size: Number of samples per batch.
+        **kwargs: Keyword arguments passed to `generator`.
+    """
+    def __init__(self, generator: typing.Callable, *args, size=None, batch_size: int = 100,
+                 **kwargs):
+        self.generator = generator
+        self.args = args
+        self.kwargs = kwargs
+        self.batch_size = batch_size
+        if size is None:
+            self.size = batch_size
+        elif isinstance(size, int):
+            self.size = (batch_size, size)
+        else:
+            self.size = (batch_size, *size)
+        self.batch = None
+        self.iter = None
+
+    def __next__(self):
+        try:
+            return next(self.iter)
+        except (TypeError, StopIteration):
+            self.batch = self.generator(*self.args, size=self.size, **self.kwargs)
+            self.iter = iter(self.batch)
+            return next(self.iter)

@@ -1,4 +1,5 @@
 import networkx as nx
+import numpy as np
 import pytest
 from simulation_based_graph_inference import generators
 from simulation_based_graph_inference import util
@@ -94,3 +95,13 @@ def test_assert_normalized_node_labels():
 def test_randint_invalid():
     with pytest.raises(TypeError):
         util.randint(None, 4)
+
+
+@pytest.mark.parametrize("size", [None, 3, (5, 7)])
+def test_random_sequence(size):
+    rng1 = np.random.RandomState(0)
+    rng2 = np.random.RandomState(0)
+    sequence = util.random_sequence(rng1.normal, 3, 2, size=size, batch_size=10)
+
+    for _ in range(1000):
+        np.testing.assert_allclose(rng2.normal(3, 2, size=size), next(sequence))
