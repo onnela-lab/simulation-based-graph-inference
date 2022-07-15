@@ -5,7 +5,7 @@ from simulation_based_graph_inference.scripts import util
 
 
 def __main__(args: list[str] = None):
-    parser = util.get_parser(10_000)
+    parser = util.get_parser(1_000)
     parser.add_argument("--num_samples", "-m", help="number of independent graph samples", type=int)
     args = parser.parse_args(args)
 
