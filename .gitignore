@@ -135,6 +135,6 @@ playground/
 workspace/
 .doit.db
 
-simulation_based_graph_inference/*.html
-simulation_based_graph_inference/*.cpp
-simulation_based_graph_inference/*.pyi
+simulation_based_graph_inference/**/*.html
+simulation_based_graph_inference/**/*.cpp
+simulation_based_graph_inference/**/*.pyi

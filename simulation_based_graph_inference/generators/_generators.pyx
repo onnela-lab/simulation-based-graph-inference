@@ -3,12 +3,12 @@ from cython.operator cimport dereference, preincrement
 from libcpp.iterator cimport back_inserter
 from libcpp.utility cimport move
 from libcpp.vector cimport vector as vector_t
-from .graph cimport count_t, node_t, node_set_t, node_set_t, Graph
-from .graph import assert_normalized_nodel_labels
-from .libcpp.algorithm cimport sample
-from .libcpp.random cimport mt19937, random_device, poisson_distribution, bernoulli_distribution, \
+from ..graph cimport count_t, node_t, node_set_t, node_set_t, Graph
+from ..graph import assert_normalized_nodel_labels
+from ..libcpp.algorithm cimport sample
+from ..libcpp.random cimport mt19937, random_device, poisson_distribution, bernoulli_distribution, \
     binomial_distribution
-from .util import assert_interval
+from ..util import assert_interval
 
 __PYI_HEADER = """
 import numbers

@@ -10,7 +10,7 @@ if os.environ.get('CYTHON_TRACE'):
 extensions = [
     Extension(
         name="*",
-        sources=["simulation_based_graph_inference/*.pyx"],
+        sources=["simulation_based_graph_inference/**/*.pyx"],
         extra_compile_args=[
             "-std=c++17",
         ],
@@ -39,7 +39,7 @@ setup(
     version="0.1.0",
     install_requires=[
         "cython",
-        "doit-interface>=0.1.5",
+        "doit-interface>=0.1.6",
         "matplotlib",
         "networkx",
         "numpy",

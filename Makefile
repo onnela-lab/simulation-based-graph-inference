@@ -24,13 +24,14 @@ requirements.txt : requirements.in setup.py test_requirements.txt
 test_requirements.txt : test_requirements.in setup.py
 	pip-compile -v -o $@ $<
 
-STUB_FILES = convert generators graph
+STUB_FILES = convert graph generators/_generators
 STUB_TARGETS = $(addprefix simulation_based_graph_inference/,${STUB_FILES:=.pyi})
 stubs : ${STUB_TARGETS}
+$(info ${STUB_TARGETS})
 
 ${STUB_TARGETS} : simulation_based_graph_inference/%.pyi : \
 		generate_stub.py simulation_based_graph_inference/%.pyx
-	python $< simulation_based_graph_inference.$* > $@
+	python $< simulation_based_graph_inference.$(subst /,.,$*) > $@
 
 clean-docs :
 	rm -rf docs/_build
@@ -38,10 +39,10 @@ clean-docs :
 
 clean :
 	rm -rf docs/_build
-	rm -f simulation_based_graph_inference/*.pyi
-	rm -f simulation_based_graph_inference/*.so
-	rm -f simulation_based_graph_inference/*.html
-	rm -f simulation_based_graph_inference/*.cpp
+	rm -f simulation_based_graph_inference/**/*.pyi
+	rm -f simulation_based_graph_inference/**/*.so
+	rm -f simulation_based_graph_inference/**/*.html
+	rm -f simulation_based_graph_inference/**/*.cpp
 
 
 GENERATORS = generate_duplication_mutation_complementation generate_duplication_mutation_random \
