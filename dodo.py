@@ -56,7 +56,7 @@ for depth in DEPTHS:
     }
 
 SPLITS = {
-    "train": 100_000,
+    "train": 10_000,
     "validation": 1_000,
     "test": 1_000,
 }
