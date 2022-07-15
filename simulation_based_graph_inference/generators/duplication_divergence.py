@@ -53,10 +53,9 @@ def duplication_complementation(
 
     divergence_sequence = random_sequence(rng.binomial, 1, divergence_proba)
 
-    for node in range(len(graph), num_nodes):
+    while (node := len(graph)) < num_nodes:
         # Pick one of the nodes and duplicate it.
         source = randint(rng, node)
-        graph.add_node(node)
         # Create or remove connections with neighbors.
         for neighbor in list(graph.neighbors(source)):
             if next(divergence_sequence):
