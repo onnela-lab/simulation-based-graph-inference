@@ -35,8 +35,8 @@ class PersistentDataset(th.utils.data.Dataset):
                 with open(self.root / "length") as fp:
                     length = int(fp.read().strip())
             except FileNotFoundError as ex:
-                raise ValueError("length cannot be loaded from the root directory and must be "
-                                 "given") from ex
+                raise ValueError(f"length cannot be loaded from the root directory `{self.root}` "
+                                 "and must be given") from ex
         if not isinstance(length, numbers.Integral) or length <= 0:
             raise ValueError("length must be a positive integer")
 
