@@ -51,7 +51,7 @@ def redirection(num_nodes: int, max_num_connections: int, redirection_proba: flo
 
     for node in range(len(graph), num_nodes):
         # Sample new neighbors.
-        candidates = rng.choice(node, min(max_num_connections, node))
+        candidates = rng.choice(node, min(max_num_connections, node), replace=False)
 
         # Redirect for each neighbor with some probability.
         neighbors = []
