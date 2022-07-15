@@ -115,6 +115,10 @@ def get_prior(generator: typing.Callable) -> typing.Mapping[str, th.distribution
             "max_num_connections": th.distributions.Binomial(2, 1),
             "redirection_proba": th.distributions.Uniform(0, 1),
         }
+    elif generator is generators.geometric:
+        return {
+            "scale": th.distributions.Uniform(0, 1),
+        }
     else:
         raise ValueError(f"{generator.__name__} is not a known generator")  # pragma: no cover
 
@@ -167,13 +171,20 @@ def get_parameterized_posterior_density_estimator(generator) \
                 concentration1=th.nn.LazyLinear(1),
             ),
         }
+    elif generator is generators.geometric:
+        return {
+            "scale": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+        }
     else:  # pragma: no cover
         raise ValueError(f"{generator.__name__} is not a known generator")
 
 
 def generate_data(generator: typing.Callable, num_nodes: int,
                   prior: typing.Mapping[str, th.distributions.Distribution], strict: bool = False,
-                  dtype=th.long) -> tg.data.Data:
+                  dtype=th.long, **kwargs) -> tg.data.Data:
     """
     Generate a graph in :mod:`torch_geometric` data format.
 
@@ -181,6 +192,8 @@ def generate_data(generator: typing.Callable, num_nodes: int,
         generator: Generator to obtain a synthetic graph.
         num_nodes: Number of nodes in the synthetic graph.
         prior: Prior to sample from.
+        dtype: Data type of the `edge_index` tensor.
+        **kwargs: Keyword arguments passed to the generator.
 
     Returns:
         data: Synthetic graph in :mod:`torch_geometric` data format.

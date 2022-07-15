@@ -8,6 +8,7 @@ GENERATORS = [
     "generate_duplication_mutation_random",
     "generate_poisson_random_attachment",
     "generate_redirection",
+    "geometric",
 ]
 
 

@@ -11,6 +11,7 @@ import typing
     (generators.generate_duplication_mutation_complementation, (.7, .3)),
     (generators.generate_duplication_mutation_random, (.6, .2)),
     (generators.generate_redirection, (4, .3)),
+    (generators.geometric, (lambda dist: dist < .5,))
 ])
 def test_generator(num_nodes: int, generator: typing.Callable, args: list):
     # Check validation against non-positive number of nodes.
@@ -19,7 +20,10 @@ def test_generator(num_nodes: int, generator: typing.Callable, args: list):
             generator(num_nodes, *args)
     else:
         graph: Graph = generator(num_nodes, *args)
-        assert graph.get_num_nodes() == num_nodes
+        if isinstance(graph, Graph):
+            assert graph.get_num_nodes() == num_nodes
+        else:
+            assert graph.number_of_nodes() == num_nodes
 
 
 @pytest.mark.parametrize("generator, args", [
