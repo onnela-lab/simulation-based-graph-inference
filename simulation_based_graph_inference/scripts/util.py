@@ -1,13 +1,13 @@
 import argparse
+import numpy as np
 import torch as th
-from .. import generators
 
 
 GENERATORS = [
-    "generate_duplication_mutation_complementation",
-    "generate_duplication_mutation_random",
-    "generate_poisson_random_attachment",
-    "generate_redirection",
+    "duplication_complementation",
+    "duplication_mutation",
+    "poisson_random_attachment",
+    "redirection",
     "geometric",
 ]
 
@@ -16,7 +16,7 @@ def _apply_seed(seed):
     if seed is not None:
         seed = int(seed)
         th.manual_seed(seed)
-        generators.set_seed(seed)
+        np.random.seed(seed)
     return seed
 
 

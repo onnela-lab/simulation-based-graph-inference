@@ -1,10 +1,12 @@
+import networkx as nx
 import pytest
 from simulation_based_graph_inference import generators
 from simulation_based_graph_inference import util
+import torch as th
 
 
 def test_plot_generated_graph():
-    util._plot_generated_graph(generators.generate_poisson_random_attachment, 4)
+    util._plot_generated_graph(generators.poisson_random_attachment, 4)
 
 
 @pytest.mark.parametrize("fail, args", [
@@ -26,3 +28,69 @@ def test_assert_interval(fail, args):
             util.assert_interval("var", *args)
     else:
         util.assert_interval("var", *args)
+
+
+def _get_graph_and_edges() -> tuple[nx.Graph, set]:
+    nodes = [0, 1, 2, 3]
+    edges = {(0, 1), (1, 2), (2, 3), (0, 3)}
+    graph = nx.Graph()
+    graph.add_nodes_from(nodes)
+    graph.add_edges_from(edges)
+    return graph, edges
+
+
+def test_to_edge_index():
+    graph, edges = _get_graph_and_edges()
+    edge_index = util.to_edge_index(graph)
+    assert edge_index.shape == (2, 2 * len(graph))
+    # Check that directed edge indices have been created for all edges.
+    edge_index_set = {(int(u), int(v)) for u, v in edge_index.T}
+    directed_edges = edges | {(v, u) for u, v in edges}
+    assert directed_edges == edge_index_set
+
+
+def test_to_edge_index_invalid_shape():
+    graph, _ = _get_graph_and_edges()
+    edge_index = th.zeros(1)
+    with pytest.raises(ValueError):
+        util.to_edge_index(graph, edge_index)
+
+
+def test_to_edge_index_loops():
+    graph = nx.Graph()
+    graph.add_edge(0, 0)
+    with pytest.raises(ValueError):
+        util.to_edge_index(graph)
+
+
+@pytest.mark.parametrize("edge", [(0, 100_000), (100_000, 0)])
+def test_invalid_dtype(edge):
+    graph = nx.Graph()
+    graph.add_edge(*edge)
+    with pytest.raises(RuntimeError):
+        util.to_edge_index(graph, dtype=th.int16)
+
+
+def test_assert_normalized_node_labels():
+    graph = nx.Graph()
+    util.assert_normalized_nodel_labels(graph)
+
+    graph.add_node(0)
+    util.assert_normalized_nodel_labels(graph)
+
+    graph.add_nodes_from({1, 2})
+    util.assert_normalized_nodel_labels(graph)
+
+    graph.add_node(7)
+    with pytest.raises(ValueError):
+        util.assert_normalized_nodel_labels(graph)
+    graph.remove_node(7)
+
+    graph.remove_node(0)
+    with pytest.raises(ValueError):
+        util.assert_normalized_nodel_labels(graph)
+
+
+def test_randint_invalid():
+    with pytest.raises(TypeError):
+        util.randint(None, 4)

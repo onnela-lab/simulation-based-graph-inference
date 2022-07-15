@@ -1,6 +1,5 @@
 import time
 from simulation_based_graph_inference import generators  # Absolute import for line_profiler CLI.
-from simulation_based_graph_inference.graph import Graph
 from simulation_based_graph_inference import models
 from simulation_based_graph_inference.scripts import util
 
@@ -8,7 +7,6 @@ from simulation_based_graph_inference.scripts import util
 def __main__(args: list[str] = None):
     parser = util.get_parser(10_000)
     parser.add_argument("--num_samples", "-m", help="number of independent graph samples", type=int)
-    parser.add_argument("--strict", action="store_true", help="use strict mode to verify graph")
     args = parser.parse_args(args)
 
     # Generate parameters for each method.
@@ -27,9 +25,8 @@ def __main__(args: list[str] = None):
     count = 0
     while (args.num_samples and count < args.num_samples) \
             or (args.num_samples is None and time.time() - start < 10):
-        graph = Graph(strict=args.strict)
         params = {key: value.sample() for key, value in prior.items()}
-        generator(args.num_nodes, **params, graph=graph)
+        generator(args.num_nodes, **params)
         count += 1
     duration = time.time() - start
     print(f"generated {count} samples in {duration:.3f} secs ({count / duration:.3f} per sec)")
