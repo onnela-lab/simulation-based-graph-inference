@@ -28,23 +28,5 @@ clean-docs :
 	rm -rf docs/_build
 	${MAKE} docs
 
-GENERATORS = duplication_mutation duplication_complementation poisson_random_attachment \
-	redirection geometric
-CPROFILE_TARGETS = $(addprefix workspace/profile/,${GENERATORS:=.prof})
-LPROFILE_TARGETS = $(addprefix workspace/lprofile/,${GENERATORS:=.lprof})
-
-workspace/profile : ${CPROFILE_TARGETS}
-workspace/lprofile : ${LPROFILE_TARGETS}
-
-${CPROFILE_TARGETS} : workspace/profile/%.prof : simulation_based_graph_inference/scripts/profile.py
-	mkdir -p $(dir $@)
-	python -m cProfile -o $@ $< --generator=$*
-
-${LPROFILE_TARGETS} : workspace/lprofile/%.lprof : simulation_based_graph_inference/scripts/profile.py
-	mkdir -p $(dir $@)
-	kernprof -l -z -o $@.tmp $< --generator=$*
-	python -m line_profiler $@.tmp > $@
-	rm -rf $@.tmp
-
 doit-list : dodo.py
 	doit list
