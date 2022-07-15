@@ -56,7 +56,7 @@ for depth in DEPTHS:
     }
 
 SPLITS = {
-    "train": 100_000,
+    "train": 10_000,
     "validation": 1_000,
     "test": 1_000,
 }
@@ -84,3 +84,21 @@ for generator in GENERATORS:
                       seed=seed, generator=generator, result=target)
         manager(basename=basename, name=name, actions=[args], targets=[target], uptodate=[True],
                 file_dep=datasets)
+
+
+# Profiling targets.
+for generator in GENERATORS:
+    basename = f"profile/{generator}"
+    target = ROOT / f"{basename}.prof"
+    args = ["$!", "-m", "cProfile", "-o", "$@", "$^"] + dict2args(generator=generator)
+    manager(basename=basename, name="prof", targets=[target], actions=[args],
+            file_dep=["simulation_based_graph_inference/scripts/profile.py"])
+
+    target = ROOT / f"{basename}.lineprof"
+    actions = [
+        f"$! -m kernprof -l -z -o $@.tmp $^ --generator={generator}",
+        "$! -m line_profiler $@.tmp > $@",
+        "rm -f $@.tmp",
+    ]
+    manager(basename=basename, name="lineprof", targets=[target], actions=actions,
+            file_dep=["simulation_based_graph_inference/scripts/profile.py"])

@@ -6,7 +6,5 @@ Simulation-based graph inference
 
 .. toctree::
 
-  docs/convert
-  docs/graph
   docs/generators
   docs/models

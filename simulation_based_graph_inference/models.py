@@ -1,12 +1,13 @@
 import inspect
+import networkx as nx
 import torch as th
 import torch_geometric as tg
 import torch_scatter as ts
 import typing
 import warnings
-from .convert import to_edge_index
 from . import generators
-from .graph import Graph
+from .util import to_edge_index
+
 
 warnings.filterwarnings("ignore", message="Lazy modules are a new feature")
 
@@ -96,21 +97,21 @@ def get_prior(generator: typing.Callable) -> typing.Mapping[str, th.distribution
     Returns:
         prior: Mapping from parameter names to distributions.
     """
-    if generator is generators.generate_duplication_mutation_complementation:
+    if generator is generators.duplication_complementation:
         return {
             "interaction_proba": th.distributions.Uniform(0, 1),
             "divergence_proba": th.distributions.Uniform(0, 1),
         }
-    elif generator is generators.generate_duplication_mutation_random:
+    elif generator is generators.duplication_mutation:
         return {
             "mutation_proba": th.distributions.Uniform(0, 1),
             "deletion_proba": th.distributions.Uniform(0, 1),
         }
-    elif generator is generators.generate_poisson_random_attachment:
+    elif generator is generators.poisson_random_attachment:
         return {
             "rate": th.distributions.Gamma(2, 1),
         }
-    elif generator is generators.generate_redirection:
+    elif generator is generators.redirection:
         return {
             "max_num_connections": th.distributions.Binomial(2, 1),
             "redirection_proba": th.distributions.Uniform(0, 1),
@@ -135,7 +136,7 @@ def get_parameterized_posterior_density_estimator(generator) \
         estimator: Mapping from parameter names to a module that returns a
             :class:`torch.distributions.Distribution`.
     """
-    if generator is generators.generate_duplication_mutation_complementation:
+    if generator is generators.duplication_complementation:
         return {
             "interaction_proba": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
@@ -146,7 +147,7 @@ def get_parameterized_posterior_density_estimator(generator) \
                 concentration1=th.nn.LazyLinear(1),
             ),
         }
-    elif generator is generators.generate_duplication_mutation_random:
+    elif generator is generators.duplication_mutation:
         return {
             "mutation_proba": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
@@ -157,14 +158,14 @@ def get_parameterized_posterior_density_estimator(generator) \
                 concentration1=th.nn.LazyLinear(1),
             ),
         }
-    elif generator is generators.generate_poisson_random_attachment:
+    elif generator is generators.poisson_random_attachment:
         return {
             "rate": DistributionModule(
                 th.distributions.Gamma, concentration=th.nn.LazyLinear(1),
                 rate=th.nn.LazyLinear(1),
             )
         }
-    elif generator is generators.generate_redirection:
+    elif generator is generators.redirection:
         return {
             "redirection_proba": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
@@ -183,7 +184,7 @@ def get_parameterized_posterior_density_estimator(generator) \
 
 
 def generate_data(generator: typing.Callable, num_nodes: int,
-                  prior: typing.Mapping[str, th.distributions.Distribution], strict: bool = False,
+                  prior: typing.Mapping[str, th.distributions.Distribution],
                   dtype=th.long, **kwargs) -> tg.data.Data:
     """
     Generate a graph in :mod:`torch_geometric` data format.
@@ -198,11 +199,10 @@ def generate_data(generator: typing.Callable, num_nodes: int,
     Returns:
         data: Synthetic graph in :mod:`torch_geometric` data format.
     """
-    graph = Graph(strict=strict)
     params = {key: dist.sample() for key, dist in prior.items()}
-    generator(num_nodes, **params, graph=graph)
-    if graph.get_num_nodes() != num_nodes:  # pragma: no cover
-        raise ValueError(f"expected {num_nodes} but {generator} generated {graph.get_num_nodes()}")
+    graph: nx.Graph = generator(num_nodes, **params, **kwargs)
+    if len(graph) != num_nodes:  # pragma: no cover
+        raise ValueError(f"expected {num_nodes} but {generator} generated {len(graph)}")
     edge_index = to_edge_index(graph, dtype=dtype)
     return tg.data.Data(edge_index=edge_index, num_nodes=num_nodes,
                         **{key: param[None] for key, param in params.items()})

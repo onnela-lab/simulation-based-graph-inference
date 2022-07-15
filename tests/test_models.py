@@ -5,10 +5,11 @@ import torch_geometric as tg
 
 
 @pytest.fixture(params=[
-    generators.generate_duplication_mutation_complementation,
-    generators.generate_duplication_mutation_random,
-    generators.generate_poisson_random_attachment,
-    generators.generate_redirection,
+    generators.duplication_complementation,
+    generators.duplication_mutation,
+    generators.poisson_random_attachment,
+    generators.redirection,
+    generators.geometric,
 ])
 def generator(request):
     return request.param
@@ -17,7 +18,7 @@ def generator(request):
 @pytest.fixture
 def batch(generator):
     prior = models.get_prior(generator)
-    dataset = data.SimulatedDataset(models.generate_data, (generator, 100, prior), {"strict": True})
+    dataset = data.SimulatedDataset(models.generate_data, (generator, 100, prior))
     loader = tg.loader.DataLoader(dataset, batch_size=32)
     for batch in loader:
         return batch
