@@ -63,13 +63,16 @@ SPLITS = {
 
 for generator in GENERATORS:
     # Generate the data.
+    datasets = []
     for seed, (split, num_samples) in enumerate(SPLITS.items()):
         data_basename = f"sinm2022/{generator}/data"
         directory = ROOT / data_basename / split
+        target = directory / "length"
+        datasets.append(target)
         args = ["$!", "-m", "simulation_based_graph_inference.scripts.sinm2022_data"] + \
             dict2args(seed=seed, generator=generator, num_samples=num_samples, directory=directory)
-        uptodate = sum(1 for _ in directory.glob("*.pt")) >= num_samples
-        manager(basename=data_basename, name=split, actions=[args], uptodate=[uptodate])
+        manager(basename=data_basename, name=split, actions=[args], uptodate=[True],
+                targets=[target])
 
     # Train the models.
     for seed, ((architecture, depth), specification) in it.product(SEEDS, SPECIFICATIONS.items()):
@@ -80,4 +83,4 @@ for generator in GENERATORS:
             dict2args(specification, {split: ROOT / data_basename / split for split in SPLITS},
                       seed=seed, generator=generator, result=target)
         manager(basename=basename, name=name, actions=[args], targets=[target], uptodate=[True],
-                task_dep=[data_basename])
+                file_dep=datasets)
