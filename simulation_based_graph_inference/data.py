@@ -1,4 +1,5 @@
 import itertools as it
+import json
 import numbers
 import pathlib
 import shutil
@@ -87,6 +88,103 @@ class PersistentDataset(th.utils.data.Dataset):
         Reset the dataset by deleting the root directory.
         """
         shutil.rmtree(self.root)
+
+
+class BatchedDataset(th.utils.data.IterableDataset):
+    """
+    Dataset to load items from batches of data. If `num_concurrent == 1` and `not shuffle`, the
+    elements are yielded in order.
+
+    Args:
+        root: Directory from which to load data (must contain a file `meta.json` that contains
+            metadata).
+        num_concurrent: Number of concurrent batches to load.
+        shuffle: Whether to shuffle batches and elements in each batch.
+    """
+    def __init__(self, root: str, num_concurrent: int = 1, shuffle: bool = False):
+        self.root = pathlib.Path(root)
+        self.num_concurrent = num_concurrent
+        self.shuffle = shuffle
+
+        with open(self.root / "meta.json") as fp:
+            self.meta = json.load(fp)
+
+    def __len__(self):
+        return self.meta["length"]
+
+    def __iter__(self):
+        filenames = self.meta["filenames"]
+        if self.shuffle:
+            filenames = [filenames[i] for i in th.randperm(len(filenames))]
+
+        iterators = []
+        while True:
+            # Populate concurrent iterators.
+            while len(iterators) < self.num_concurrent and filenames:
+                filename = filenames.pop(0)
+                batch = th.load(self.root / filename)
+                if self.shuffle:
+                    batch = [batch[i] for i in th.randperm(len(batch))]
+                iterators.append(iter(batch))
+
+            # We are done if there are no more iterators.
+            if not iterators:
+                return
+
+            # Iterate over the elements in batches, and only retain them if they are not exhausted.
+            next_iterators = []
+            for iterator in iterators:
+                try:
+                    yield next(iterator)
+                    next_iterators.append(iterator)
+                except StopIteration:
+                    pass
+            iterators = next_iterators
+
+    @classmethod
+    def generate(
+            cls, root: pathlib.Path, batch_size: int, num_batches: int, func: typing.Callable,
+            args: typing.Iterable = None, kwargs: typing.Mapping = None, progress: bool = False) \
+            -> None:
+        """
+        Generate a batched dataset.
+
+        Args:
+            root: Directory to store the batched data.
+            batch_size: Number of elements per batch.
+            num_batches: Number of batches.
+            func: Callable to generate elements for each batch.
+            args: Positional arguments passed to `func`.
+            kwargs: Keyword arguments passed to `func`.
+            progress: Show a progress bar.
+        """
+        root = pathlib.Path(root)
+        root.mkdir(parents=True, exist_ok=True)
+        args = args or []
+        kwargs = kwargs or {}
+        meta = {
+            "num_batches": num_batches,
+            "batch_size": batch_size,
+            "length": num_batches * batch_size,
+        }
+
+        # Set up the batch iterator.
+        batches = range(num_batches)
+        if isinstance(progress, typing.Callable):
+            batches = progress(batches)
+        elif progress:
+            batches = tqdm(batches)
+
+        for i in batches:
+            filename = f"{i}.pt"
+            batch = [func(*args, **kwargs) for _ in range(batch_size)]
+            th.save(batch, root / filename)
+            meta.setdefault("filenames", []).append(filename)
+
+        with open(root / "meta.json", "w") as fp:
+            json.dump(meta, fp)
+
+        return meta
 
 
 class SimulatedDataset(th.utils.data.IterableDataset):
