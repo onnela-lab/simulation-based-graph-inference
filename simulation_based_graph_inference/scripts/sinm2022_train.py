@@ -90,6 +90,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser.add_argument("--test", help="path to test set", required=True)
     parser.add_argument("--validation", help="path to validation set", required=True)
     parser.add_argument("--train", help="path to training set", required=True)
+    parser.add_argument("--max_num_epochs", help="maximum number of epochs to run", type=int)
     args = parser.parse_args(args)
 
     # Set up the generator and model.
@@ -132,10 +133,12 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     losses = {}
     best_loss = float("inf")
     num_bad_epochs = 0
+    epoch = 0
 
     start = datetime.now()
     with tqdm() as progress:
-        while num_bad_epochs < args.patience:
+        while num_bad_epochs < args.patience and (args.max_num_epochs is None
+                                                  or epoch < args.max_num_epochs):
             # Run one training epoch and evaluate the validation loss.
             train_loss = run_epoch(model, loaders["train"], optimizer,
                                    args.steps_per_epoch)["epoch_loss"]
@@ -154,6 +157,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                 f"bad epochs: {num_bad_epochs}; loss: {validation_loss:.3f}; "
                 f"best loss: {best_loss:.3f}"
             )
+            epoch += 1
 
     # Evaluate on the test set using full batch evaluation.
     dataset = datasets["test"]
@@ -172,6 +176,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         "log_prob": result["log_prob"],
         "prior": prior,
         "batch": result["batch"],
+        "num_epochs": epoch,
+        "losses": losses,
     }
     with open(args.result, "wb") as fp:
         pickle.dump(result, fp)

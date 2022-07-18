@@ -19,9 +19,9 @@ def test_sinm2022(configuration: str, dense: str, conv: str, tmpwd: str):
     # Run the training.
     filename = "result.pkl"
     args = dict2args(
-        patience=1, num_nodes=1, result=filename, batch_size=batch_size,
+        patience=5, num_nodes=1, result=filename, batch_size=batch_size,
         configuration=configuration, seed=13, conv=conv, dense=dense, train="data", test="data",
-        validation="data", steps_per_epoch=steps_per_epoch,
+        validation="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
     )
     sinm2022_train.__main__(args)
     with open(filename, "rb") as fp:
@@ -29,6 +29,7 @@ def test_sinm2022(configuration: str, dense: str, conv: str, tmpwd: str):
 
     expected_shape = (num_batches * batch_size,)
     assert result["log_prob"].shape == expected_shape
+    assert len(result["losses"]["train"]) == 3
     for key, dist in result["dists"].items():
         param = result["params"][key]
         assert dist.batch_shape == expected_shape
