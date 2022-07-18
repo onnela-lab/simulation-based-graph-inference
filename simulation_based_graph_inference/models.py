@@ -1,5 +1,6 @@
 import inspect
 import networkx as nx
+import numpy as np
 import torch as th
 import torch_geometric as tg
 import torch_scatter as ts
@@ -126,6 +127,14 @@ def get_prior_and_kwargs(generator: typing.Callable) -> typing.Tuple[
         }, {
             "kernel": lambda x, scale: x < float(scale),
         }
+    elif generator is generators.web:
+        return {
+            "proba_new": th.distributions.Uniform(0, 1),
+            "proba_uniform_new": th.distributions.Uniform(0, 1),
+            "proba_uniform_old1": th.distributions.Uniform(0, 1),
+        }, {
+            "dist_degree_new": np.arange(3) == 2,
+        }
     else:
         raise ValueError(f"{generator.__name__} is not a known generator")  # pragma: no cover
 
@@ -181,6 +190,21 @@ def get_parameterized_posterior_density_estimator(generator) \
     elif generator is generators.geometric:
         return {
             "scale": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+        }
+    elif generator is generators.web:
+        return {
+            "proba_new": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+            "proba_uniform_new": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+            "proba_uniform_old1": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),

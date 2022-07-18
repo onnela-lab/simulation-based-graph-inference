@@ -9,6 +9,7 @@ GENERATORS = [
     "poisson_random_attachment",
     "redirection",
     "geometric",
+    "web",
 ]
 
 

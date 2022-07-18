@@ -11,7 +11,8 @@ import typing
     (generators.duplication_complementation, (.7, .3)),
     (generators.duplication_mutation, (.6, .2)),
     (generators.redirection, (4, .3)),
-    (generators.geometric, (lambda dist: dist < .5,))
+    (generators.geometric, (lambda dist: dist < .5,)),
+    (generators.web, (0.5, 0.5, 0.5, np.arange(3) / 3)),
 ])
 @pytest.mark.parametrize("rng", [None, np.random.default_rng()])
 def test_generator(num_nodes: int, generator: typing.Callable, args: list, rng):
@@ -32,6 +33,9 @@ def test_generator(num_nodes: int, generator: typing.Callable, args: list, rng):
     (generators.duplication_mutation, (.6, -.2)),
     (generators.redirection, (0, .3)),
     (generators.redirection, (4, 1.3)),
+    (generators.web, (0, 0.5, 0.5, np.arange(3) / 3)),
+    (generators.web, (0.5, 1.1, 0.5, np.arange(3) / 3)),
+    (generators.web, (0.5, 0.5, -0.1, np.arange(3) / 3)),
 ])
 def test_generator_invalid_parameters(generator: typing.Callable, args: list):
     with pytest.raises(ValueError):
