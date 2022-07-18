@@ -55,50 +55,6 @@ def test_interleaved_dataset(longest):
             np.testing.assert_allclose(X, i % len(datasets))
 
 
-def test_persistent_dataset(tmpwd: str):
-    # First step to generate the dataset.
-    length = 10
-    dataset = data.PersistentDataset(tmpwd, length, th.randn, [3, 4])
-    assert len(dataset) == length
-    result = th.vstack(list(dataset))
-    assert result.shape == (length * 3, 4)
-
-    # Do it again.
-    dataset = data.PersistentDataset(tmpwd)
-    assert len(dataset) == length
-    other = result = th.vstack(list(dataset))
-    np.testing.assert_array_equal(result, other)
-
-
-def test_persistent_dataset_uninitialized(tmpwd: str):
-    with pytest.raises(ValueError):
-        data.PersistentDataset(tmpwd)
-
-
-def test_persistent_dataset_invalid_length(tmpwd: str):
-    with pytest.raises(ValueError):
-        data.PersistentDataset(tmpwd, 0)
-    with pytest.raises(ValueError):
-        data.PersistentDataset(tmpwd, "3")
-
-
-def test_persistent_dataset_missing_func(tmpwd: str):
-    with pytest.raises(RuntimeError):
-        data.PersistentDataset(tmpwd, 3)
-
-
-def test_persistent_dataset_reset(tmpwd: str):
-    dataset = data.PersistentDataset("data", 3, th.randn, [5])
-    assert dataset.root.is_dir()
-    dataset.reset()
-    assert not dataset.root.is_dir()
-
-
-@pytest.mark.parametrize("progress", [True, False, lambda x: x])
-def test_persistent_dataset_progress(tmpwd: str, progress):
-    data.PersistentDataset("data", 3, th.randn, [5], progress=progress)
-
-
 @pytest.mark.parametrize("num_concurrent", [1, 3])
 @pytest.mark.parametrize("progress", [True, False, lambda x: x])
 @pytest.mark.parametrize("shuffle", [True, False])
@@ -115,3 +71,9 @@ def test_batched_dataset_generate(tmpwd: str, progress, num_concurrent: int, shu
         assert set(dataset) == set(range(21))
     else:
         assert list(dataset) == list(range(21))
+
+    # Make sure we can iterate multiple times.
+    if shuffle:
+        assert set(dataset) == set(dataset) and set(dataset)
+    else:
+        assert list(dataset) == list(dataset) and list(dataset)
