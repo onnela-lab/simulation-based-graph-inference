@@ -30,6 +30,7 @@ GENERATOR_CONFIGURATIONS = {
     "waxman_graph": (nx.waxman_graph, {}),
     "web": (generators.web, {"dist_degree_new": np.arange(3) == 2}),
     "planted_partition_graph": (_planted_partition_graph, {"num_groups": 2}),
+    "watts_strogatz_graph": (nx.watts_strogatz_graph, {"k": 4}),
 }
 
 
@@ -81,6 +82,10 @@ def get_prior(configuration_name: str) -> typing.Mapping[str, th.distributions.D
         return {
             "p_in": th.distributions.Uniform(0, 1),
             "p_out": th.distributions.Uniform(0, 1),
+        }
+    elif configuration_name == "watts_strogatz_graph":
+        return {
+            "p": th.distributions.Uniform(0, 1),
         }
     else:  # pragma: no cover
         raise ValueError(f"{configuration_name} is not a valid configuration")
@@ -174,6 +179,13 @@ def get_parameterized_posterior_density_estimator(configuration_name: str) \
                 concentration1=th.nn.LazyLinear(1),
             ),
             "p_out": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+        }
+    elif configuration_name == "watts_strogatz_graph":
+        return {
+            "p": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
