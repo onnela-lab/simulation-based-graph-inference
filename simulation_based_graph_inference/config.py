@@ -4,6 +4,7 @@ estimators, including fixed default values, priors, and architectures. There is 
 one-to-one mapping between configurations and generators. E.g., there may be multiple configurations
 for a given generator.
 """
+import networkx as nx
 import numpy as np
 import torch as th
 import typing
@@ -18,7 +19,7 @@ GENERATOR_CONFIGURATIONS = {
     "duplication_mutation": (generators.duplication_mutation, {}),
     "poisson_random_attachment": (generators.poisson_random_attachment, {}),
     "redirection": (generators.redirection, {"max_num_connections": 2}),
-    "geometric": (generators.geometric, {}),
+    "random_geometric_graph": (nx.random_geometric_graph, {}),
     "web": (generators.web, {"dist_degree_new": np.arange(3) == 2}),
 }
 
@@ -51,9 +52,9 @@ def get_prior(configuration_name: str) -> typing.Mapping[str, th.distributions.D
         return {
             "redirection_proba": th.distributions.Uniform(0, 1),
         }
-    elif configuration_name == "geometric":
+    elif configuration_name == "random_geometric_graph":
         return {
-            "scale": th.distributions.Uniform(0, 1),
+            "radius": th.distributions.Uniform(0, 1),
         }
     elif configuration_name == "web":
         return {
@@ -113,9 +114,9 @@ def get_parameterized_posterior_density_estimator(configuration_name: str) \
                 concentration1=th.nn.LazyLinear(1),
             ),
         }
-    elif configuration_name == "geometric":
+    elif configuration_name == "random_geometric_graph":
         return {
-            "scale": DistributionModule(
+            "radius": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
