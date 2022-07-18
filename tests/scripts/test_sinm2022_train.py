@@ -11,8 +11,9 @@ def test_sinm2022(generator: str, dense: str, conv: str, tmpwd: str):
     # Generate some data.
     steps_per_epoch = 7
     batch_size = 13
+    num_batches = 11
     args = dict2args(directory="data", generator=generator,
-                     num_samples=steps_per_epoch * batch_size + 3)
+                     batch_size=batch_size, num_batches=num_batches)
     sinm2022_data.__main__(args)
 
     # Run the training.
@@ -26,7 +27,7 @@ def test_sinm2022(generator: str, dense: str, conv: str, tmpwd: str):
     with open(filename, "rb") as fp:
         result = pickle.load(fp)
 
-    expected_shape = (steps_per_epoch * batch_size + 3,)
+    expected_shape = (num_batches * batch_size,)
     assert result["log_prob"].shape == expected_shape
     for key, dist in result["dists"].items():
         param = result["params"][key]

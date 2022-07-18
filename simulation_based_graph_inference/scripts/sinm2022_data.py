@@ -3,13 +3,15 @@ import torch as th
 from tqdm import tqdm
 import typing
 from .util import get_parser
-from ..data import PersistentDataset
+from ..data import BatchedDataset
 from .. import generators, models
 
 
 def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser = get_parser(100)
-    parser.add_argument("--num_samples", type=int, help="number of samples in the dataset",
+    parser.add_argument("--batch_size", type=int, help="number of samples per batch",
+                        required=True)
+    parser.add_argument("--num_batches", type=int, help="number of batches",
                         required=True)
     parser.add_argument("--directory", help="path to store the dataset", required=True)
     parser.add_argument("--dtype", help="dtype for edge indices", default="int16",
@@ -28,16 +30,12 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
 
     # Prepare the dataset.
     start = datetime.now()
-    with tqdm(total=args.num_samples) as progress:
-        def _target(*args, **kwargs):
-            result = models.generate_data(*args, **kwargs)
-            progress.update()
-            return result
-
-        PersistentDataset(args.directory, args.num_samples, _target,
-                          (generator, args.num_nodes, prior), {"dtype": dtype})
+    meta = BatchedDataset.generate(
+        args.directory, args.batch_size, args.num_batches, models.generate_data,
+        (generator, args.num_nodes, prior), {"dtype": dtype}, progress=True,
+    )
     duration = datetime.now() - start
-    print(f"saved {args.num_samples} samples of {args.generator} to {args.directory} in "
+    print(f"saved {meta['length']} samples of {args.generator} to {args.directory} in "
           f"{duration}")
 
 
