@@ -1,5 +1,5 @@
 from .duplication_divergence import duplication_complementation, duplication_mutation
-from .geometric import geometric
+from .spatial import geometric
 from .random_attachment import poisson_random_attachment
 from .redirection import redirection
 from .web import web

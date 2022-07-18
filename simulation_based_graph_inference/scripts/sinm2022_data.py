@@ -3,7 +3,7 @@ import torch as th
 import typing
 from .util import get_parser
 from ..data import BatchedDataset
-from .. import generators, models
+from .. import config, models
 
 
 def __main__(args: typing.Optional[list[str]] = None) -> None:
@@ -24,8 +24,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         raise ValueError(f"cannot represent {args.num_nodes} using {dtype}")
 
     # Set up the generator and model.
-    generator = getattr(generators, args.generator)
-    prior, kwargs = models.get_prior_and_kwargs(generator)
+    generator, kwargs = config.GENERATOR_CONFIGURATIONS[args.configuration]
+    prior = config.get_prior(args.configuration)
 
     # Prepare the dataset.
     start = datetime.now()
@@ -34,7 +34,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         (generator, args.num_nodes, prior), {"dtype": dtype, **kwargs}, progress=True,
     )
     duration = datetime.now() - start
-    print(f"saved {meta['length']} samples of {args.generator} to {args.directory} in "
+    print(f"saved {meta['length']} samples of {args.configuration} to {args.directory} in "
           f"{duration}")
 
 

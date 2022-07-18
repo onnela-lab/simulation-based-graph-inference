@@ -9,7 +9,7 @@ import typing
 from .util import get_parser
 from ..data import BatchedDataset
 from ..util import ensure_long_edge_index
-from .. import generators, models
+from .. import config, models
 
 
 @contextlib.contextmanager
@@ -90,11 +90,11 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser.add_argument("--test", help="path to test set", required=True)
     parser.add_argument("--validation", help="path to validation set", required=True)
     parser.add_argument("--train", help="path to training set", required=True)
+    parser.add_argument("--max_num_epochs", help="maximum number of epochs to run", type=int)
     args = parser.parse_args(args)
 
     # Set up the generator and model.
-    generator = getattr(generators, args.generator)
-    prior, _ = models.get_prior_and_kwargs(generator)
+    prior = config.get_prior(args.configuration)
 
     # Set up the convoluational network for node-level representations.
     activation = th.nn.Tanh()
@@ -115,7 +115,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     dense = models.create_dense_nn(map(int, args.dense.split(',')), activation, True)
 
     # Set up the parameterized distributions and model.
-    dists = models.get_parameterized_posterior_density_estimator(generator)
+    dists = config.get_parameterized_posterior_density_estimator(args.configuration)
     model = models.Model(conv, dense, dists)
 
     # Prepare the datasets and optimizer. Only shuffle the training set.
@@ -133,10 +133,12 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     losses = {}
     best_loss = float("inf")
     num_bad_epochs = 0
+    epoch = 0
 
     start = datetime.now()
     with tqdm() as progress:
-        while num_bad_epochs < args.patience:
+        while num_bad_epochs < args.patience and (args.max_num_epochs is None
+                                                  or epoch < args.max_num_epochs):
             # Run one training epoch and evaluate the validation loss.
             train_loss = run_epoch(model, loaders["train"], optimizer,
                                    args.steps_per_epoch)["epoch_loss"]
@@ -155,6 +157,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                 f"bad epochs: {num_bad_epochs}; loss: {validation_loss:.3f}; "
                 f"best loss: {best_loss:.3f}"
             )
+            epoch += 1
 
     # Evaluate on the test set using full batch evaluation.
     dataset = datasets["test"]
@@ -173,6 +176,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         "log_prob": result["log_prob"],
         "prior": prior,
         "batch": result["batch"],
+        "num_epochs": epoch,
+        "losses": losses,
     }
     with open(args.result, "wb") as fp:
         pickle.dump(result, fp)
