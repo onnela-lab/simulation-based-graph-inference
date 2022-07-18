@@ -11,7 +11,6 @@ import typing
     (generators.duplication_complementation, (.7, .3)),
     (generators.duplication_mutation, (.6, .2)),
     (generators.redirection, (4, .3)),
-    (generators.geometric, (lambda dist: dist < .5,)),
     (generators.web, (0.5, 0.5, 0.5, np.arange(3) / 3)),
 ])
 @pytest.mark.parametrize("rng", [None, np.random.default_rng()])
