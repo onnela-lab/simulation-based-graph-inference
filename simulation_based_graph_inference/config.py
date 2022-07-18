@@ -6,17 +6,27 @@ for a given generator.
 """
 import networkx as nx
 import numpy as np
+from scipy import special
 import torch as th
 import typing
 from .models import DistributionModule
 from . import generators
 
 
-def _planted_partition_graph(num_nodes, num_groups, **kwargs):
+def _planted_partition_graph(num_nodes: int, num_groups: int, **kwargs) -> nx.Graph:
     """
     Wrapper for the planted partition graph ensuring that the first argument is the number of nodes.
     """
     return nx.planted_partition_graph(num_groups, num_nodes // num_groups, **kwargs)
+
+
+def _latent_space_graph(num_nodes: int, alpha: float, beta: float, **kwargs) -> nx.Graph:
+    """
+    Wrapper for a soft random geometric graph to generate Hoff's latent space model.
+    """
+    # We use an enormous radius to consider all nodes.
+    return nx.soft_random_geometric_graph(num_nodes, radius=1e9,
+                                          p_dist=lambda dist: beta * special.expit(-alpha * dist))
 
 
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent
@@ -32,6 +42,7 @@ GENERATOR_CONFIGURATIONS = {
     "planted_partition_graph": (_planted_partition_graph, {"num_groups": 2}),
     "watts_strogatz_graph": (nx.watts_strogatz_graph, {"k": 4}),
     "newman_watts_strogatz_graph": (nx.newman_watts_strogatz_graph, {"k": 4}),
+    "latent_space_graph": (_latent_space_graph, {"dim": 2}),
 }
 
 
@@ -91,6 +102,12 @@ def get_prior(configuration_name: str) -> typing.Mapping[str, th.distributions.D
     elif configuration_name == "newman_watts_strogatz_graph":
         return {
             "p": th.distributions.Uniform(0, 1),
+        }
+    elif configuration_name == "latent_space_graph":
+        # Connection probability is beta * expit(- alpha * distance)
+        return {
+            "beta": th.distributions.Uniform(0, 1),
+            "alpha": th.distributions.Uniform(0, 1),
         }
     else:  # pragma: no cover
         raise ValueError(f"{configuration_name} is not a valid configuration")
@@ -198,6 +215,17 @@ def get_parameterized_posterior_density_estimator(configuration_name: str) \
     elif configuration_name == "newman_watts_strogatz_graph":
         return {
             "p": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+        }
+    elif configuration_name == "latent_space_graph":
+        return {
+            "alpha": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+            "beta": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
