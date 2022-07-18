@@ -7,7 +7,7 @@ from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 import typing
 from .util import get_parser
-from ..data import PersistentDataset
+from ..data import BatchedDataset
 from ..util import ensure_long_edge_index
 from .. import generators, models
 
@@ -34,6 +34,7 @@ def run_epoch(model: th.nn.Module, loader: DataLoader, optimizer: th.optim.Optim
     """
     epoch_loss = 0
     num_batches = 0
+    batch = None
     for batch in loader:
         # Reset gradients if we're training the model.
         if optimizer:
@@ -57,6 +58,9 @@ def run_epoch(model: th.nn.Module, loader: DataLoader, optimizer: th.optim.Optim
 
         if max_num_batches and num_batches >= max_num_batches:
             break
+
+    if batch is None:  # pragma: no cover
+        raise RuntimeError("did not process any batch")
 
     return {
         "batch": batch,
@@ -114,12 +118,12 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     dists = models.get_parameterized_posterior_density_estimator(generator)
     model = models.Model(conv, dense, dists)
 
-    # Prepare the datasets and optimizer.
-    datasets = {key: PersistentDataset(getattr(args, key), transform=ensure_long_edge_index)
-                for key in ["train", "test", "validation"]}
+    # Prepare the datasets and optimizer. Only shuffle the training set.
+    datasets = {key: BatchedDataset(getattr(args, key), transform=ensure_long_edge_index,
+                shuffle=key == "train") for key in ["train", "test", "validation"]}
     loaders = {
-        "train": DataLoader(datasets["train"], shuffle=True, batch_size=args.batch_size),
-        "validation": DataLoader(datasets["validation"], shuffle=True, batch_size=args.batch_size),
+        "train": DataLoader(datasets["train"], batch_size=args.batch_size),
+        "validation": DataLoader(datasets["validation"], batch_size=args.batch_size),
     }
     optimizer = th.optim.Adam(model.parameters(), lr=0.01)
     scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
