@@ -55,6 +55,7 @@ for depth in DEPTHS:
         "conv": "_".join(["16,16"] * depth) if depth else "none",
     }
 
+BATCH_SIZE = 100
 SPLITS = {
     "train": 10_000,
     "validation": 1_000,
@@ -65,12 +66,14 @@ for generator in GENERATORS:
     # Generate the data.
     datasets = []
     for seed, (split, num_samples) in enumerate(SPLITS.items()):
+        assert num_samples % BATCH_SIZE == 0, "number of samples must be a multiple of BATCH_SIZE"
         data_basename = f"sinm2022/{generator}/data"
         directory = ROOT / data_basename / split
-        target = directory / "length"
+        target = directory / "meta.json"
         datasets.append(target)
         args = ["$!", "-m", "simulation_based_graph_inference.scripts.sinm2022_data"] + \
-            dict2args(seed=seed, generator=generator, num_samples=num_samples, directory=directory)
+            dict2args(seed=seed, generator=generator, batch_size=BATCH_SIZE, directory=directory,
+                      num_batches=num_samples // BATCH_SIZE)
         manager(basename=data_basename, name=split, actions=[args], uptodate=[True],
                 targets=[target])
 
