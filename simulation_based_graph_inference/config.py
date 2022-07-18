@@ -19,7 +19,8 @@ GENERATOR_CONFIGURATIONS = {
     "duplication_mutation": (generators.duplication_mutation, {}),
     "poisson_random_attachment": (generators.poisson_random_attachment, {}),
     "redirection": (generators.redirection, {"max_num_connections": 2}),
-    "random_geometric_graph": (nx.random_geometric_graph, {}),
+    "random_geometric_graph": (nx.random_geometric_graph, {"dim": 2}),
+    "waxman_graph": (nx.waxman_graph, {}),
     "web": (generators.web, {"dist_degree_new": np.arange(3) == 2}),
 }
 
@@ -55,6 +56,12 @@ def get_prior(configuration_name: str) -> typing.Mapping[str, th.distributions.D
     elif configuration_name == "random_geometric_graph":
         return {
             "radius": th.distributions.Uniform(0, 1),
+        }
+    elif configuration_name == "waxman_graph":
+        # Connection probability is beta * exp(- alpha * distance / L)
+        return {
+            "beta": th.distributions.Uniform(0, 1),
+            "alpha": th.distributions.Uniform(0, 1),
         }
     elif configuration_name == "web":
         return {
@@ -117,6 +124,17 @@ def get_parameterized_posterior_density_estimator(configuration_name: str) \
     elif configuration_name == "random_geometric_graph":
         return {
             "radius": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+        }
+    elif configuration_name == "waxman_graph":
+        return {
+            "alpha": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+            "beta": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
