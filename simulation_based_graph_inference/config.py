@@ -31,6 +31,7 @@ GENERATOR_CONFIGURATIONS = {
     "web": (generators.web, {"dist_degree_new": np.arange(3) == 2}),
     "planted_partition_graph": (_planted_partition_graph, {"num_groups": 2}),
     "watts_strogatz_graph": (nx.watts_strogatz_graph, {"k": 4}),
+    "newman_watts_strogatz_graph": (nx.newman_watts_strogatz_graph, {"k": 4}),
 }
 
 
@@ -84,6 +85,10 @@ def get_prior(configuration_name: str) -> typing.Mapping[str, th.distributions.D
             "p_out": th.distributions.Uniform(0, 1),
         }
     elif configuration_name == "watts_strogatz_graph":
+        return {
+            "p": th.distributions.Uniform(0, 1),
+        }
+    elif configuration_name == "newman_watts_strogatz_graph":
         return {
             "p": th.distributions.Uniform(0, 1),
         }
@@ -184,6 +189,13 @@ def get_parameterized_posterior_density_estimator(configuration_name: str) \
             ),
         }
     elif configuration_name == "watts_strogatz_graph":
+        return {
+            "p": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+        }
+    elif configuration_name == "newman_watts_strogatz_graph":
         return {
             "p": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
