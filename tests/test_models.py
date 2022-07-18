@@ -13,7 +13,7 @@ def generator_configuration(request):
 def batch(generator_configuration: str):
     generator, kwargs = config.GENERATOR_CONFIGURATIONS[generator_configuration]
     prior = config.get_prior(generator_configuration)
-    dataset = data.SimulatedDataset(models.generate_data, (generator, 100, prior), kwargs)
+    dataset = data.SimulatedDataset(models.generate_data, (generator, 10, prior), kwargs)
     loader = tg.loader.DataLoader(dataset, batch_size=32)
     for batch in loader:
         return batch

@@ -12,8 +12,8 @@ def test_sinm2022(configuration: str, dense: str, conv: str, tmpwd: str):
     steps_per_epoch = 7
     batch_size = 13
     num_batches = 11
-    args = dict2args(directory="data", configuration=configuration,
-                     batch_size=batch_size, num_batches=num_batches)
+    args = dict2args(directory="data", configuration=configuration, batch_size=batch_size,
+                     num_batches=num_batches, num_nodes=10)
     sinm2022_data.__main__(args)
 
     # Run the training.
