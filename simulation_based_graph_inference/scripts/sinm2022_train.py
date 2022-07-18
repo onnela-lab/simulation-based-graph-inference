@@ -9,7 +9,7 @@ import typing
 from .util import get_parser
 from ..data import BatchedDataset
 from ..util import ensure_long_edge_index
-from .. import generators, models
+from .. import config, models
 
 
 @contextlib.contextmanager
@@ -93,8 +93,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     args = parser.parse_args(args)
 
     # Set up the generator and model.
-    generator = getattr(generators, args.generator)
-    prior, _ = models.get_prior_and_kwargs(generator)
+    prior = config.get_prior(args.configuration)
 
     # Set up the convoluational network for node-level representations.
     activation = th.nn.Tanh()
@@ -115,7 +114,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     dense = models.create_dense_nn(map(int, args.dense.split(',')), activation, True)
 
     # Set up the parameterized distributions and model.
-    dists = models.get_parameterized_posterior_density_estimator(generator)
+    dists = config.get_parameterized_posterior_density_estimator(args.configuration)
     model = models.Model(conv, dense, dists)
 
     # Prepare the datasets and optimizer. Only shuffle the training set.

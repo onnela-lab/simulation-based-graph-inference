@@ -1,16 +1,7 @@
 import argparse
 import numpy as np
 import torch as th
-
-
-GENERATORS = [
-    "duplication_complementation",
-    "duplication_mutation",
-    "poisson_random_attachment",
-    "redirection",
-    "geometric",
-    "web",
-]
+from ..config import GENERATOR_CONFIGURATIONS
 
 
 def _apply_seed(seed):
@@ -29,6 +20,6 @@ def get_parser(default_num_nodes: int) -> argparse.ArgumentParser:
     parser.add_argument("--num_nodes", "-n", help="number of nodes", default=default_num_nodes,
                         type=int)
     parser.add_argument("--seed", "-s", help="random number generator seed", type=_apply_seed)
-    parser.add_argument("--generator", help="generator to use for sampling graphs",
-                        choices=GENERATORS, required=True)
+    parser.add_argument("--configuration", help="configuration to use for sampling graphs",
+                        choices=list(GENERATOR_CONFIGURATIONS), required=True)
     return parser

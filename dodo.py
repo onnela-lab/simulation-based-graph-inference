@@ -3,7 +3,7 @@ from doit_interface import dict2args
 import itertools as it
 import os
 import pathlib
-from simulation_based_graph_inference.scripts.util import GENERATORS
+from simulation_based_graph_inference.scripts.util import GENERATOR_CONFIGURATIONS
 
 
 ROOT = pathlib.Path("workspace")
@@ -62,44 +62,44 @@ SPLITS = {
     "test": 1_000,
 }
 
-for generator in GENERATORS:
+for configuration in GENERATOR_CONFIGURATIONS:
     # Generate the data.
     datasets = []
     for seed, (split, num_samples) in enumerate(SPLITS.items()):
         assert num_samples % BATCH_SIZE == 0, "number of samples must be a multiple of BATCH_SIZE"
-        data_basename = f"sinm2022/{generator}/data"
+        data_basename = f"sinm2022/{configuration}/data"
         directory = ROOT / data_basename / split
         target = directory / "meta.json"
         datasets.append(target)
         args = ["$!", "-m", "simulation_based_graph_inference.scripts.sinm2022_data"] + \
-            dict2args(seed=seed, generator=generator, batch_size=BATCH_SIZE, directory=directory,
-                      num_batches=num_samples // BATCH_SIZE)
+            dict2args(seed=seed, configuration=configuration, batch_size=BATCH_SIZE,
+                      directory=directory, num_batches=num_samples // BATCH_SIZE)
         manager(basename=data_basename, name=split, actions=[args], uptodate=[True],
                 targets=[target])
 
     # Train the models.
     for seed, ((architecture, depth), specification) in it.product(SEEDS, SPECIFICATIONS.items()):
         name = f"seed-{seed}"
-        basename = f"sinm2022/{generator}/{architecture}/{depth}"
+        basename = f"sinm2022/{configuration}/{architecture}/{depth}"
         target = ROOT / f"{basename}/{name}.pkl"
         args = ["$!", "-m", "simulation_based_graph_inference.scripts.sinm2022_train"] + \
             dict2args(specification, {split: ROOT / data_basename / split for split in SPLITS},
-                      seed=seed, generator=generator, result=target)
+                      seed=seed, configuration=configuration, result=target)
         manager(basename=basename, name=name, actions=[args], targets=[target], uptodate=[True],
                 file_dep=datasets)
 
 
 # Profiling targets.
-for generator in GENERATORS:
-    basename = f"profile/{generator}"
+for configuration in GENERATOR_CONFIGURATIONS:
+    basename = f"profile/{configuration}"
     target = ROOT / f"{basename}.prof"
-    args = ["$!", "-m", "cProfile", "-o", "$@", "$^"] + dict2args(generator=generator)
+    args = ["$!", "-m", "cProfile", "-o", "$@", "$^"] + dict2args(configuration=configuration)
     manager(basename=basename, name="prof", targets=[target], actions=[args],
             file_dep=["simulation_based_graph_inference/scripts/profile.py"])
 
     target = ROOT / f"{basename}.lineprof"
     actions = [
-        f"$! -m kernprof -l -z -o $@.tmp $^ --generator={generator}",
+        f"$! -m kernprof -l -z -o $@.tmp $^ --configuration={configuration}",
         "$! -m line_profiler $@.tmp > $@",
         "rm -f $@.tmp",
     ]

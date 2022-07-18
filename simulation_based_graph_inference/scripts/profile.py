@@ -1,6 +1,6 @@
 import time
-from simulation_based_graph_inference import generators  # Absolute import for line_profiler CLI.
-from simulation_based_graph_inference import models
+# Absolute import for line_profiler CLI.
+from simulation_based_graph_inference import config
 from simulation_based_graph_inference.scripts import util
 
 
@@ -10,8 +10,8 @@ def __main__(args: list[str] = None):
     args = parser.parse_args(args)
 
     # Generate parameters for each method.
-    generator = getattr(generators, args.generator)
-    prior, kwargs = models.get_prior_and_kwargs(generator)
+    generator, kwargs = config.GENERATOR_CONFIGURATIONS[args.configuration]
+    prior = config.get_prior(args.configuration)
 
     # Set up line profiling if desired.
     try:

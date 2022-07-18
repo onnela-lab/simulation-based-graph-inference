@@ -1,12 +1,10 @@
 import inspect
 import networkx as nx
-import numpy as np
 import torch as th
 import torch_geometric as tg
 import torch_scatter as ts
 import typing
 import warnings
-from . import generators
 from .util import to_edge_index
 
 
@@ -86,131 +84,6 @@ class Normalize(th.nn.Module):
 
         batch[norm_key] = norm
         return x / norm
-
-
-def get_prior_and_kwargs(generator: typing.Callable) -> typing.Tuple[
-        typing.Mapping[str, th.distributions.Distribution],
-        typing.Mapping[str, typing.Any]
-        ]:
-    """
-    Get a prior for the given generator with sensible defaults.
-
-    Args:
-        generator: Graph generator for which to get a prior.
-
-    Returns:
-        prior: Mapping from parameter names to distributions.
-    """
-    if generator is generators.duplication_complementation:
-        return {
-            "interaction_proba": th.distributions.Uniform(0, 1),
-            "divergence_proba": th.distributions.Uniform(0, 1),
-        }, {}
-    elif generator is generators.duplication_mutation:
-        return {
-            "mutation_proba": th.distributions.Uniform(0, 1),
-            "deletion_proba": th.distributions.Uniform(0, 1),
-        }, {}
-    elif generator is generators.poisson_random_attachment:
-        return {
-            "rate": th.distributions.Gamma(2, 1),
-        }, {}
-    elif generator is generators.redirection:
-        return {
-            "redirection_proba": th.distributions.Uniform(0, 1),
-        }, {
-            "max_num_connections": 2,
-        }
-    elif generator is generators.geometric:
-        return {
-            "scale": th.distributions.Uniform(0, 1),
-        }, {
-            "kernel": lambda x, scale: x < float(scale),
-        }
-    elif generator is generators.web:
-        return {
-            "proba_new": th.distributions.Uniform(0, 1),
-            "proba_uniform_new": th.distributions.Uniform(0, 1),
-            "proba_uniform_old1": th.distributions.Uniform(0, 1),
-        }, {
-            "dist_degree_new": np.arange(3) == 2,
-        }
-    else:
-        raise ValueError(f"{generator.__name__} is not a known generator")  # pragma: no cover
-
-
-def get_parameterized_posterior_density_estimator(generator) \
-        -> typing.Mapping[str, typing.Tuple[int, typing.Callable]]:
-    """
-    Get factorized posterior density estimators.
-
-    Args:
-        generator: Graph generator for which to get a prior.
-
-    Returns:
-        estimator: Mapping from parameter names to a module that returns a
-            :class:`torch.distributions.Distribution`.
-    """
-    if generator is generators.duplication_complementation:
-        return {
-            "interaction_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "divergence_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif generator is generators.duplication_mutation:
-        return {
-            "mutation_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "deletion_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif generator is generators.poisson_random_attachment:
-        return {
-            "rate": DistributionModule(
-                th.distributions.Gamma, concentration=th.nn.LazyLinear(1),
-                rate=th.nn.LazyLinear(1),
-            )
-        }
-    elif generator is generators.redirection:
-        return {
-            "redirection_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif generator is generators.geometric:
-        return {
-            "scale": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif generator is generators.web:
-        return {
-            "proba_new": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "proba_uniform_new": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "proba_uniform_old1": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    else:  # pragma: no cover
-        raise ValueError(f"{generator.__name__} is not a known generator")
 
 
 def generate_data(generator: typing.Callable, num_nodes: int,

@@ -1,23 +1,18 @@
 import pytest
-from simulation_based_graph_inference import data, generators, models
+from simulation_based_graph_inference import config, data, models
 import torch as th
 import torch_geometric as tg
 
 
-@pytest.fixture(params=[
-    generators.duplication_complementation,
-    generators.duplication_mutation,
-    generators.poisson_random_attachment,
-    generators.redirection,
-    generators.geometric,
-])
-def generator(request):
+@pytest.fixture(params=config.GENERATOR_CONFIGURATIONS)
+def generator_configuration(request):
     return request.param
 
 
 @pytest.fixture
-def batch(generator):
-    prior, kwargs = models.get_prior_and_kwargs(generator)
+def batch(generator_configuration: str):
+    generator, kwargs = config.GENERATOR_CONFIGURATIONS[generator_configuration]
+    prior = config.get_prior(generator_configuration)
     dataset = data.SimulatedDataset(models.generate_data, (generator, 100, prior), kwargs)
     loader = tg.loader.DataLoader(dataset, batch_size=32)
     for batch in loader:
@@ -53,10 +48,10 @@ MODEL_CONFIGURATIONS = [
 ]
 
 
-@pytest.mark.parametrize("configuration", MODEL_CONFIGURATIONS)
-def test_model_with_architectures(generator, batch, configuration):
-    dists = models.get_parameterized_posterior_density_estimator(generator)
-    model = models.Model(configuration["conv"], configuration["dense"], dists)
+@pytest.mark.parametrize("model_configuration", MODEL_CONFIGURATIONS)
+def test_model_with_architectures(generator_configuration: str, batch, model_configuration: str):
+    dists = config.get_parameterized_posterior_density_estimator(generator_configuration)
+    model = models.Model(model_configuration["conv"], model_configuration["dense"], dists)
 
     # Check that the features for the initial and transformed graph representation are on a sensible
     # scale. If they are not, training will fail almost immediately because we are in strange
