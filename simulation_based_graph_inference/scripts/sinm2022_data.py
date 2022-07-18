@@ -1,6 +1,5 @@
 from datetime import datetime
 import torch as th
-from tqdm import tqdm
 import typing
 from .util import get_parser
 from ..data import BatchedDataset
