@@ -23,7 +23,7 @@ def geometric(num_nodes: int, kernel: typing.Callable = None, num_dims: int = 2,
     if num_nodes <= 0:
         raise ValueError("num_nodes must be positive")
     rng = rng or np.random
-    if kernel is None:
+    if kernel is None:  # pragma: no cover
         kernel = lambda x, scale: x < float(scale)  # noqa: E731
 
     x = np.random.uniform(0, 1, (num_nodes, num_dims))

@@ -11,7 +11,7 @@ def __main__(args: list[str] = None):
 
     # Generate parameters for each method.
     generator = getattr(generators, args.generator)
-    prior = models.get_prior(generator)
+    prior, kwargs = models.get_prior_and_kwargs(generator)
 
     # Set up line profiling if desired.
     try:
@@ -26,7 +26,7 @@ def __main__(args: list[str] = None):
     while (args.num_samples and count < args.num_samples) \
             or (args.num_samples is None and time.time() - start < 10):
         params = {key: value.sample() for key, value in prior.items()}
-        generator(args.num_nodes, **params)
+        generator(args.num_nodes, **params, **kwargs)
         count += 1
     duration = time.time() - start
     print(f"generated {count} samples in {duration:.3f} secs ({count / duration:.3f} per sec)")
