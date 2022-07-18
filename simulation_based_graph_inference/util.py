@@ -79,6 +79,8 @@ def assert_normalized_nodel_labels(graph: nx.Graph):
     Raises:
         ValueError: If the node labels are not normalized.
     """
+    if graph is None:
+        return nx.Graph()
     if set(graph) != set(range(len(graph))):
         raise ValueError("node labels are not normalized")
     return graph
