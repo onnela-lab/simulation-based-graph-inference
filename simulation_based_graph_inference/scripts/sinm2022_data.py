@@ -25,13 +25,13 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
 
     # Set up the generator and model.
     generator = getattr(generators, args.generator)
-    prior = models.get_prior(generator)
+    prior, kwargs = models.get_prior_and_kwargs(generator)
 
     # Prepare the dataset.
     start = datetime.now()
     meta = BatchedDataset.generate(
         args.directory, args.batch_size, args.num_batches, models.generate_data,
-        (generator, args.num_nodes, prior), {"dtype": dtype}, progress=True,
+        (generator, args.num_nodes, prior), {"dtype": dtype, **kwargs}, progress=True,
     )
     duration = datetime.now() - start
     print(f"saved {meta['length']} samples of {args.generator} to {args.directory} in "

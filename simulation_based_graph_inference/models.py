@@ -87,7 +87,10 @@ class Normalize(th.nn.Module):
         return x / norm
 
 
-def get_prior(generator: typing.Callable) -> typing.Mapping[str, th.distributions.Distribution]:
+def get_prior_and_kwargs(generator: typing.Callable) -> typing.Tuple[
+        typing.Mapping[str, th.distributions.Distribution],
+        typing.Mapping[str, typing.Any]
+        ]:
     """
     Get a prior for the given generator with sensible defaults.
 
@@ -101,24 +104,27 @@ def get_prior(generator: typing.Callable) -> typing.Mapping[str, th.distribution
         return {
             "interaction_proba": th.distributions.Uniform(0, 1),
             "divergence_proba": th.distributions.Uniform(0, 1),
-        }
+        }, {}
     elif generator is generators.duplication_mutation:
         return {
             "mutation_proba": th.distributions.Uniform(0, 1),
             "deletion_proba": th.distributions.Uniform(0, 1),
-        }
+        }, {}
     elif generator is generators.poisson_random_attachment:
         return {
             "rate": th.distributions.Gamma(2, 1),
-        }
+        }, {}
     elif generator is generators.redirection:
         return {
-            "max_num_connections": th.distributions.Binomial(2, 1),
             "redirection_proba": th.distributions.Uniform(0, 1),
+        }, {
+            "max_num_connections": 2,
         }
     elif generator is generators.geometric:
         return {
             "scale": th.distributions.Uniform(0, 1),
+        }, {
+            "kernel": lambda x, scale: x < float(scale),
         }
     else:
         raise ValueError(f"{generator.__name__} is not a known generator")  # pragma: no cover

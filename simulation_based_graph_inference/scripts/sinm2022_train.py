@@ -94,7 +94,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
 
     # Set up the generator and model.
     generator = getattr(generators, args.generator)
-    prior = models.get_prior(generator)
+    prior, _ = models.get_prior_and_kwargs(generator)
 
     # Set up the convoluational network for node-level representations.
     activation = th.nn.Tanh()

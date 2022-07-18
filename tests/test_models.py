@@ -17,8 +17,8 @@ def generator(request):
 
 @pytest.fixture
 def batch(generator):
-    prior = models.get_prior(generator)
-    dataset = data.SimulatedDataset(models.generate_data, (generator, 100, prior))
+    prior, kwargs = models.get_prior_and_kwargs(generator)
+    dataset = data.SimulatedDataset(models.generate_data, (generator, 100, prior), kwargs)
     loader = tg.loader.DataLoader(dataset, batch_size=32)
     for batch in loader:
         return batch
