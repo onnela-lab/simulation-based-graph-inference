@@ -136,3 +136,52 @@ def rank_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Graph 
         ranks.append(node + 1)
 
     return graph
+
+
+def jackson_rogers_graph(num_nodes: int, mr: int, pr: float, mn: int = None, pn: float = None,
+                         rng: np.random.Generator = None, graph: nx.Graph = None) -> nx.Graph:
+    """
+    Generate a social graph based on random attachment and neighborhood exploration as described by
+    `Jackson and Rogers (2007) <https://doi.org/10.1257/aer.97.3.890>`_.
+
+    Args:
+        num_nodes: Final number of nodes.
+        mr: Number of random parents to consider.
+        pr: Probability to connect to random parents. The number of random parents is binomially
+            distributed with `mr` trials and success probability `pr`.
+        mn: Number of neighbors of parents to consider.
+        pm: Probability to connect to neighbors of parents. The number of random neighbors is
+            binomially distributed with `mn` trials and success probability `pn`.
+        graph: Seed graph to modify in place. If `None`, a new complete graph with `mr + mn + 1`
+            nodes is created.
+        rng: Random number generator.
+
+    Returns:
+        graph: Generated graph with `num_nodes` nodes.
+    """
+    rng = rng or np.random
+    assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
+    assert_interval("mr", mr, 0, None, inclusive_low=None)
+    mn = assert_interval("mn", mr if mn is None else mn, 0, None, inclusive_low=False)
+    assert_interval("pr", pr, 0, 1)
+    pn = assert_interval("pn", pr if pn is None else pn, 0, 1)
+    graph = assert_normalized_nodel_labels(graph or nx.Graph())
+    if not graph:
+        graph = nx.complete_graph(mn + mr + 1)
+
+    while (node := len(graph)) < num_nodes:
+        # Pick random "parents".
+        num_parents = rng.binomial(min(mr, node), pr)
+        parents = rng.choice(node, num_parents, replace=False)
+        neighbors = set()
+        for parent in parents:
+            graph.add_edge(node, parent)
+            neighbors.update(graph.neighbors(parent))
+
+        # Connect to neighbors of parents, excluding parents.
+        neighbors.difference_update(parents)
+        num_neighbors = rng.binomial(min(mn, len(neighbors)), pn)
+        neighbors = rng.choice(list(neighbors), num_neighbors, replace=False)
+        graph.add_edges_from((node, neighbor) for neighbor in neighbors)
+
+    return graph
