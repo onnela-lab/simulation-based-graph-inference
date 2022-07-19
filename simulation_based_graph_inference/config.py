@@ -18,7 +18,8 @@ Configuration = enum.Enum(
     "Configuration", "duplication_complementation_graph duplication_mutation_graph "
     "poisson_random_attachment_graph redirection_graph random_geometric_graph waxman_graph "
     "web_graph planted_partition_graph watts_strogatz_graph newman_watts_strogatz_graph "
-    "latent_space_graph partial_duplication_graph thresholded_random_geometric_graph",
+    "latent_space_graph partial_duplication_graph thresholded_random_geometric_graph "
+    "geographical_threshold_graph",
 )
 
 
@@ -57,6 +58,7 @@ GENERATOR_CONFIGURATIONS = {
     # Start with two connected nodes as described in 10.1155/2008/190836 for numerical experiments.
     Configuration.partial_duplication_graph: (nx.partial_duplication_graph, {"n": 2}),
     Configuration.thresholded_random_geometric_graph: (nx.thresholded_random_geometric_graph, {}),
+    Configuration.geographical_threshold_graph: (nx.geographical_threshold_graph, {}),
 }
 
 
@@ -95,6 +97,10 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
     elif configuration == Configuration.thresholded_random_geometric_graph:
         return {
             "radius": th.distributions.Uniform(0, 1),
+            "theta": th.distributions.Uniform(0, 1),
+        }
+    elif configuration == Configuration.geographical_threshold_graph:
+        return {
             "theta": th.distributions.Uniform(0, 1),
         }
     elif configuration == Configuration.waxman_graph:
@@ -199,6 +205,13 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
+            "theta": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+        }
+    elif configuration == Configuration.geographical_threshold_graph:
+        return {
             "theta": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
