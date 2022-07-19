@@ -19,14 +19,17 @@ class DistributionModule(th.nn.Module):
         distribution_cls: Distribution class to create.
         params: Mapping of modules to parameter names.
         squeeze: Squeeze the last parameter dimension.
+        transforms: Transformations to apply to the distribution.
     """
-    def __init__(self, distribution_cls, *, squeeze: bool = True, **params) -> None:
+    def __init__(self, distribution_cls: typing.Callable, *, squeeze: bool = True,
+                 transforms: typing.Iterable = None, **params):
         super().__init__()
         self.distribution_cls = distribution_cls
         if not isinstance(params, th.nn.Module) and isinstance(params, typing.Mapping):
             params = th.nn.ModuleDict(params)
         self.params = params
         self.squeeze = squeeze
+        self.transforms = transforms
 
     def forward(self, x):
         # Obtain parameters and transform to the constraints of arguments.
@@ -39,7 +42,10 @@ class DistributionModule(th.nn.Module):
             if self.squeeze:
                 y = y.squeeze(dim=-1)
             params[key] = y
-        return self.distribution_cls(**params)
+        distribution = self.distribution_cls(**params)
+        if self.transforms:
+            distribution = th.distributions.TransformedDistribution(distribution, self.transforms)
+        return distribution
 
 
 class Normalize(th.nn.Module):
