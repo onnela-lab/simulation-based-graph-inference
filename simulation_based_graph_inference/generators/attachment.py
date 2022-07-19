@@ -26,7 +26,7 @@ def random_attachment_graph(
 
     .. plot::
 
-        _plot_generated_graph(generators.poisson_random_attachment_graph, 4)
+        _plot_generated_graph(generators.random_attachment_graph, 4)
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     if isinstance(m, numbers.Integral):
@@ -41,7 +41,7 @@ def random_attachment_graph(
         graph.add_node(node)
         # Sample the degree and obtain neighbors.
         degree = min(node, m if isinstance(m, numbers.Integral) else m())
-        neighbors = rng.choice(node, degree, replace=False)
+        neighbors = rng.choice(node, int(degree), replace=False)
         graph.add_edges_from((node, neighbor) for neighbor in neighbors)
         if add_isolated_nodes:
             graph.add_node(node)
@@ -74,6 +74,8 @@ def degree_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Grap
     if not graph:
         graph = nx.Graph()
         graph.add_edge(0, 1)
+    if not len(graph.edges):
+        raise ValueError("graph must have at least one edge")
     assert_normalized_nodel_labels(graph)
 
     degrees = [graph.degree[node] for node in sorted(graph)]
@@ -81,13 +83,14 @@ def degree_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Grap
         # Choose neighbors.
         log_proba = power * np.log(degrees)
         proba = special.softmax(log_proba)
-        neighbors = rng.choice(node, size=m, p=proba, replace=False)
+        degree = min(m, node)
+        neighbors = rng.choice(node, size=degree, p=proba, replace=False)
 
         # Add edges and update degrees.
         for neighbor in neighbors:
             graph.add_edge(node, neighbor)
             degrees[neighbor] += 1
-        degrees.append(m)
+        degrees.append(degree)
 
     return graph
 
@@ -117,7 +120,7 @@ def rank_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Graph 
     rng = rng or np.random
     if not graph:
         graph = nx.Graph()
-        graph.add_edge(0, 1)
+        graph.add_node(0)
     assert_normalized_nodel_labels(graph)
 
     ranks = [node + 1 for node in sorted(graph)]
@@ -125,7 +128,8 @@ def rank_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Graph 
         # Choose neighbors.
         log_proba = - power * np.log(ranks)
         proba = special.softmax(log_proba)
-        neighbors = rng.choice(node, size=m, p=proba, replace=False)
+        degree = min(m, node)
+        neighbors = rng.choice(node, size=degree, p=proba, replace=False)
 
         # Add edges and add the rank of the new node.
         graph.add_edges_from((node, neighbor) for neighbor in neighbors)

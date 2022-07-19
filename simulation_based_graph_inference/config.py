@@ -19,7 +19,7 @@ Configuration = enum.Enum(
     "poisson_random_attachment_graph redirection_graph random_geometric_graph waxman_graph "
     "web_graph planted_partition_graph watts_strogatz_graph newman_watts_strogatz_graph "
     "latent_space_graph partial_duplication_graph thresholded_random_geometric_graph "
-    "geographical_threshold_graph",
+    "geographical_threshold_graph degree_attachment_graph rank_attachment_graph",
 )
 
 
@@ -39,6 +39,10 @@ def _latent_space_graph(num_nodes: int, alpha: float, beta: float, **kwargs) -> 
                                           p_dist=lambda dist: beta * special.expit(-alpha * dist))
 
 
+def _poisson_random_attachment_graph(num_nodes: int, rate: float, **kwargs):
+    return generators.random_attachment_graph(num_nodes, th.distributions.Poisson(rate).sample)
+
+
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent
 # on the prior.
 GENERATOR_CONFIGURATIONS = {
@@ -46,7 +50,7 @@ GENERATOR_CONFIGURATIONS = {
         (generators.duplication_complementation_graph, {}),
     Configuration.duplication_mutation_graph:
         (generators.duplication_mutation_graph, {}),
-    Configuration.poisson_random_attachment_graph: (generators.poisson_random_attachment_graph, {}),
+    Configuration.poisson_random_attachment_graph: (_poisson_random_attachment_graph, {}),
     Configuration.redirection_graph: (generators.redirection_graph, {"max_num_connections": 2}),
     Configuration.random_geometric_graph: (nx.random_geometric_graph, {"dim": 2}),
     Configuration.waxman_graph: (nx.waxman_graph, {}),
@@ -59,6 +63,8 @@ GENERATOR_CONFIGURATIONS = {
     Configuration.partial_duplication_graph: (nx.partial_duplication_graph, {"n": 2}),
     Configuration.thresholded_random_geometric_graph: (nx.thresholded_random_geometric_graph, {}),
     Configuration.geographical_threshold_graph: (nx.geographical_threshold_graph, {}),
+    Configuration.degree_attachment_graph: (generators.degree_attachment_graph, {"m": 4}),
+    Configuration.rank_attachment_graph: (generators.rank_attachment_graph, {"m": 4}),
 }
 
 
@@ -139,6 +145,14 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
         return {
             "p": th.distributions.Uniform(0, 1),
             "q": th.distributions.Uniform(0, 1),
+        }
+    elif configuration == Configuration.degree_attachment_graph:
+        return {
+            "power": th.distributions.Uniform(0, 2),
+        }
+    elif configuration == Configuration.rank_attachment_graph:
+        return {
+            "power": th.distributions.Uniform(0, 2),
         }
     else:  # pragma: no cover
         raise ValueError(f"{configuration} is not a valid configuration")
@@ -288,6 +302,22 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
             "q": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
+            ),
+        }
+    elif configuration == Configuration.degree_attachment_graph:
+        return {
+            "power": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+                transforms=[th.distributions.AffineTransform(0, 2)]
+            ),
+        }
+    elif configuration == Configuration.rank_attachment_graph:
+        return {
+            "power": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+                transforms=[th.distributions.AffineTransform(0, 2)]
             ),
         }
     else:  # pragma: no cover
