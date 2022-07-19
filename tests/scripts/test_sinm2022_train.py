@@ -1,18 +1,19 @@
 from doit_interface import dict2args
 import pickle
 import pytest
-from simulation_based_graph_inference.scripts import sinm2022_data, sinm2022_train, util
+from simulation_based_graph_inference import config
+from simulation_based_graph_inference.scripts import sinm2022_data, sinm2022_train
 
 
-@pytest.mark.parametrize("configuration", util.GENERATOR_CONFIGURATIONS)
+@pytest.mark.parametrize("configuration", config.Configuration)
 @pytest.mark.parametrize("dense", ["11,5", "7"])
 @pytest.mark.parametrize("conv", ["none", "simple_norm_3_5,7"])
-def test_sinm2022(configuration: str, dense: str, conv: str, tmpwd: str):
+def test_sinm2022(configuration: config.Configuration, dense: str, conv: str, tmpwd: str):
     # Generate some data.
     steps_per_epoch = 7
     batch_size = 13
     num_batches = 11
-    args = dict2args(directory="data", configuration=configuration, batch_size=batch_size,
+    args = dict2args(directory="data", configuration=configuration.name, batch_size=batch_size,
                      num_batches=num_batches, num_nodes=10)
     sinm2022_data.__main__(args)
 
@@ -20,8 +21,8 @@ def test_sinm2022(configuration: str, dense: str, conv: str, tmpwd: str):
     filename = "result.pkl"
     args = dict2args(
         patience=5, num_nodes=1, result=filename, batch_size=batch_size,
-        configuration=configuration, seed=13, conv=conv, dense=dense, train="data", test="data",
-        validation="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
+        configuration=configuration.name, seed=13, conv=conv, dense=dense, train="data",
+        test="data", validation="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
     )
     sinm2022_train.__main__(args)
     with open(filename, "rb") as fp:

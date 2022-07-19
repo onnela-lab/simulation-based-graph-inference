@@ -4,7 +4,7 @@ import torch as th
 import torch_geometric as tg
 
 
-@pytest.fixture(params=config.GENERATOR_CONFIGURATIONS)
+@pytest.fixture(params=config.Configuration)
 def generator_configuration(request):
     return request.param
 
