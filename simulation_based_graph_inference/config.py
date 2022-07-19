@@ -19,7 +19,8 @@ Configuration = enum.Enum(
     "poisson_random_attachment_graph redirection_graph random_geometric_graph waxman_graph "
     "web_graph planted_partition_graph watts_strogatz_graph newman_watts_strogatz_graph "
     "latent_space_graph partial_duplication_graph thresholded_random_geometric_graph "
-    "geographical_threshold_graph degree_attachment_graph rank_attachment_graph",
+    "geographical_threshold_graph degree_attachment_graph rank_attachment_graph "
+    "jackson_rogers_graph"
 )
 
 
@@ -65,6 +66,7 @@ GENERATOR_CONFIGURATIONS = {
     Configuration.geographical_threshold_graph: (nx.geographical_threshold_graph, {}),
     Configuration.degree_attachment_graph: (generators.degree_attachment_graph, {"m": 4}),
     Configuration.rank_attachment_graph: (generators.rank_attachment_graph, {"m": 4}),
+    Configuration.jackson_rogers_graph: (generators.jackson_rogers_graph, {"mr": 4}),
 }
 
 
@@ -153,6 +155,10 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
     elif configuration == Configuration.rank_attachment_graph:
         return {
             "power": th.distributions.Uniform(0, 2),
+        }
+    elif configuration == Configuration.jackson_rogers_graph:
+        return {
+            "pr": th.distributions.Uniform(0, 1),
         }
     else:  # pragma: no cover
         raise ValueError(f"{configuration} is not a valid configuration")
@@ -318,6 +324,13 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
                 transforms=[th.distributions.AffineTransform(0, 2)]
+            ),
+        }
+    elif configuration == Configuration.jackson_rogers_graph:
+        return {
+            "pr": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
             ),
         }
     else:  # pragma: no cover

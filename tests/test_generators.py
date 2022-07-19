@@ -21,6 +21,7 @@ import typing
     (generators.duplication_mutation_graph, (0.5, 0.5, True)),
     (generators.redirection_graph, (4, .3)),
     (generators.web_graph, (0.5, 0.5, 0.5, np.arange(3) / 3)),
+    (generators.jackson_rogers_graph, (4, .5, 3, .7)),
 ])
 @pytest.mark.parametrize("rng", [None, np.random.default_rng()])
 def test_generator(num_nodes: int, generator: typing.Callable, args: list, rng):
@@ -31,6 +32,7 @@ def test_generator(num_nodes: int, generator: typing.Callable, args: list, rng):
     else:
         graph: nx.Graph = generator(num_nodes, *args, rng=rng)
         assert graph.number_of_nodes() == num_nodes
+        assert not list(nx.selfloop_edges(graph))
 
 
 @pytest.mark.parametrize("generator, args", [
