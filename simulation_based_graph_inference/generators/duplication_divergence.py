@@ -129,7 +129,6 @@ def duplication_mutation_graph(
         graph.add_edge(0, 1)
     elif len(graph) == 1:  # pragma: no cover
         raise ValueError("cannot generate duplication mutation graph from single node")
-    graph = graph or nx.Graph()
     assert_normalized_nodel_labels(graph)
 
     keep_sequence = random_sequence(rng.binomial, 1, 1 - divergence_proba)

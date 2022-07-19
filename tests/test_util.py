@@ -7,7 +7,7 @@ import torch as th
 
 
 def test_plot_generated_graph():
-    util._plot_generated_graph(generators.poisson_random_attachment_graph, 4)
+    util._plot_generated_graph(generators.random_attachment_graph, 4)
 
 
 @pytest.mark.parametrize("fail, args", [
