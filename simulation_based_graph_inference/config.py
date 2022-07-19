@@ -75,7 +75,7 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
     elif configuration == Configuration.duplication_mutation_graph:
         return {
             "mutation_proba": th.distributions.Uniform(0, 1),
-            "deletion_proba": th.distributions.Uniform(0, 1),
+            "divergence_proba": th.distributions.Uniform(0, 1),
         }
     elif configuration == Configuration.poisson_random_attachment_graph:
         return {
@@ -153,7 +153,7 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
-            "deletion_proba": DistributionModule(
+            "divergence_proba": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
