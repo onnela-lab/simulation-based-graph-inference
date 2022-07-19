@@ -9,7 +9,9 @@ import typing
 @pytest.mark.parametrize("generator, args", [
     (generators.poisson_random_attachment_graph, (4,)),
     (generators.duplication_complementation_graph, (.7, .3)),
+    (generators.duplication_complementation_graph, (0.5, 0.5, True)),
     (generators.duplication_mutation_graph, (.6, .2)),
+    (generators.duplication_mutation_graph, (0.5, 0.5, True)),
     (generators.redirection_graph, (4, .3)),
     (generators.web_graph, (0.5, 0.5, 0.5, np.arange(3) / 3)),
 ])

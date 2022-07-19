@@ -18,7 +18,7 @@ Configuration = enum.Enum(
     "Configuration", "duplication_complementation_graph duplication_mutation_graph "
     "poisson_random_attachment_graph redirection_graph random_geometric_graph waxman_graph "
     "web_graph planted_partition_graph watts_strogatz_graph newman_watts_strogatz_graph "
-    "latent_space_graph",
+    "latent_space_graph partial_duplication_graph",
 )
 
 
@@ -54,6 +54,8 @@ GENERATOR_CONFIGURATIONS = {
     Configuration.watts_strogatz_graph: (nx.watts_strogatz_graph, {"k": 4}),
     Configuration.newman_watts_strogatz_graph: (nx.newman_watts_strogatz_graph, {"k": 4}),
     Configuration.latent_space_graph: (_latent_space_graph, {"dim": 2}),
+    # Start with two connected nodes as described in 10.1155/2008/190836 for numerical experiments.
+    Configuration.partial_duplication_graph: (nx.partial_duplication_graph, {"n": 2})
 }
 
 
@@ -75,7 +77,7 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
     elif configuration == Configuration.duplication_mutation_graph:
         return {
             "mutation_proba": th.distributions.Uniform(0, 1),
-            "deletion_proba": th.distributions.Uniform(0, 1),
+            "divergence_proba": th.distributions.Uniform(0, 1),
         }
     elif configuration == Configuration.poisson_random_attachment_graph:
         return {
@@ -120,6 +122,12 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
             "beta": th.distributions.Uniform(0, 1),
             "alpha": th.distributions.Uniform(0, 1),
         }
+    elif configuration == Configuration.partial_duplication_graph:
+        # Connection probability is beta * expit(- alpha * distance)
+        return {
+            "p": th.distributions.Uniform(0, 1),
+            "q": th.distributions.Uniform(0, 1),
+        }
     else:  # pragma: no cover
         raise ValueError(f"{configuration} is not a valid configuration")
 
@@ -153,7 +161,7 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
-            "deletion_proba": DistributionModule(
+            "divergence_proba": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
@@ -237,6 +245,17 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
                 concentration1=th.nn.LazyLinear(1),
             ),
             "beta": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+        }
+    elif configuration == Configuration.partial_duplication_graph:
+        return {
+            "p": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+            "q": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),

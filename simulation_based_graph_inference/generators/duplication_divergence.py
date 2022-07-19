@@ -4,8 +4,9 @@ from ..util import assert_interval, assert_normalized_nodel_labels, randint, ran
 
 
 def duplication_complementation_graph(
-        num_nodes: int, interaction_proba: float, divergence_proba: float, graph: nx.Graph = None,
-        rng: np.random.Generator = None) -> nx.Graph:
+        num_nodes: int, interaction_proba: float, divergence_proba: float,
+        add_isolated_nodes: bool = False, graph: nx.Graph = None, rng: np.random.Generator = None) \
+            -> nx.Graph:
     """
     Generate a protein interaction graph as described by
     `Vazquez et al. (2003) <https://doi.org/10.1159/000067642>`_.
@@ -15,6 +16,7 @@ def duplication_complementation_graph(
         interaction_proba: Probability to connect the duplicated node to the original node.
         divergence_proba: Probability that one of the connections between each neighbors and either
             the duplicated or original node is removed.
+        add_isolated_nodes: Whether to add new nodes even if they are isolated.
         graph: Seed graph to modify in place. If `None`, a new graph is created.
         rng: Random number generator.
 
@@ -68,12 +70,17 @@ def duplication_complementation_graph(
         if rng.binomial(1, interaction_proba):
             graph.add_edge(source, node)
 
+        # Explicitly add the node. This is a no-op if the node has connections and adds it if not.
+        if add_isolated_nodes:
+            graph.add_node(node)
+
     return graph
 
 
 def duplication_mutation_graph(
-        num_nodes: int, mutation_proba: float, deletion_proba: float, graph: nx.Graph = None,
-        rng: np.random.Generator = None) -> nx.Graph:
+        num_nodes: int, mutation_proba: float, divergence_proba: float,
+        add_isolated_nodes: bool = False, graph: nx.Graph = None, rng: np.random.Generator = None) \
+            -> nx.Graph:
     r"""
     Generate a protein interaction graph as described by
     `Sole et al. (2002) <https://doi.org/10.1142/S021952590200047X>`_.
@@ -83,8 +90,9 @@ def duplication_mutation_graph(
         mutation_proba: Parameter such that random connections between the duplicated node and all
             other nodes in the network are created with probability
             `mutation_proba / current_num_nodes`.
-        deletion_proba: Probability that, for each neighbor, the connection with the duplicated node
-            is removed.
+        divergence_proba: Probability that, for each neighbor, the connection with the duplicated
+            node is removed.
+        add_isolated_nodes: Whether to add new nodes even if they are isolated.
         graph: Seed graph to modify in place. If `None`, a new graph is created.
         rng: Random number generator.
 
@@ -96,14 +104,14 @@ def duplication_mutation_graph(
     1. A node :math:`i` is chosen at random and duplicated to obtain node :math:`i'`, including all
        of its connections.
     2. For each neighbor :math:`j`, the connection to the new node :math:`i'` is removed with
-       probability `deletion_proba` (often denoted :math:`\delta`).
+       probability `divergence_proba` (often denoted :math:`\delta`).
     3. New connections from the new node :math:`i'` to any nodes in the network are created with
        probability `mutation_proba / num_nodes` (often denoted :math:`\beta`).
 
     Note:
         We use an equivalent but more efficient growth process here. In the second step, for each of
         the neighbors :math:`j`, we create an edge to :math:`i'` with probability
-        `1 - deletion_proba`. In the third step, we sample the number of additional edges `extra`
+        `1 - divergence_proba`. In the third step, we sample the number of additional edges `extra`
         from a binomial random variable with `num_nodes` trials and probability
         `mutation_proba / num_nodes`. We then sample connect the new node to `extra` distinct
         existing nodes.
@@ -114,7 +122,7 @@ def duplication_mutation_graph(
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("mutation_proba", mutation_proba, 0, 1)
-    assert_interval("deletion_proba", deletion_proba, 0, 1)
+    assert_interval("divergence_proba", divergence_proba, 0, 1)
     rng = rng or np.random
     if not graph:
         graph = nx.Graph()
@@ -124,7 +132,7 @@ def duplication_mutation_graph(
     graph = graph or nx.Graph()
     assert_normalized_nodel_labels(graph)
 
-    keep_sequence = random_sequence(rng.binomial, 1, 1 - deletion_proba)
+    keep_sequence = random_sequence(rng.binomial, 1, 1 - divergence_proba)
 
     while (node := len(graph)) < num_nodes:
         # First pick the additional neighbors, we sample one additional one as the seed.
@@ -137,5 +145,9 @@ def duplication_mutation_graph(
                 graph.add_edge(node, neighbor)
 
         graph.add_edges_from((node, neighbor) for neighbor in random_neighbors)
+
+        # Explicitly add the node. This is a no-op if the node has connections and adds it if not.
+        if add_isolated_nodes:
+            graph.add_node(node)
 
     return graph
