@@ -11,10 +11,10 @@ def _sample_by_degree(rng: np.random.Generator, edges: list) -> int:
     return u if rng.binomial(1, 0.5) else v
 
 
-def web(num_nodes: int, proba_new: float, proba_uniform_new: float, proba_uniform_old1: float,
-        dist_degree_new: np.ndarray, proba_uniform_old2: float = None,
-        dist_degree_old: np.ndarray = None, graph: nx.Graph = None, rng:
-        np.random.Generator = None) -> nx.Graph:
+def web_graph(num_nodes: int, proba_new: float, proba_uniform_new: float, proba_uniform_old1: float,
+              dist_degree_new: np.ndarray, proba_uniform_old2: float = None,
+              dist_degree_old: np.ndarray = None, graph: nx.Graph = None, rng:
+              np.random.Generator = None) -> nx.Graph:
     """
     Generate a web graph according to the undirected model of
     `Cooper et al. (2003) <https://doi.org/10.1002/rsa.10084>`_.

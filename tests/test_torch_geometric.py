@@ -8,7 +8,7 @@ import torch_geometric.nn
 
 @pytest.fixture
 def graph() -> nx.Graph:
-    return generators.redirection(100, 4, .5)
+    return generators.redirection_graph(100, 4, .5)
 
 
 @pytest.fixture

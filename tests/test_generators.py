@@ -7,11 +7,11 @@ import typing
 
 @pytest.mark.parametrize("num_nodes", [-1, 0, 50, 200])
 @pytest.mark.parametrize("generator, args", [
-    (generators.poisson_random_attachment, (4,)),
-    (generators.duplication_complementation, (.7, .3)),
-    (generators.duplication_mutation, (.6, .2)),
-    (generators.redirection, (4, .3)),
-    (generators.web, (0.5, 0.5, 0.5, np.arange(3) / 3)),
+    (generators.poisson_random_attachment_graph, (4,)),
+    (generators.duplication_complementation_graph, (.7, .3)),
+    (generators.duplication_mutation_graph, (.6, .2)),
+    (generators.redirection_graph, (4, .3)),
+    (generators.web_graph, (0.5, 0.5, 0.5, np.arange(3) / 3)),
 ])
 @pytest.mark.parametrize("rng", [None, np.random.default_rng()])
 def test_generator(num_nodes: int, generator: typing.Callable, args: list, rng):
@@ -25,16 +25,16 @@ def test_generator(num_nodes: int, generator: typing.Callable, args: list, rng):
 
 
 @pytest.mark.parametrize("generator, args", [
-    (generators.poisson_random_attachment, (-1,)),
-    (generators.duplication_complementation, (-.7, .3)),
-    (generators.duplication_complementation, (.7, 1.1)),
-    (generators.duplication_mutation, (1.6, .2)),
-    (generators.duplication_mutation, (.6, -.2)),
-    (generators.redirection, (0, .3)),
-    (generators.redirection, (4, 1.3)),
-    (generators.web, (0, 0.5, 0.5, np.arange(3) / 3)),
-    (generators.web, (0.5, 1.1, 0.5, np.arange(3) / 3)),
-    (generators.web, (0.5, 0.5, -0.1, np.arange(3) / 3)),
+    (generators.poisson_random_attachment_graph, (-1,)),
+    (generators.duplication_complementation_graph, (-.7, .3)),
+    (generators.duplication_complementation_graph, (.7, 1.1)),
+    (generators.duplication_mutation_graph, (1.6, .2)),
+    (generators.duplication_mutation_graph, (.6, -.2)),
+    (generators.redirection_graph, (0, .3)),
+    (generators.redirection_graph, (4, 1.3)),
+    (generators.web_graph, (0, 0.5, 0.5, np.arange(3) / 3)),
+    (generators.web_graph, (0.5, 1.1, 0.5, np.arange(3) / 3)),
+    (generators.web_graph, (0.5, 0.5, -0.1, np.arange(3) / 3)),
 ])
 def test_generator_invalid_parameters(generator: typing.Callable, args: list):
     with pytest.raises(ValueError):

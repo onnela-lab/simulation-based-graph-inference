@@ -3,7 +3,7 @@ import numpy as np
 from ..util import assert_interval, assert_normalized_nodel_labels, randint, random_sequence
 
 
-def duplication_complementation(
+def duplication_complementation_graph(
         num_nodes: int, interaction_proba: float, divergence_proba: float, graph: nx.Graph = None,
         rng: np.random.Generator = None) -> nx.Graph:
     """
@@ -39,7 +39,7 @@ def duplication_complementation(
 
     .. plot::
 
-       _plot_generated_graph(generators.duplication_complementation, 0.5, 0.2)
+       _plot_generated_graph(generators.duplication_complementation_graph, 0.5, 0.2)
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("divergence_proba", divergence_proba, 0, 1)
@@ -71,7 +71,7 @@ def duplication_complementation(
     return graph
 
 
-def duplication_mutation(
+def duplication_mutation_graph(
         num_nodes: int, mutation_proba: float, deletion_proba: float, graph: nx.Graph = None,
         rng: np.random.Generator = None) -> nx.Graph:
     r"""
@@ -110,7 +110,7 @@ def duplication_mutation(
 
     .. plot::
 
-       _plot_generated_graph(generators.duplication_mutation, 0.5, 0.2)
+       _plot_generated_graph(generators.duplication_mutation_graph, 0.5, 0.2)
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("mutation_proba", mutation_proba, 0, 1)

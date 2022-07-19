@@ -3,9 +3,10 @@ from doit_interface import dict2args
 import itertools as it
 import os
 import pathlib
-from simulation_based_graph_inference.scripts.util import GENERATOR_CONFIGURATIONS
+from simulation_based_graph_inference.config import Configuration
 
 
+CONFIGURATION_NAMES = [x.name for x in Configuration]
 ROOT = pathlib.Path("workspace")
 DOIT_CONFIG = di.DOIT_CONFIG
 manager = di.Manager.get_instance()
@@ -62,7 +63,7 @@ SPLITS = {
     "test": 1_000,
 }
 
-for configuration in GENERATOR_CONFIGURATIONS:
+for configuration in CONFIGURATION_NAMES:
     # Generate the data.
     datasets = []
     for seed, (split, num_samples) in enumerate(SPLITS.items()):
@@ -90,7 +91,7 @@ for configuration in GENERATOR_CONFIGURATIONS:
 
 
 # Profiling targets.
-for configuration in GENERATOR_CONFIGURATIONS:
+for configuration in CONFIGURATION_NAMES:
     basename = f"profile/{configuration}"
     target = ROOT / f"{basename}.prof"
     args = ["$!", "-m", "cProfile", "-o", "$@", "$^"] + dict2args(configuration=configuration)
