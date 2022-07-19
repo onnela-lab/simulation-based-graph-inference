@@ -15,9 +15,10 @@ from . import generators
 
 
 Configuration = enum.Enum(
-    "Configuration", "duplication_complementation duplication_mutation poisson_random_attachment "
-    "redirection random_geometric_graph waxman_graph web planted_partition_graph "
-    "watts_strogatz_graph newman_watts_strogatz_graph latent_space_graph",
+    "Configuration", "duplication_complementation_graph duplication_mutation_graph "
+    "poisson_random_attachment_graph redirection_graph random_geometric_graph waxman_graph "
+    "web_graph planted_partition_graph watts_strogatz_graph newman_watts_strogatz_graph "
+    "latent_space_graph",
 )
 
 
@@ -40,13 +41,15 @@ def _latent_space_graph(num_nodes: int, alpha: float, beta: float, **kwargs) -> 
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent
 # on the prior.
 GENERATOR_CONFIGURATIONS = {
-    Configuration.duplication_complementation: (generators.duplication_complementation, {}),
-    Configuration.duplication_mutation: (generators.duplication_mutation, {}),
-    Configuration.poisson_random_attachment: (generators.poisson_random_attachment, {}),
-    Configuration.redirection: (generators.redirection, {"max_num_connections": 2}),
+    Configuration.duplication_complementation_graph:
+        (generators.duplication_complementation_graph, {}),
+    Configuration.duplication_mutation_graph:
+        (generators.duplication_mutation_graph, {}),
+    Configuration.poisson_random_attachment_graph: (generators.poisson_random_attachment_graph, {}),
+    Configuration.redirection_graph: (generators.redirection_graph, {"max_num_connections": 2}),
     Configuration.random_geometric_graph: (nx.random_geometric_graph, {"dim": 2}),
     Configuration.waxman_graph: (nx.waxman_graph, {}),
-    Configuration.web: (generators.web, {"dist_degree_new": np.arange(3) == 2}),
+    Configuration.web_graph: (generators.web_graph, {"dist_degree_new": np.arange(3) == 2}),
     Configuration.planted_partition_graph: (_planted_partition_graph, {"num_groups": 2}),
     Configuration.watts_strogatz_graph: (nx.watts_strogatz_graph, {"k": 4}),
     Configuration.newman_watts_strogatz_graph: (nx.newman_watts_strogatz_graph, {"k": 4}),
@@ -64,21 +67,21 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
     Returns:
         prior: Mapping from parameter names to distributions.
     """
-    if configuration == Configuration.duplication_complementation:
+    if configuration == Configuration.duplication_complementation_graph:
         return {
             "interaction_proba": th.distributions.Uniform(0, 1),
             "divergence_proba": th.distributions.Uniform(0, 1),
         }
-    elif configuration == Configuration.duplication_mutation:
+    elif configuration == Configuration.duplication_mutation_graph:
         return {
             "mutation_proba": th.distributions.Uniform(0, 1),
             "deletion_proba": th.distributions.Uniform(0, 1),
         }
-    elif configuration == Configuration.poisson_random_attachment:
+    elif configuration == Configuration.poisson_random_attachment_graph:
         return {
             "rate": th.distributions.Gamma(2, 1),
         }
-    elif configuration == Configuration.redirection:
+    elif configuration == Configuration.redirection_graph:
         return {
             "redirection_proba": th.distributions.Uniform(0, 1),
         }
@@ -92,7 +95,7 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
             "beta": th.distributions.Uniform(0, 1),
             "alpha": th.distributions.Uniform(0, 1),
         }
-    elif configuration == Configuration.web:
+    elif configuration == Configuration.web_graph:
         return {
             "proba_new": th.distributions.Uniform(0, 1),
             "proba_uniform_new": th.distributions.Uniform(0, 1),
@@ -133,7 +136,7 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
         estimator: Mapping from parameter names to a module that returns a
             :class:`torch.distributions.Distribution`.
     """
-    if configuration == Configuration.duplication_complementation:
+    if configuration == Configuration.duplication_complementation_graph:
         return {
             "interaction_proba": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
@@ -144,7 +147,7 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
                 concentration1=th.nn.LazyLinear(1),
             ),
         }
-    elif configuration == Configuration.duplication_mutation:
+    elif configuration == Configuration.duplication_mutation_graph:
         return {
             "mutation_proba": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
@@ -155,14 +158,14 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
                 concentration1=th.nn.LazyLinear(1),
             ),
         }
-    elif configuration == Configuration.poisson_random_attachment:
+    elif configuration == Configuration.poisson_random_attachment_graph:
         return {
             "rate": DistributionModule(
                 th.distributions.Gamma, concentration=th.nn.LazyLinear(1),
                 rate=th.nn.LazyLinear(1),
             )
         }
-    elif configuration == Configuration.redirection:
+    elif configuration == Configuration.redirection_graph:
         return {
             "redirection_proba": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
@@ -187,7 +190,7 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
                 concentration1=th.nn.LazyLinear(1),
             ),
         }
-    elif configuration == Configuration.web:
+    elif configuration == Configuration.web_graph:
         return {
             "proba_new": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),

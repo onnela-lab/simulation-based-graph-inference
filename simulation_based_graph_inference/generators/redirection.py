@@ -3,8 +3,8 @@ import numpy as np
 from ..util import assert_interval, assert_normalized_nodel_labels
 
 
-def redirection(num_nodes: int, max_num_connections: int, redirection_proba: float,
-                graph: nx.Graph = None, rng: np.random.Generator = None) -> nx.Graph:
+def redirection_graph(num_nodes: int, max_num_connections: int, redirection_proba: float,
+                      graph: nx.Graph = None, rng: np.random.Generator = None) -> nx.Graph:
     """
     Generate a graph by random attachment with probabilistic redirection as described by
     `Krapivsky et al. (2001) <https://doi.org/10.1103/PhysRevE.63.066123>`_.
@@ -37,7 +37,7 @@ def redirection(num_nodes: int, max_num_connections: int, redirection_proba: flo
 
     .. plot::
 
-       _plot_generated_graph(generators.redirection, 3, 0.5)
+       _plot_generated_graph(generators.redirection_graph, 3, 0.5)
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     max_num_connections = assert_interval("max_num_connections", max_num_connections, 0, None,
