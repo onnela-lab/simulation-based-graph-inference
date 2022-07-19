@@ -32,6 +32,7 @@ def test_generator(num_nodes: int, generator: typing.Callable, args: list, rng):
     else:
         graph: nx.Graph = generator(num_nodes, *args, rng=rng)
         assert graph.number_of_nodes() == num_nodes
+        assert not list(nx.selfloop_edges(graph))
 
 
 @pytest.mark.parametrize("generator, args", [

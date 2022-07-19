@@ -170,13 +170,11 @@ def jackson_rogers_graph(num_nodes: int, mr: int, pr: float, mn: int = None, pn:
         graph = nx.complete_graph(mn + mr + 1)
 
     while (node := len(graph)) < num_nodes:
-        # Pick random "parents".
+        # Pick random "parents" and get the union of their neighbors.
         num_parents = rng.binomial(min(mr, node), pr)
         parents = rng.choice(node, num_parents, replace=False)
-        neighbors = set()
-        for parent in parents:
-            graph.add_edge(node, parent)
-            neighbors.update(graph.neighbors(parent))
+        neighbors = {neighbor for parent in parents for neighbor in graph.neighbors(parent)}
+        graph.add_edges_from((node, parent) for parent in parents)
 
         # Connect to neighbors of parents, excluding parents.
         neighbors.difference_update(parents)
