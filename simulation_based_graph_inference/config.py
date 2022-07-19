@@ -18,7 +18,7 @@ Configuration = enum.Enum(
     "Configuration", "duplication_complementation_graph duplication_mutation_graph "
     "poisson_random_attachment_graph redirection_graph random_geometric_graph waxman_graph "
     "web_graph planted_partition_graph watts_strogatz_graph newman_watts_strogatz_graph "
-    "latent_space_graph partial_duplication_graph",
+    "latent_space_graph partial_duplication_graph thresholded_random_geometric_graph",
 )
 
 
@@ -55,7 +55,8 @@ GENERATOR_CONFIGURATIONS = {
     Configuration.newman_watts_strogatz_graph: (nx.newman_watts_strogatz_graph, {"k": 4}),
     Configuration.latent_space_graph: (_latent_space_graph, {"dim": 2}),
     # Start with two connected nodes as described in 10.1155/2008/190836 for numerical experiments.
-    Configuration.partial_duplication_graph: (nx.partial_duplication_graph, {"n": 2})
+    Configuration.partial_duplication_graph: (nx.partial_duplication_graph, {"n": 2}),
+    Configuration.thresholded_random_geometric_graph: (nx.thresholded_random_geometric_graph, {}),
 }
 
 
@@ -90,6 +91,11 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
     elif configuration == Configuration.random_geometric_graph:
         return {
             "radius": th.distributions.Uniform(0, 1),
+        }
+    elif configuration == Configuration.thresholded_random_geometric_graph:
+        return {
+            "radius": th.distributions.Uniform(0, 1),
+            "theta": th.distributions.Uniform(0, 1),
         }
     elif configuration == Configuration.waxman_graph:
         # Connection probability is beta * exp(- alpha * distance / L)
@@ -183,6 +189,17 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
     elif configuration == Configuration.random_geometric_graph:
         return {
             "radius": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+        }
+    elif configuration == Configuration.thresholded_random_geometric_graph:
+        return {
+            "radius": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            ),
+            "theta": DistributionModule(
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
