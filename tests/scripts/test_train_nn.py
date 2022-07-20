@@ -2,7 +2,7 @@ from doit_interface import dict2args
 import pickle
 import pytest
 from simulation_based_graph_inference import config
-from simulation_based_graph_inference.scripts import sinm2022_data, sinm2022_train
+from simulation_based_graph_inference.scripts import generate_data, train_nn
 
 
 @pytest.mark.parametrize("configuration", config.Configuration)
@@ -15,7 +15,7 @@ def test_sinm2022(configuration: config.Configuration, dense: str, conv: str, tm
     num_batches = 11
     args = dict2args(directory="data", configuration=configuration.name, batch_size=batch_size,
                      num_batches=num_batches, num_nodes=10)
-    sinm2022_data.__main__(args)
+    generate_data.__main__(args)
 
     # Run the training.
     filename = "result.pkl"
@@ -24,7 +24,7 @@ def test_sinm2022(configuration: config.Configuration, dense: str, conv: str, tm
         configuration=configuration.name, seed=13, conv=conv, dense=dense, train="data",
         test="data", validation="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
     )
-    sinm2022_train.__main__(args)
+    train_nn.__main__(args)
     with open(filename, "rb") as fp:
         result = pickle.load(fp)
 
