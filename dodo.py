@@ -73,6 +73,8 @@ SPLITS = {
     "test": 1_000,
 }
 
+reference_configurations = di.group_tasks("reference_configurations")
+
 for configuration in Configuration:
     # Generate the data.
     datasets = []
@@ -100,8 +102,10 @@ for configuration in Configuration:
         args = ["$!", "-m", "simulation_based_graph_inference.scripts.train_nn"] + \
             dict2args(specification, {split: ROOT / data_basename / split for split in SPLITS},
                       seed=seed, configuration=configuration.name, result=target)
-        manager(basename=basename, name=name, actions=[args], targets=[target], uptodate=[True],
-                file_dep=datasets)
+        task = manager(basename=basename, name=name, actions=[args], targets=[target],
+                       uptodate=[True], file_dep=datasets)
+        if configuration in REFERENCE_CONFIGURATIONS:
+            reference_configurations(task)
 
 
 # Profiling targets.
