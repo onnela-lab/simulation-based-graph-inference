@@ -38,7 +38,7 @@ DEPTHS = range(CONFIG["MAX_DEPTH"] + 1)
 SEEDS = range(CONFIG["NUM_SEEDS"])
 
 # This is the architecture we apply to all generators, not just the reference generators.
-REFERENCE_ARCHITECTURE = "simple-narrow"
+REFERENCE_ARCHITECTURE = "gin-narrow"
 ARCHITECTURE_SPECIFICATIONS = {}
 for depth in DEPTHS:
     # Create simple convolutional isomorphism layers with normalization for all but the first layer.
@@ -74,6 +74,7 @@ SPLITS = {
 }
 
 reference_configurations = di.group_tasks("reference_configurations")
+transfer_learning = di.group_tasks("transfer_learning")
 
 for configuration in Configuration:
     # Generate the data.
@@ -99,13 +100,39 @@ for configuration in Configuration:
         name = f"seed-{seed}"
         basename = f"{configuration.name}/{architecture}/{depth}"
         target = ROOT / f"{basename}/{name}.pkl"
-        args = ["$!", "-m", "simulation_based_graph_inference.scripts.train_nn"] + \
-            dict2args(specification, {split: ROOT / data_basename / split for split in SPLITS},
-                      seed=seed, configuration=configuration.name, result=target)
-        task = manager(basename=basename, name=name, actions=[args], targets=[target],
-                       uptodate=[True], file_dep=datasets)
+        kwargs = specification | {split: ROOT / data_basename / split for split in SPLITS} | dict(
+            seed=seed, configuration=configuration.name, result=target
+        )
+        args = ["$!", "-m", "simulation_based_graph_inference.scripts.train_nn"]
+        task = manager(basename=basename, name=name, actions=[args + dict2args(kwargs)],
+                       targets=[target], uptodate=[True], file_dep=datasets)
         if configuration in REFERENCE_CONFIGURATIONS:
             reference_configurations(task)
+
+        # Skip transfer learning if this is not the reference configuration.
+        if architecture != REFERENCE_ARCHITECTURE:
+            continue
+
+        # Run transfer learning for this configuration given features extractetd from all other
+        # models. This may seem reversed from what we'd actually do in terms of procedural
+        # execution, but we're only declaring tasks here. I.e., `transfer_configuration` is the
+        # model that extracts the features.
+        for transfer_configuration in Configuration:
+            # Don't need to do transfer learning if the two configurations are the same.
+            if transfer_configuration == configuration:
+                continue
+            other_basename = f"{transfer_configuration.name}/{architecture}/{depth}"
+            other_target = ROOT / f"{other_basename}/{name}.pkl"
+            kwargs["conv"] = f"file:{other_target}"
+
+            transfer_basename = f"{configuration.name}/transfer/{transfer_configuration.name}/" \
+                f"{architecture}/{depth}"
+            transfer_target = ROOT / f"{transfer_basename}/{name}.pkl"
+            kwargs["result"] = transfer_target
+            task = manager(basename=transfer_basename, name=name,
+                           actions=[args + dict2args(kwargs)], targets=[transfer_target],
+                           file_dep=datasets + [other_target])
+            transfer_learning(task)
 
 
 # Profiling targets.
