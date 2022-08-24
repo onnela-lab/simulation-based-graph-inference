@@ -189,7 +189,6 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         "params": {key: result["batch"][key] for key in result["dists"]},
         "log_prob": result["log_prob"],
         "prior": prior,
-        "batch": result["batch"],
         "num_epochs": epoch,
         "losses": losses,
     }
