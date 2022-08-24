@@ -24,8 +24,7 @@ jobs:
           key: ${{ env.pythonLocation }}-${{ hashFiles('test_requirements.txt') }}
       - name: "Install dependencies"
         run: |
-          # Install cython first because we need it for setup.py.
-          pip install `cat test_requirements.txt | grep cython==`
+          # Install torch first because we need the headers for torch-scatter, etc.
           pip install `cat test_requirements.txt | grep torch==`
           pip install -r test_requirements.txt
       - name: "Build the project"
