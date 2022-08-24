@@ -20,7 +20,7 @@ Configuration = enum.Enum(
     "web_graph planted_partition_graph watts_strogatz_graph newman_watts_strogatz_graph "
     "latent_space_graph partial_duplication_graph thresholded_random_geometric_graph "
     "geographical_threshold_graph degree_attachment_graph rank_attachment_graph "
-    "jackson_rogers_graph"
+    "jackson_rogers_graph copy_graph"
 )
 
 
@@ -47,6 +47,7 @@ def _poisson_random_attachment_graph(num_nodes: int, rate: float, **kwargs):
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent
 # on the prior.
 GENERATOR_CONFIGURATIONS = {
+    Configuration.copy_graph: (generators.copy_graph, {}),
     Configuration.duplication_complementation_graph:
         (generators.duplication_complementation_graph, {}),
     Configuration.duplication_mutation_graph:
@@ -159,6 +160,10 @@ def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributi
     elif configuration == Configuration.jackson_rogers_graph:
         return {
             "pr": th.distributions.Uniform(0, 1),
+        }
+    elif configuration == Configuration.copy_graph:
+        return {
+            "copy_proba": th.distributions.Uniform(0, 1),
         }
     else:  # pragma: no cover
         raise ValueError(f"{configuration} is not a valid configuration")
@@ -332,6 +337,13 @@ def get_parameterized_posterior_density_estimator(configuration: Configuration) 
                 th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
                 concentration1=th.nn.LazyLinear(1),
             ),
+        }
+    elif configuration == Configuration.copy_graph:
+        return {
+            "copy_proba": DistributionModule(
+                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                concentration1=th.nn.LazyLinear(1),
+            )
         }
     else:  # pragma: no cover
         raise ValueError(f"{configuration} is not a known generator")
