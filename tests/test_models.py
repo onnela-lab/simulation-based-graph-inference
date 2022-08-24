@@ -63,7 +63,7 @@ def test_model_with_architectures(generator_configuration: str, batch, model_con
 
     # Validate the outputs. This also verifies that the number of graph features is correct because
     # we do not use lazy modules in the dense network configuration above.
-    dists = model(batch)
+    dists, features = model(batch)
     for key, dist in dists.items():
         log_prob = dist.log_prob(batch[key])
         assert log_prob.shape == (batch.num_graphs,)
