@@ -8,6 +8,7 @@ import typing
 
 @pytest.mark.parametrize("num_nodes", [-1, 0, 50, 200])
 @pytest.mark.parametrize("generator, args", [
+    (generators.copy_graph, (.5,)),
     (generators.random_attachment_graph, (4,)),
     (generators.random_attachment_graph, (4, True)),
     (generators.random_attachment_graph, (th.distributions.Poisson(4).sample,)),
