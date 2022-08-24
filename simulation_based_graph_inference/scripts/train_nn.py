@@ -17,14 +17,15 @@ def null_context(*args, **kwargs):
     yield
 
 
-def run_epoch(model: th.nn.Module, loader: DataLoader, optimizer: th.optim.Optimizer = None,
-              max_num_batches: int = None):
+def run_epoch(model: models.Model, loader: DataLoader, epsilon: float,
+              optimizer: th.optim.Optimizer = None, max_num_batches: int = None) -> dict:
     """
     Run one epoch for the model using data from the given loader.
 
     Args:
         model: Model to estimate posterior densities.
         loader: Data loader yielding batches of graphs.
+        epsilon: L2 penalty parameter for latent represenations after convolutional layer.
         optimizer: Optimizer to train the model. The model is not trained if no optimizer is given.
         max_num_batches: Maximum number of optimization steps for this epoch.
 
@@ -42,11 +43,21 @@ def run_epoch(model: th.nn.Module, loader: DataLoader, optimizer: th.optim.Optim
 
         # Apply the model to get posterior estimates and evaluate the loss.
         with (null_context() if optimizer else th.no_grad()):
-            dists = model(batch)
+            features: th.Tensor
+            dists, features = model(batch)
+            assert features.ndim == 2
+            assert features.shape[0] == batch.num_graphs
             assert batch.num_graphs == loader.batch_size or num_batches == len(loader) - 1
             assert all(dist.batch_shape == (batch.num_graphs,) for dist in dists.values())
             log_prob = sum(dist.log_prob(batch[key]) for key, dist in dists.items())
-            loss = - log_prob.mean()
+            # Evaluate negative log probability loss plus small regularization on latent state. This
+            # regularization can't just apply to the norm, however. Otherwise, the model will simply
+            # learn to make the embeddings tiny and then scale up in the density estimator. So we
+            # want to regularize such that the embeddings are approximately unit vectors. We achieve
+            # this "soft" constraint by including a penalty `epsilon * (1 - norm) ** 2` averaged
+            # over the batch.
+            loss = - log_prob.mean() \
+                + epsilon * (features.square().sum(axis=-1) - 1).square().mean()
 
         # Update the model weights if desired.
         if optimizer:
@@ -91,6 +102,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser.add_argument("--validation", help="path to validation set", required=True)
     parser.add_argument("--train", help="path to training set", required=True)
     parser.add_argument("--max_num_epochs", help="maximum number of epochs to run", type=int)
+    parser.add_argument("--epsilon", help="L2 penalty for latent representations", type=float,
+                        default=1e-3)
     args = parser.parse_args(args)
 
     # Set up the generator and model.
@@ -140,9 +153,9 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         while num_bad_epochs < args.patience and (args.max_num_epochs is None
                                                   or epoch < args.max_num_epochs):
             # Run one training epoch and evaluate the validation loss.
-            train_loss = run_epoch(model, loaders["train"], optimizer,
+            train_loss = run_epoch(model, loaders["train"], args.epsilon, optimizer,
                                    args.steps_per_epoch)["epoch_loss"]
-            validation_loss = run_epoch(model, loaders["validation"])["epoch_loss"]
+            validation_loss = run_epoch(model, loaders["validation"], args.epsilon)["epoch_loss"]
             losses.setdefault("train", []).append(train_loss)
             losses.setdefault("validation", []).append(validation_loss)
             progress.update()
@@ -161,7 +174,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
 
     # Evaluate on the test set using full batch evaluation.
     dataset = datasets["test"]
-    result = run_epoch(model, DataLoader(dataset, len(dataset)))
+    result = run_epoch(model, DataLoader(dataset, len(dataset)), epsilon=0)
     assert result["num_batches"] == 1, "got more than one evaluation batch"
     assert result["log_prob"].shape == (len(dataset),)
 
