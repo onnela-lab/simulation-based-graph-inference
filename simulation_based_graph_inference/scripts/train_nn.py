@@ -95,9 +95,11 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser.add_argument("--conv", help="sequence of graph isomorphism convolutional layers "
                         "separated by underscores; e.g. `simple_8,8_norm` denotes a three-layer "
                         "network comprising a simple layer, a two-layer transform, and a "
-                        "normalized simple layer", required=True)
+                        "normalized simple layer; if starting with `file:`, the convolutional "
+                        "layers will be loaded from a previous result", required=True)
     parser.add_argument("--dense", help="sequence of number of hidden units for the dense "
-                        "graph-level transform", required=True)
+                        "graph-level transform; if starting with `file:`, the dense layers will be "
+                        "loaded from a previous result", required=True)
     parser.add_argument("--test", help="path to test set", required=True)
     parser.add_argument("--validation", help="path to validation set", required=True)
     parser.add_argument("--train", help="path to training set", required=True)
@@ -132,7 +134,14 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                 conv.append(tg.nn.GINConv(nn))
 
     # Set up the dense network for transforming graph-level representations.
-    dense = models.create_dense_nn(map(int, args.dense.split(',')), activation, True)
+    if args.dense.startswith("file:"):
+        # This must be a previously-saved result file.
+        with open(args.conv.removeprefix("file:"), "rb") as fp:
+            dense: th.nn.Module = pickle.load(fp)["dense"]
+        for parameter in dense.parameters():
+            parameter.requires_grad = False
+    else:
+        dense = models.create_dense_nn(map(int, args.dense.split(',')), activation, True)
 
     # Set up the parameterized distributions and model.
     dists = config.get_parameterized_posterior_density_estimator(args.configuration)
@@ -200,6 +209,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         "num_epochs": epoch,
         "losses": {key: th.as_tensor(value) for key, value in losses.items()},
         "conv": args.conv if args.conv.startswith("file:") else model.conv,
+        "dense": args.dense if args.dense.startswith("file:") else model.dense,
     }
     with open(args.result, "wb") as fp:
         pickle.dump(result, fp)

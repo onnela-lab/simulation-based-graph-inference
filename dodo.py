@@ -124,6 +124,7 @@ for configuration in Configuration:
             other_basename = f"{transfer_configuration.name}/{architecture}/{depth}"
             other_target = ROOT / f"{other_basename}/{name}.pkl"
             kwargs["conv"] = f"file:{other_target}"
+            kwargs["dense"] = f"file:{other_target}"
 
             transfer_basename = f"{configuration.name}/transfer/{transfer_configuration.name}/" \
                 f"{architecture}/{depth}"

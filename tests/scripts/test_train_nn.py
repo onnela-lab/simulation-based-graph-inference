@@ -17,6 +17,7 @@ def _check_result(filename: str, num_batches: int, batch_size: int) -> None:
         param = result["params"][key]
         assert dist.batch_shape == expected_shape
         assert param.shape[:1] == expected_shape
+    return result
 
 
 @pytest.mark.parametrize("configuration", config.Configuration)
@@ -24,7 +25,7 @@ def _check_result(filename: str, num_batches: int, batch_size: int) -> None:
 @pytest.mark.parametrize("transfer_configuration", random.sample(list(config.Configuration), 3))
 @pytest.mark.parametrize("dense", ["11,5", "7"])
 @pytest.mark.parametrize("conv", ["none", "simple_norm_3_5,7"])
-def test_sinm2022(configuration: config.Configuration, transfer_configuration: config.Configuration,
+def test_train_nn(configuration: config.Configuration, transfer_configuration: config.Configuration,
                   dense: str, conv: str, tmpwd: str) -> None:
     # Generate some data.
     steps_per_epoch = 7
@@ -46,6 +47,8 @@ def test_sinm2022(configuration: config.Configuration, transfer_configuration: c
 
     # Apply transfer learning using the other configuration.
     filename = "transfer_result.pkl"
-    args.update(conv="file:result.pkl", result=filename)
+    args.update(conv="file:result.pkl", dense="file:result.pkl", result=filename)
     train_nn.__main__(dict2args(args))
-    _check_result(filename, batch_size, num_batches)
+    result = _check_result(filename, batch_size, num_batches)
+    assert result["dense"] == "file:result.pkl"
+    assert result["conv"] == "file:result.pkl"

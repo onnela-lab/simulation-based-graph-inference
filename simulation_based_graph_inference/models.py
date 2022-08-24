@@ -216,5 +216,4 @@ class Model(th.nn.Module):
         """
         x = self.evaluate_graph_features(batch)
         x = self.dense(x)
-        # TODO: should we return the representations prior to the dense transformation?
         return {key: module(x) for key, module in self.dists.items()}, x
