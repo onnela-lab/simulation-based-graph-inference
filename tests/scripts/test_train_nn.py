@@ -1,30 +1,12 @@
 from doit_interface import dict2args
 import pickle
 import pytest
+import random
 from simulation_based_graph_inference import config
 from simulation_based_graph_inference.scripts import generate_data, train_nn
 
 
-@pytest.mark.parametrize("configuration", config.Configuration)
-@pytest.mark.parametrize("dense", ["11,5", "7"])
-@pytest.mark.parametrize("conv", ["none", "simple_norm_3_5,7"])
-def test_sinm2022(configuration: config.Configuration, dense: str, conv: str, tmpwd: str):
-    # Generate some data.
-    steps_per_epoch = 7
-    batch_size = 13
-    num_batches = 11
-    args = dict2args(directory="data", configuration=configuration.name, batch_size=batch_size,
-                     num_batches=num_batches, num_nodes=10)
-    generate_data.__main__(args)
-
-    # Run the training.
-    filename = "result.pkl"
-    args = dict2args(
-        patience=5, num_nodes=1, result=filename, batch_size=batch_size,
-        configuration=configuration.name, seed=13, conv=conv, dense=dense, train="data",
-        test="data", validation="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
-    )
-    train_nn.__main__(args)
+def _check_result(filename: str, num_batches: int, batch_size: int) -> None:
     with open(filename, "rb") as fp:
         result = pickle.load(fp)
 
@@ -35,3 +17,35 @@ def test_sinm2022(configuration: config.Configuration, dense: str, conv: str, tm
         param = result["params"][key]
         assert dist.batch_shape == expected_shape
         assert param.shape[:1] == expected_shape
+
+
+@pytest.mark.parametrize("configuration", config.Configuration)
+# We only test transfer learning on a few models to avoid combinatorial explosion in testing.
+@pytest.mark.parametrize("transfer_configuration", random.sample(list(config.Configuration), 3))
+@pytest.mark.parametrize("dense", ["11,5", "7"])
+@pytest.mark.parametrize("conv", ["none", "simple_norm_3_5,7"])
+def test_sinm2022(configuration: config.Configuration, transfer_configuration: config.Configuration,
+                  dense: str, conv: str, tmpwd: str) -> None:
+    # Generate some data.
+    steps_per_epoch = 7
+    batch_size = 13
+    num_batches = 11
+    args = dict2args(directory="data", configuration=configuration.name, batch_size=batch_size,
+                     num_batches=num_batches, num_nodes=10)
+    generate_data.__main__(args)
+
+    # Run the training.
+    filename = "result.pkl"
+    args = dict(
+        patience=5, num_nodes=1, result=filename, batch_size=batch_size,
+        configuration=configuration.name, seed=13, conv=conv, dense=dense, train="data",
+        test="data", validation="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
+    )
+    train_nn.__main__(dict2args(args))
+    _check_result(filename, batch_size, num_batches)
+
+    # Apply transfer learning using the other configuration.
+    filename = "transfer_result.pkl"
+    args.update(conv="file:result.pkl", result=filename)
+    train_nn.__main__(dict2args(args))
+    _check_result(filename, batch_size, num_batches)

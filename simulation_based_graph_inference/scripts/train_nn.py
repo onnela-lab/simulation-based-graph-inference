@@ -113,13 +113,20 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     activation = th.nn.Tanh()
     if args.conv == "none":
         conv = None
+    elif args.conv.startswith("file:"):
+        # This must be a previously-saved result file.
+        with open(args.conv.removeprefix("file:"), "rb") as fp:
+            conv: th.nn.Module = pickle.load(fp)["conv"]
+        if conv is not None:
+            for parameter in conv.parameters():
+                parameter.requires_grad = False
     else:
         conv = []
         for layer in args.conv.split('_'):
             if layer == "simple":
-                conv.append(tg.nn.GINConv(lambda x: x))
+                conv.append(tg.nn.GINConv(th.nn.Identity()))
             elif layer == "norm":
-                conv.append(models.Normalize(tg.nn.GINConv(lambda x: x)))
+                conv.append(models.Normalize(tg.nn.GINConv(th.nn.Identity())))
             else:
                 nn = models.create_dense_nn(map(int, layer.split(',')), activation, True)
                 conv.append(tg.nn.GINConv(nn))
@@ -138,7 +145,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         "train": DataLoader(datasets["train"], batch_size=args.batch_size),
         "validation": DataLoader(datasets["validation"], batch_size=args.batch_size),
     }
-    optimizer = th.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = th.optim.Adam((param for param in model.parameters() if param.requires_grad),
+                              lr=0.01)
     scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, verbose=True, factor=0.5, cooldown=20, min_lr=1e-6
     )
@@ -161,7 +169,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
             progress.update()
             scheduler.step(validation_loss)
 
-            if validation_loss < best_loss:
+            if validation_loss + 1e-6 < best_loss:
                 best_loss = validation_loss
                 num_bad_epochs = 0
             else:
@@ -190,7 +198,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         "log_prob": result["log_prob"],
         "prior": prior,
         "num_epochs": epoch,
-        "losses": losses,
+        "losses": {key: th.as_tensor(value) for key, value in losses.items()},
+        "conv": args.conv if args.conv.startswith("file:") else model.conv,
     }
     with open(args.result, "wb") as fp:
         pickle.dump(result, fp)
