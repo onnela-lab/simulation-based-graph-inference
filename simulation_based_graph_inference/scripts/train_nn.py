@@ -181,6 +181,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     # Store the distributions, batch parameters, and the evaluated log probability.
     end = datetime.now()
     result = {
+        "args": vars(args),
         "start": start,
         "end": end,
         "duration": (end - start).total_seconds(),
