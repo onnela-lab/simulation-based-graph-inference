@@ -206,6 +206,13 @@ class Model(th.nn.Module):
                                              th.Tensor]:
         """
         Evaluate posterior density estimates and latent features.
+
+        Args:
+            batch: Batch of graphs to apply the model to.
+
+        Returns:
+            dists: Mapping from parameter names to mean-field posterior density estimates.
+            features: Graph-level features after convolutional and dense transformation.
         """
         x = self.evaluate_graph_features(batch)
         x = self.dense(x)
