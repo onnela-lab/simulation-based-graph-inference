@@ -30,6 +30,7 @@ di.SubprocessAction.set_global_env({
 CONFIG = {
     "MAX_DEPTH": (int, 4),
     "NUM_SEEDS": (int, 3),
+    "NUM_NODES": (int, 1000),
 }
 CONFIG = {key: type(os.environ.get(key, default)) for key, (type, default) in CONFIG.items()}
 
@@ -87,7 +88,8 @@ for configuration in Configuration:
         datasets.append(target)
         args = ["$!", "-m", "simulation_based_graph_inference.scripts.generate_data"] + \
             dict2args(seed=seed, configuration=configuration.name, batch_size=BATCH_SIZE,
-                      directory=directory, num_batches=num_samples // BATCH_SIZE)
+                      directory=directory, num_batches=num_samples // BATCH_SIZE,
+                      num_nodes=CONFIG["NUM_NODES"])
         manager(basename=data_basename, name=split, actions=[args], uptodate=[True],
                 targets=[target])
 
