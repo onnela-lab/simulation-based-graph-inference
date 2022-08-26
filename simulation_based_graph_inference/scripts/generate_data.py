@@ -3,7 +3,7 @@ import torch as th
 import typing
 from .util import get_parser
 from ..data import BatchedDataset
-from .. import config, models
+from .. import config, data
 
 
 def __main__(args: typing.Optional[list[str]] = None) -> None:
@@ -30,7 +30,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     # Prepare the dataset.
     start = datetime.now()
     meta = BatchedDataset.generate(
-        args.directory, args.batch_size, args.num_batches, models.generate_data,
+        args.directory, args.batch_size, args.num_batches, data.generate_data,
         (generator, args.num_nodes, prior), {"dtype": dtype, **kwargs}, progress=True,
     )
     duration = datetime.now() - start
