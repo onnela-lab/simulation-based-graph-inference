@@ -11,11 +11,11 @@ def __main__(args: list[str] = None):
 
     # Generate parameters for each method.
     generator_configuration = config.GENERATOR_CONFIGURATIONS[args.configuration]
-    generator = generator_configuration.sample_graph
 
     # Set up line profiling if desired.
     try:
-        generator = profile(generator)  # pyright: reportUndefinedVariable=false
+        generator_configuration.generator = profile(generator_configuration.generator) \
+           # pyright: reportUndefinedVariable=false
     except NameError as ex:
         if str(ex) != "name 'profile' is not defined":
             raise  # pragma: no cover
@@ -26,10 +26,11 @@ def __main__(args: list[str] = None):
     while (args.num_samples and count < args.num_samples) \
             or (args.num_samples is None and time.time() - start < 10):
         params = generator_configuration.sample_params()
-        generator(args.num_nodes, **params)
+        generator_configuration.sample_graph(args.num_nodes, **params)
         count += 1
     duration = time.time() - start
-    print(f"generated {count} samples in {duration:.3f} secs ({count / duration:.3f} per sec)")
+    print(f"generated {count} samples with {args.num_nodes} nodes in {duration:.3f} secs "
+          f"({count / duration:.3f} per sec)")
 
 
 if __name__ == "__main__":

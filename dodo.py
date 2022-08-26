@@ -144,13 +144,15 @@ for configuration in GENERATOR_CONFIGURATIONS:
 for configuration in GENERATOR_CONFIGURATIONS:
     basename = f"profile/{configuration}"
     target = ROOT / f"{basename}.prof"
-    args = ["$!", "-m", "cProfile", "-o", "$@", "$^"] + dict2args(configuration=configuration)
+    args = ["$!", "-m", "cProfile", "-o", "$@", "$^"] \
+        + dict2args(configuration=configuration, num_nodes=CONFIG["NUM_NODES"])
     manager(basename=basename, name="prof", targets=[target], actions=[args],
             file_dep=["simulation_based_graph_inference/scripts/profile.py"])
 
     target = ROOT / f"{basename}.lineprof"
     actions = [
-        f"$! -m kernprof -l -z -o $@.tmp $^ --configuration={configuration}",
+        f"$! -m kernprof -l -z -o $@.tmp $^ --configuration={configuration} "
+            f"--num_nodes={CONFIG['NUM_NODES']}",  # noqa: E131
         "$! -m line_profiler $@.tmp > $@",
         "rm -f $@.tmp",
     ]
