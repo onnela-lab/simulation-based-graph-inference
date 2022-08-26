@@ -1,5 +1,6 @@
 import contextlib
 from datetime import datetime
+import os
 import pickle
 import torch as th
 import torch_geometric as tg
@@ -83,8 +84,9 @@ def run_epoch(model: models.Model, loader: DataLoader, epsilon: float,
 
 
 def __main__(args: typing.Optional[list[str]] = None) -> None:
-    th.set_num_threads(1)
-    th.set_num_interop_threads(1)
+    if "CI" not in os.environ:  # pragma: no cover
+        th.set_num_threads(1)
+        th.set_num_interop_threads(1)
     parser = get_parser(100)
     parser.add_argument("--batch_size", "-b", help="batch size for each optimization step",
                         type=int, default=32)
