@@ -4,16 +4,15 @@ import torch as th
 import torch_geometric as tg
 
 
-@pytest.fixture(params=config.Configuration)
+@pytest.fixture(params=config.GENERATOR_CONFIGURATIONS)
 def generator_configuration(request):
     return request.param
 
 
 @pytest.fixture
 def batch(generator_configuration: str):
-    generator, kwargs = config.GENERATOR_CONFIGURATIONS[generator_configuration]
-    prior = config.get_prior(generator_configuration)
-    dataset = data.SimulatedDataset(data.generate_data, (generator, 10, prior), kwargs)
+    configuration = config.GENERATOR_CONFIGURATIONS[generator_configuration]
+    dataset = data.SimulatedDataset(data.generate_data, (configuration, 10))
     loader = tg.loader.DataLoader(dataset, batch_size=32)
     for batch in loader:
         return batch
@@ -50,7 +49,7 @@ MODEL_CONFIGURATIONS = [
 
 @pytest.mark.parametrize("model_configuration", MODEL_CONFIGURATIONS)
 def test_model_with_architectures(generator_configuration: str, batch, model_configuration: str):
-    dists = config.get_parameterized_posterior_density_estimator(generator_configuration)
+    dists = config.GENERATOR_CONFIGURATIONS[generator_configuration].create_estimator()
     model = models.Model(model_configuration["conv"], model_configuration["dense"], dists)
 
     # Check that the features for the initial and transformed graph representation are on a sensible

@@ -4,34 +4,77 @@ estimators, including fixed default values, priors, and architectures. There is 
 one-to-one mapping between configurations and generators. E.g., there may be multiple configurations
 for a given generator.
 """
-import enum
 import networkx as nx
-import numpy as np
 from scipy import special
 import torch as th
-import typing
+from torch.distributions import constraints
+from typing import Any, Callable, Mapping, Optional
 from .models import DistributionModule
 from . import generators
 
 
-Configuration = enum.Enum(
-    "Configuration", "duplication_complementation_graph duplication_mutation_graph "
-    "poisson_random_attachment_graph redirection_graph random_geometric_graph waxman_graph "
-    "web_graph planted_partition_graph watts_strogatz_graph newman_watts_strogatz_graph "
-    "latent_space_graph partial_duplication_graph thresholded_random_geometric_graph "
-    "geographical_threshold_graph degree_attachment_graph rank_attachment_graph "
-    "jackson_rogers_graph copy_graph"
-)
+class Configuration:
+    """
+    Configuration for generative network models.
+
+    Args:
+        priors: Mapping of parameter names to prior distributions.
+        generator: Generator function that takes the number of nodes as the first argument and
+            parameters as keyword arguments. `sample_graph` must be overriden if not given.
+        generator_kwargs: Fixed keyword arguments passed to `generator`.
+        localization: Predicted localization of the growth rule.
+        parameter_constraints: Mapping of parameter names to their support. Inferred from `priors`
+            if not given.
+    """
+    def __init__(
+            self, priors: Mapping[str, th.distributions.Distribution],
+            generator: Optional[Callable] = None, generator_kwargs: Mapping[dict, Any] = None,
+            localization: Optional[int] = None,
+            parameter_constraints: Optional[Mapping[str, constraints.Constraint]] = None) -> None:
+        self.priors = priors
+        self.generator = generator
+        self.generator_kwargs = generator_kwargs or {}
+        self.localization = localization
+        self.parameter_constraints = parameter_constraints \
+            or {name: dist.support for name, dist in self.priors.items()}
+
+    def sample_params(self, size: Optional[th.Size] = None):
+        size = size or th.Size()
+        return {name: dist.sample(size) for name, dist in self.priors.items()}
+
+    def sample_graph(self, num_nodes, **kwargs):
+        if self.generator:
+            return self.generator(num_nodes, **kwargs, **self.generator_kwargs)
+        raise NotImplementedError
+
+    def create_estimator(self):
+        estimator = {}
+        for name, constraint in self.parameter_constraints.items():
+            if constraint is constraints.unit_interval:
+                estimator[name] = DistributionModule(
+                    th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
+                    concentration1=th.nn.LazyLinear(1),
+                )
+            elif constraint in {constraints.nonnegative, constraints.positive}:
+                estimator[name] = DistributionModule(
+                    th.distributions.Gamma, concentration=th.nn.LazyLinear(1),
+                    rate=th.nn.LazyLinear(1),
+                )
+            else:
+                raise NotImplementedError(f"{constraint} constraint is not supported")
+        return estimator
 
 
-def _planted_partition_graph(num_nodes: int, num_groups: int, **kwargs) -> nx.Graph:
+def _planted_partition_graph(num_nodes: int, num_groups: int, **kwargs) \
+        -> nx.Graph:  # pragma: no cover
     """
     Wrapper for the planted partition graph ensuring that the first argument is the number of nodes.
     """
     return nx.planted_partition_graph(num_groups, num_nodes // num_groups, **kwargs)
 
 
-def _latent_space_graph(num_nodes: int, alpha: float, beta: float, **kwargs) -> nx.Graph:
+def _latent_space_graph(num_nodes: int, alpha: float, beta: float, **kwargs) \
+        -> nx.Graph:  # pragma: no cover
     """
     Wrapper for a soft random geometric graph to generate Hoff's latent space model.
     """
@@ -41,309 +84,58 @@ def _latent_space_graph(num_nodes: int, alpha: float, beta: float, **kwargs) -> 
 
 
 def _poisson_random_attachment_graph(num_nodes: int, rate: float, **kwargs):
-    return generators.random_attachment_graph(num_nodes, th.distributions.Poisson(rate).sample)
+    return generators.random_attachment_graph(num_nodes, th.distributions.Poisson(rate).sample,
+                                              **kwargs)
 
 
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent
-# on the prior.
+# on the prior. TODO: reinstate some of the missing generators as `Configuration` objects.
 GENERATOR_CONFIGURATIONS = {
-    Configuration.copy_graph: (generators.copy_graph, {}),
-    Configuration.duplication_complementation_graph:
-        (generators.duplication_complementation_graph, {}),
-    Configuration.duplication_mutation_graph:
-        (generators.duplication_mutation_graph, {}),
-    Configuration.poisson_random_attachment_graph: (_poisson_random_attachment_graph, {}),
-    Configuration.redirection_graph: (generators.redirection_graph, {"max_num_connections": 2}),
-    Configuration.random_geometric_graph: (nx.random_geometric_graph, {"dim": 2}),
-    Configuration.waxman_graph: (nx.waxman_graph, {}),
-    Configuration.web_graph: (generators.web_graph, {"dist_degree_new": np.arange(3) == 2}),
-    Configuration.planted_partition_graph: (_planted_partition_graph, {"num_groups": 2}),
-    Configuration.watts_strogatz_graph: (nx.watts_strogatz_graph, {"k": 4}),
-    Configuration.newman_watts_strogatz_graph: (nx.newman_watts_strogatz_graph, {"k": 4}),
-    Configuration.latent_space_graph: (_latent_space_graph, {"dim": 2}),
+    "copy_graph": Configuration(
+        {"copy_proba": th.distributions.Beta(2, 2)}, generators.copy_graph, localization=1
+    ),
+    "duplication_complementation_graph": Configuration({
+        "interaction_proba": th.distributions.Beta(2, 2),
+        "divergence_proba": th.distributions.Beta(2, 2)
+        }, generators.duplication_complementation_graph),
+    "duplication_mutation_graph": Configuration({
+        "mutation_proba": th.distributions.Beta(2, 2),
+        "divergence_proba": th.distributions.Beta(2, 2)
+        }, generators.duplication_mutation_graph, localization=1),
+    "poisson_random_attachment_graph": Configuration(
+        {"rate": th.distributions.Gamma(2, 1)}, _poisson_random_attachment_graph, localization=0,
+    ),
+    "redirection_graph": Configuration(
+        {"redirection_proba": th.distributions.Beta(1, 1)}, generators.redirection_graph,
+        {"max_num_connections": 1}, localization=1,
+    ),
+    # random_geometric_graph: (nx.random_geometric_graph, {"dim": 2}),
+    # waxman_graph: (nx.waxman_graph, {}),
+    # web_graph: (generators.web_graph, {"dist_degree_new": np.arange(3) == 2}),
+    # planted_partition_graph: (_planted_partition_graph, {"num_groups": 2}),
+    "watts_strogatz_graph": Configuration(
+        {"p": th.distributions.Beta(1, 1)}, nx.watts_strogatz_graph, {"k": 5}
+    ),
+    "newman_watts_strogatz_graph": Configuration(
+        {"p": th.distributions.Beta(1, 1)}, nx.newman_watts_strogatz_graph, {"k": 5},
+        localization=0
+    ),
+    # latent_space_graph: (_latent_space_graph, {"dim": 2}),
     # Start with two connected nodes as described in 10.1155/2008/190836 for numerical experiments.
-    Configuration.partial_duplication_graph: (nx.partial_duplication_graph, {"n": 2}),
-    Configuration.thresholded_random_geometric_graph: (nx.thresholded_random_geometric_graph, {}),
-    Configuration.geographical_threshold_graph: (nx.geographical_threshold_graph, {}),
-    Configuration.degree_attachment_graph: (generators.degree_attachment_graph, {"m": 4}),
-    Configuration.rank_attachment_graph: (generators.rank_attachment_graph, {"m": 4}),
-    Configuration.jackson_rogers_graph: (generators.jackson_rogers_graph, {"mr": 4}),
+    # partial_duplication_graph: (nx.partial_duplication_graph, {"n": 2}),
+    # thresholded_random_geometric_graph: (nx.thresholded_random_geometric_graph, {}),
+    # geographical_threshold_graph: (nx.geographical_threshold_graph, {}),
+    # degree_attachment_graph: (generators.degree_attachment_graph, {"m": 4}),
+    # rank_attachment_graph: (generators.rank_attachment_graph, {"m": 4}),
+    "jackson_rogers_graph": Configuration({
+        "pr": th.distributions.Beta(1, 1),
+        "pn": th.distributions.Beta(1, 1),
+    }, generators.jackson_rogers_graph, {"mr": 4, "localized": False}),
+    "localized_rogers_graph": Configuration({
+        "pr": th.distributions.Beta(1, 1),
+        "pn": th.distributions.Beta(1, 1),
+    }, generators.jackson_rogers_graph, {"mr": 4, "localized": True}),
+    "surfer_graph": Configuration(
+        {"hop_proba": th.distributions.Beta(1, 2)}, generators.surfer_graph,
+    ),
 }
-
-
-def get_prior(configuration: Configuration) -> typing.Mapping[str, th.distributions.Distribution]:
-    """
-    Get a prior for the given generator with sensible defaults.
-
-    Args:
-        configuration: Generator configuration.
-
-    Returns:
-        prior: Mapping from parameter names to distributions.
-    """
-    if configuration == Configuration.duplication_complementation_graph:
-        return {
-            "interaction_proba": th.distributions.Uniform(0, 1),
-            "divergence_proba": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.duplication_mutation_graph:
-        return {
-            "mutation_proba": th.distributions.Uniform(0, 1),
-            "divergence_proba": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.poisson_random_attachment_graph:
-        return {
-            "rate": th.distributions.Gamma(2, 1),
-        }
-    elif configuration == Configuration.redirection_graph:
-        return {
-            "redirection_proba": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.random_geometric_graph:
-        return {
-            "radius": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.thresholded_random_geometric_graph:
-        return {
-            "radius": th.distributions.Uniform(0, 1),
-            "theta": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.geographical_threshold_graph:
-        return {
-            "theta": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.waxman_graph:
-        # Connection probability is beta * exp(- alpha * distance / L)
-        return {
-            "beta": th.distributions.Uniform(0, 1),
-            "alpha": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.web_graph:
-        return {
-            "proba_new": th.distributions.Uniform(0, 1),
-            "proba_uniform_new": th.distributions.Uniform(0, 1),
-            "proba_uniform_old1": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.planted_partition_graph:
-        return {
-            "p_in": th.distributions.Uniform(0, 1),
-            "p_out": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.watts_strogatz_graph:
-        return {
-            "p": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.newman_watts_strogatz_graph:
-        return {
-            "p": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.latent_space_graph:
-        # Connection probability is beta * expit(- alpha * distance)
-        return {
-            "beta": th.distributions.Uniform(0, 1),
-            "alpha": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.partial_duplication_graph:
-        # Connection probability is beta * expit(- alpha * distance)
-        return {
-            "p": th.distributions.Uniform(0, 1),
-            "q": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.degree_attachment_graph:
-        return {
-            "power": th.distributions.Uniform(0, 2),
-        }
-    elif configuration == Configuration.rank_attachment_graph:
-        return {
-            "power": th.distributions.Uniform(0, 2),
-        }
-    elif configuration == Configuration.jackson_rogers_graph:
-        return {
-            "pr": th.distributions.Uniform(0, 1),
-        }
-    elif configuration == Configuration.copy_graph:
-        return {
-            "copy_proba": th.distributions.Uniform(0, 1),
-        }
-    else:  # pragma: no cover
-        raise ValueError(f"{configuration} is not a valid configuration")
-
-
-def get_parameterized_posterior_density_estimator(configuration: Configuration) \
-        -> typing.Mapping[str, typing.Tuple[int, typing.Callable]]:
-    """
-    Get factorized posterior density estimators.
-
-    Args:
-        generator: Graph generator for which to get a prior.
-
-    Returns:
-        estimator: Mapping from parameter names to a module that returns a
-            :class:`torch.distributions.Distribution`.
-    """
-    if configuration == Configuration.duplication_complementation_graph:
-        return {
-            "interaction_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "divergence_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.duplication_mutation_graph:
-        return {
-            "mutation_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "divergence_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.poisson_random_attachment_graph:
-        return {
-            "rate": DistributionModule(
-                th.distributions.Gamma, concentration=th.nn.LazyLinear(1),
-                rate=th.nn.LazyLinear(1),
-            )
-        }
-    elif configuration == Configuration.redirection_graph:
-        return {
-            "redirection_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.random_geometric_graph:
-        return {
-            "radius": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.thresholded_random_geometric_graph:
-        return {
-            "radius": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "theta": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.geographical_threshold_graph:
-        return {
-            "theta": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.waxman_graph:
-        return {
-            "alpha": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "beta": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.web_graph:
-        return {
-            "proba_new": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "proba_uniform_new": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "proba_uniform_old1": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.planted_partition_graph:
-        return {
-            "p_in": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "p_out": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.watts_strogatz_graph:
-        return {
-            "p": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.newman_watts_strogatz_graph:
-        return {
-            "p": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.latent_space_graph:
-        return {
-            "alpha": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "beta": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.partial_duplication_graph:
-        return {
-            "p": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-            "q": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.degree_attachment_graph:
-        return {
-            "power": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-                transforms=[th.distributions.AffineTransform(0, 2)]
-            ),
-        }
-    elif configuration == Configuration.rank_attachment_graph:
-        return {
-            "power": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-                transforms=[th.distributions.AffineTransform(0, 2)]
-            ),
-        }
-    elif configuration == Configuration.jackson_rogers_graph:
-        return {
-            "pr": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            ),
-        }
-    elif configuration == Configuration.copy_graph:
-        return {
-            "copy_proba": DistributionModule(
-                th.distributions.Beta, concentration0=th.nn.LazyLinear(1),
-                concentration1=th.nn.LazyLinear(1),
-            )
-        }
-    else:  # pragma: no cover
-        raise ValueError(f"{configuration} is not a known generator")

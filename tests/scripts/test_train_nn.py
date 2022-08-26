@@ -20,18 +20,19 @@ def _check_result(filename: str, num_batches: int, batch_size: int) -> None:
     return result
 
 
-@pytest.mark.parametrize("configuration", config.Configuration)
+@pytest.mark.parametrize("configuration", config.GENERATOR_CONFIGURATIONS)
 # We only test transfer learning on a few models to avoid combinatorial explosion in testing.
-@pytest.mark.parametrize("transfer_configuration", random.sample(list(config.Configuration), 3))
+@pytest.mark.parametrize("transfer_configuration",
+                         random.sample(list(config.GENERATOR_CONFIGURATIONS), 3))
 @pytest.mark.parametrize("dense", ["11,5", "7"])
 @pytest.mark.parametrize("conv", ["none", "simple_norm_3_5,7"])
-def test_train_nn(configuration: config.Configuration, transfer_configuration: config.Configuration,
-                  dense: str, conv: str, tmpwd: str) -> None:
+def test_train_nn(configuration: str, transfer_configuration: str, dense: str, conv: str,
+                  tmpwd: str) -> None:
     # Generate some data.
     steps_per_epoch = 7
     batch_size = 13
     num_batches = 11
-    args = dict2args(directory="data", configuration=configuration.name, batch_size=batch_size,
+    args = dict2args(directory="data", configuration=configuration, batch_size=batch_size,
                      num_batches=num_batches, num_nodes=10)
     generate_data.__main__(args)
 
@@ -39,7 +40,7 @@ def test_train_nn(configuration: config.Configuration, transfer_configuration: c
     filename = "result.pkl"
     args = dict(
         patience=5, num_nodes=1, result=filename, batch_size=batch_size,
-        configuration=configuration.name, seed=13, conv=conv, dense=dense, train="data",
+        configuration=configuration, seed=13, conv=conv, dense=dense, train="data",
         test="data", validation="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
     )
     train_nn.__main__(dict2args(args))

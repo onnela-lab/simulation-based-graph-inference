@@ -24,14 +24,13 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         raise ValueError(f"cannot represent {args.num_nodes} using {dtype}")
 
     # Set up the generator and model.
-    generator, kwargs = config.GENERATOR_CONFIGURATIONS[args.configuration]
-    prior = config.get_prior(args.configuration)
+    generator_config = config.GENERATOR_CONFIGURATIONS[args.configuration]
 
     # Prepare the dataset.
     start = datetime.now()
     meta = BatchedDataset.generate(
         args.directory, args.batch_size, args.num_batches, data.generate_data,
-        (generator, args.num_nodes, prior), {"dtype": dtype, **kwargs}, progress=True,
+        (generator_config, args.num_nodes), {"dtype": dtype}, progress=True,
     )
     duration = datetime.now() - start
     print(f"saved {meta['length']} samples of {args.configuration} to {args.directory} in "

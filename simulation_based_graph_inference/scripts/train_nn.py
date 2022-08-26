@@ -108,9 +108,6 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                         default=1e-3)
     args = parser.parse_args(args)
 
-    # Set up the generator and model.
-    prior = config.get_prior(args.configuration)
-
     # Set up the convoluational network for node-level representations.
     activation = th.nn.Tanh()
     if args.conv == "none":
@@ -143,8 +140,10 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     else:
         dense = models.create_dense_nn(map(int, args.dense.split(',')), activation, True)
 
+    configuration = config.GENERATOR_CONFIGURATIONS[args.configuration]
+
     # Set up the parameterized distributions and model.
-    dists = config.get_parameterized_posterior_density_estimator(args.configuration)
+    dists = configuration.create_estimator()
     model = models.Model(conv, dense, dists)
 
     # Prepare the datasets and optimizer. Only shuffle the training set.
@@ -199,13 +198,13 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     end = datetime.now()
     result = {
         "args": vars(args),
+        "configuration": configuration,
         "start": start,
         "end": end,
         "duration": (end - start).total_seconds(),
         "dists": result["dists"],
         "params": {key: result["batch"][key] for key in result["dists"]},
         "log_prob": result["log_prob"],
-        "prior": prior,
         "num_epochs": epoch,
         "losses": {key: th.as_tensor(value) for key, value in losses.items()},
         "conv": args.conv if args.conv.startswith("file:") else model.conv,
