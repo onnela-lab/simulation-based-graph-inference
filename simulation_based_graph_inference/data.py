@@ -1,3 +1,4 @@
+from datetime import datetime
 import itertools as it
 import json
 import networkx as nx
@@ -110,10 +111,12 @@ class BatchedDataset(th.utils.data.IterableDataset):
         root.mkdir(parents=True, exist_ok=True)
         args = args or []
         kwargs = kwargs or {}
+        start = datetime.now()
         meta = {
             "num_batches": num_batches,
             "batch_size": batch_size,
             "length": num_batches * batch_size,
+            "start": start.isoformat(),
         }
 
         # Set up the batch iterator.
@@ -129,6 +132,9 @@ class BatchedDataset(th.utils.data.IterableDataset):
             th.save(batch, root / filename)
             meta.setdefault("filenames", []).append(filename)
 
+        end = datetime.now()
+        meta["end"] = end.isoformat()
+        meta["duration"] = (end - start).total_seconds()
         with open(root / "meta.json", "w") as fp:
             json.dump(meta, fp)
 
