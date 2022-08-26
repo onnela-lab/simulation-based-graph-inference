@@ -85,3 +85,14 @@ def test_create_dense(final_activation: bool):
     x = dense(th.randn(10000, 3))
     if final_activation:
         assert (-1 <= x).all() and (x <= 1).all()
+
+
+def test_distribution_module():
+    parametrized = models.DistributionModule(
+        th.distributions.Beta, concentration0=th.nn.Linear(1, 1), concentration1=th.nn.Linear(1, 1),
+        transforms=[th.distributions.AffineTransform(3, -2)]
+    )
+    dist: th.distributions.Distribution = parametrized(th.ones(1))
+    x = dist.sample([1000])
+    assert x.min() > 1
+    assert x.max() < 5
