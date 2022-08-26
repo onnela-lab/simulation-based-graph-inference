@@ -92,15 +92,15 @@ def _poisson_random_attachment_graph(num_nodes: int, rate: float, **kwargs):
 # on the prior. TODO: reinstate some of the missing generators as `Configuration` objects.
 GENERATOR_CONFIGURATIONS = {
     "copy_graph": Configuration(
-        {"copy_proba": th.distributions.Beta(2, 2)}, generators.copy_graph, localization=1
+        {"copy_proba": th.distributions.Beta(1, 2)}, generators.copy_graph, localization=1
     ),
     "duplication_complementation_graph": Configuration({
-        "interaction_proba": th.distributions.Beta(2, 2),
-        "divergence_proba": th.distributions.Beta(2, 2)
+        "interaction_proba": th.distributions.Beta(1, 2),
+        "divergence_proba": th.distributions.Beta(2, 1)
         }, generators.duplication_complementation_graph),
     "duplication_mutation_graph": Configuration({
-        "mutation_proba": th.distributions.Beta(2, 2),
-        "divergence_proba": th.distributions.Beta(2, 2)
+        "mutation_proba": th.distributions.Beta(1, 2),
+        "divergence_proba": th.distributions.Beta(2, 1)
         }, generators.duplication_mutation_graph, localization=1),
     "poisson_random_attachment_graph": Configuration(
         {"rate": th.distributions.Gamma(2, 1)}, _poisson_random_attachment_graph, localization=0,
@@ -136,6 +136,6 @@ GENERATOR_CONFIGURATIONS = {
         "pn": th.distributions.Beta(1, 1),
     }, generators.jackson_rogers_graph, {"mr": 4, "localized": True}),
     "surfer_graph": Configuration(
-        {"hop_proba": th.distributions.Beta(1, 2)}, generators.surfer_graph,
+        {"hop_proba": th.distributions.Beta(1, 1)}, generators.surfer_graph,
     ),
 }
