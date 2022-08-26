@@ -88,7 +88,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                         type=int, default=32)
     parser.add_argument("--steps_per_epoch", "-e", help="number of optimization steps per epoch",
                         type=int, default=32)
-    parser.add_argument("--patience", "-p", type=int, default=50, help="number of consecutive "
+    parser.add_argument("--patience", "-p", type=int, default=25, help="number of consecutive "
                         "epochs without loss improvement after which to terminate training")
     parser.add_argument("--result", help="path at which to store evaluation on test set",
                         required=True)
