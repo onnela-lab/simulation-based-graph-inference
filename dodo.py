@@ -74,6 +74,7 @@ SPLITS = {
     "train": 10_000,
     "validation": 1_000,
     "test": 1_000,
+    "debug": 100,
 }
 
 reference_configurations = di.group_tasks("reference_configurations")
@@ -104,9 +105,8 @@ for configuration in GENERATOR_CONFIGURATIONS:
         name = f"seed-{seed}"
         basename = f"{configuration}/{architecture}/{depth}"
         target = ROOT / f"{basename}/{name}.pkl"
-        kwargs = specification | {split: ROOT / data_basename / split for split in SPLITS} | dict(
-            seed=seed, configuration=configuration, result=target
-        )
+        kwargs = specification | {"seed": seed, "configuration": configuration, "result": target} \
+            | {split: ROOT / data_basename / split for split in SPLITS if split != "debug"}
         args = ["$!", "-m", "simulation_based_graph_inference.scripts.train_nn"]
         task = manager(basename=basename, name=name, actions=[args + dict2args(kwargs)],
                        targets=[target], uptodate=[True], file_dep=datasets)
