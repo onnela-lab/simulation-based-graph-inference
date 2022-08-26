@@ -26,12 +26,13 @@ di.SubprocessAction.set_global_env({
     "NUMEXPR_NUM_THREADS": 1,
     "OPENBLAS_NUM_THREADS": 1,
     "OMP_NUM_THREADS": 1,
+    "MKL_NUM_THREADS": 1,
 })
 
 # Load basic configuration from the environment.
 CONFIG = {
-    "MAX_DEPTH": (int, 4),
-    "NUM_SEEDS": (int, 3),
+    "MAX_DEPTH": (int, 5),
+    "NUM_SEEDS": (int, 1),
     "NUM_NODES": (int, 1000),
 }
 CONFIG = {key: type(os.environ.get(key, default)) for key, (type, default) in CONFIG.items()}
@@ -78,6 +79,7 @@ SPLITS = {
 }
 
 reference_configurations = di.group_tasks("reference_configurations")
+reference_architecture = di.group_tasks("reference_architecture")
 transfer_learning = di.group_tasks("transfer_learning")
 
 for configuration in GENERATOR_CONFIGURATIONS:
@@ -112,6 +114,8 @@ for configuration in GENERATOR_CONFIGURATIONS:
                        targets=[target], uptodate=[True], file_dep=datasets)
         if configuration in REFERENCE_CONFIGURATIONS:
             reference_configurations(task)
+        if architecture == REFERENCE_ARCHITECTURE:
+            reference_architecture(task)
 
         # Skip transfer learning if this is not the reference configuration.
         if architecture != REFERENCE_ARCHITECTURE:
