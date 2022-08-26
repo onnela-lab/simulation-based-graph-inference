@@ -134,7 +134,7 @@ GENERATOR_CONFIGURATIONS = {
     "localized_jackson_rogers_graph": Configuration({
         "pr": th.distributions.Beta(1, 1),
         "pn": th.distributions.Beta(1, 1),
-    }, generators.jackson_rogers_graph, {"mr": 4, "localized": True}),
+    }, generators.jackson_rogers_graph, {"mr": 4, "localized": True}, localization=1),
     "surfer_graph": Configuration(
         {"hop_proba": th.distributions.Beta(1, 1)}, generators.surfer_graph,
     ),
