@@ -1,6 +1,6 @@
 import networkx as nx
 import numpy as np
-from ..util import assert_interval, assert_normalized_nodel_labels
+from ..util import assert_interval, assert_normalized_nodel_labels, randint
 
 
 def redirection_graph(num_nodes: int, max_num_connections: int, redirection_proba: float,
@@ -64,5 +64,44 @@ def redirection_graph(num_nodes: int, max_num_connections: int, redirection_prob
             neighbors.append(candidate)
 
         graph.add_edges_from((node, candidate) for candidate in neighbors)
+
+    return graph
+
+
+def surfer_graph(num_nodes: int, hop_proba: float, graph: nx.Graph = None,
+                 rng: np.random.Generator = None) -> nx.Graph:
+    """
+    Generate a random surfer graph as described by
+    `Vazquez (2003) <https://doi.org/10.1103/PhysRevE.67.056104>`__.
+
+    Args:
+        num_nodes: Final number of nodes.
+        hop_proba: Probability that the walker hops to a neighbor.
+        graph: Seed graph to modify in place. If `None`, a new graph is created.
+        rng: Random number generator.
+
+    Returns:
+        graph: Generated graph with `num_nodes` nodes.
+    """
+    assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
+    hop_proba = assert_interval("hop_proba", hop_proba, 0, 1, dtype=float)
+    rng = rng or np.random
+    graph = graph or nx.Graph()
+    if not len(graph):
+        graph.add_node(0)
+    assert_normalized_nodel_labels(graph)
+
+    for source in range(len(graph), num_nodes):
+        seed = randint(rng, source)
+        targets = {seed}
+        while rng.binomial(1, hop_proba):
+            candidates = list(graph.neighbors(seed))
+            if not candidates:
+                break
+            seed = rng.choice(candidates)
+            if seed in targets:
+                break
+            targets.add(seed)
+        graph.add_edges_from((source, target) for target in targets)
 
     return graph
