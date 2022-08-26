@@ -1,11 +1,9 @@
 import inspect
-import networkx as nx
 import torch as th
 import torch_geometric as tg
 import torch_scatter as ts
 import typing
 import warnings
-from .util import to_edge_index
 
 
 warnings.filterwarnings("ignore", message="Lazy modules are a new feature")
@@ -90,31 +88,6 @@ class Normalize(th.nn.Module):
 
         batch[norm_key] = norm
         return x / norm
-
-
-def generate_data(generator: typing.Callable, num_nodes: int,
-                  prior: typing.Mapping[str, th.distributions.Distribution],
-                  dtype=th.long, **kwargs) -> tg.data.Data:
-    """
-    Generate a graph in :mod:`torch_geometric` data format.
-
-    Args:
-        generator: Generator to obtain a synthetic graph.
-        num_nodes: Number of nodes in the synthetic graph.
-        prior: Prior to sample from.
-        dtype: Data type of the `edge_index` tensor.
-        **kwargs: Keyword arguments passed to the generator.
-
-    Returns:
-        data: Synthetic graph in :mod:`torch_geometric` data format.
-    """
-    params = {key: dist.sample() for key, dist in prior.items()}
-    graph: nx.Graph = generator(num_nodes, **params, **kwargs)
-    if len(graph) != num_nodes:  # pragma: no cover
-        raise ValueError(f"expected {num_nodes} but {generator} generated {len(graph)}")
-    edge_index = to_edge_index(graph, dtype=dtype)
-    return tg.data.Data(edge_index=edge_index, num_nodes=num_nodes,
-                        **{key: param[None] for key, param in params.items()})
 
 
 def create_dense_nn(units: typing.Iterable[int], activation: th.nn.Module, final_activation: bool) \

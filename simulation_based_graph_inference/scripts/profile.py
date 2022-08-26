@@ -10,12 +10,12 @@ def __main__(args: list[str] = None):
     args = parser.parse_args(args)
 
     # Generate parameters for each method.
-    generator, kwargs = config.GENERATOR_CONFIGURATIONS[args.configuration]
-    prior = config.get_prior(args.configuration)
+    generator_configuration = config.GENERATOR_CONFIGURATIONS[args.configuration]
 
     # Set up line profiling if desired.
     try:
-        generator = profile(generator)  # pyright: reportUndefinedVariable=false
+        generator_configuration.generator = profile(generator_configuration.generator) \
+           # pyright: reportUndefinedVariable=false
     except NameError as ex:
         if str(ex) != "name 'profile' is not defined":
             raise  # pragma: no cover
@@ -25,11 +25,12 @@ def __main__(args: list[str] = None):
     count = 0
     while (args.num_samples and count < args.num_samples) \
             or (args.num_samples is None and time.time() - start < 10):
-        params = {key: value.sample() for key, value in prior.items()}
-        generator(args.num_nodes, **params, **kwargs)
+        params = generator_configuration.sample_params()
+        generator_configuration.sample_graph(args.num_nodes, **params)
         count += 1
     duration = time.time() - start
-    print(f"generated {count} samples in {duration:.3f} secs ({count / duration:.3f} per sec)")
+    print(f"generated {count} samples with {args.num_nodes} nodes in {duration:.3f} secs "
+          f"({count / duration:.3f} per sec)")
 
 
 if __name__ == "__main__":

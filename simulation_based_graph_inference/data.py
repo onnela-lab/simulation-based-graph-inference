@@ -1,9 +1,36 @@
+from datetime import datetime
 import itertools as it
 import json
+import networkx as nx
 import pathlib
 import torch as th
+import torch_geometric as tg
 from tqdm import tqdm
 import typing
+from . import config
+from .util import to_edge_index
+
+
+def generate_data(generator_config: config.Configuration, num_nodes: int,
+                  dtype=th.long) -> tg.data.Data:
+    """
+    Generate a graph in :mod:`torch_geometric` data format.
+
+    Args:
+        generator_config: Generator to obtain a synthetic graph.
+        num_nodes: Number of nodes in the synthetic graph.
+        dtype: Data type of the `edge_index` tensor.
+
+    Returns:
+        data: Synthetic graph in :mod:`torch_geometric` data format.
+    """
+    params = generator_config.sample_params()
+    graph: nx.Graph = generator_config.sample_graph(num_nodes, **params)
+    if len(graph) != num_nodes:  # pragma: no cover
+        raise ValueError(f"expected {num_nodes} but {generator_config} generated {len(graph)}")
+    edge_index = to_edge_index(graph, dtype=dtype)
+    return tg.data.Data(edge_index=edge_index, num_nodes=num_nodes,
+                        **{key: param[None] for key, param in params.items()})
 
 
 class BatchedDataset(th.utils.data.IterableDataset):
@@ -84,10 +111,12 @@ class BatchedDataset(th.utils.data.IterableDataset):
         root.mkdir(parents=True, exist_ok=True)
         args = args or []
         kwargs = kwargs or {}
+        start = datetime.now()
         meta = {
             "num_batches": num_batches,
             "batch_size": batch_size,
             "length": num_batches * batch_size,
+            "start": start.isoformat(),
         }
 
         # Set up the batch iterator.
@@ -103,6 +132,9 @@ class BatchedDataset(th.utils.data.IterableDataset):
             th.save(batch, root / filename)
             meta.setdefault("filenames", []).append(filename)
 
+        end = datetime.now()
+        meta["end"] = end.isoformat()
+        meta["duration"] = (end - start).total_seconds()
         with open(root / "meta.json", "w") as fp:
             json.dump(meta, fp)
 

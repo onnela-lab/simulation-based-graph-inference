@@ -139,7 +139,8 @@ def rank_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Graph 
 
 
 def jackson_rogers_graph(num_nodes: int, mr: int, pr: float, mn: int = None, pn: float = None,
-                         rng: np.random.Generator = None, graph: nx.Graph = None) -> nx.Graph:
+                         localized: bool = False, rng: np.random.Generator = None,
+                         graph: nx.Graph = None) -> nx.Graph:
     """
     Generate a social graph based on random attachment and neighborhood exploration as described by
     `Jackson and Rogers (2007) <https://doi.org/10.1257/aer.97.3.890>`_.
@@ -152,6 +153,7 @@ def jackson_rogers_graph(num_nodes: int, mr: int, pr: float, mn: int = None, pn:
         mn: Number of neighbors of parents to consider.
         pm: Probability to connect to neighbors of parents. The number of random neighbors is
             binomially distributed with `mn` trials and success probability `pn`.
+        localized: Whether to use a localized modification of the model.
         graph: Seed graph to modify in place. If `None`, a new complete graph with `mr + mn + 1`
             nodes is created.
         rng: Random number generator.
@@ -171,10 +173,20 @@ def jackson_rogers_graph(num_nodes: int, mr: int, pr: float, mn: int = None, pn:
 
     while (node := len(graph)) < num_nodes:
         # Pick random "parents" and get the union of their neighbors.
-        num_parents = rng.binomial(min(mr, node), pr)
-        parents = rng.choice(node, num_parents, replace=False)
+        if localized:
+            num_parents = rng.binomial(min(mr, node), pr)
+            parents = selected_parents = rng.choice(node, num_parents, replace=False)
+        else:
+            # See JacksonRogers-simulation1.nb in
+            # https://www.stanford.edu/~jacksonm/JacksonRogers-Data.zip to verify that the neighbors
+            # of all parents are used in the next stage even if the node doesn't connect to them.
+            parents = rng.choice(node, min(mr, node))
+            # The parents have a random order so we can just take a slice to identify the selected
+            # parents that we'll connect to.
+            selected_parents = parents[:rng.binomial(parents.size, pr)]
+
         neighbors = {neighbor for parent in parents for neighbor in graph.neighbors(parent)}
-        graph.add_edges_from((node, parent) for parent in parents)
+        graph.add_edges_from((node, parent) for parent in selected_parents)
 
         # Connect to neighbors of parents, excluding parents.
         neighbors.difference_update(parents)

@@ -3,7 +3,7 @@ import torch as th
 
 # Hack: do not save `_inv` which is a `weakref` that cannot be pickled (see
 # https://github.com/pytorch/pytorch/pull/81707 for context and a fix).
-def _Transform_getstate(self):
+def _Transform_getstate(self):  # pragma: no cover
     state = self.__dict__.copy()
     state["_inv"] = None
     return state
