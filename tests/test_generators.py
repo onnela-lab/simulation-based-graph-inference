@@ -22,7 +22,8 @@ import typing
     (generators.duplication_mutation_graph, (0.5, 0.5, True)),
     (generators.redirection_graph, (4, .3)),
     (generators.web_graph, (0.5, 0.5, 0.5, np.arange(3) / 3)),
-    (generators.jackson_rogers_graph, (4, .5, 3, .7)),
+    (generators.jackson_rogers_graph, (4, .5, 3, .7, False)),
+    (generators.jackson_rogers_graph, (4, .5, 3, .7, True)),
     (generators.surfer_graph, (.1,)),
 ])
 @pytest.mark.parametrize("rng", [None, np.random.default_rng()])
