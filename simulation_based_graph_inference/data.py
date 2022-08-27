@@ -1,3 +1,4 @@
+from __future__ import annotations
 from datetime import datetime
 import itertools as it
 import json
@@ -94,7 +95,7 @@ class BatchedDataset(th.utils.data.IterableDataset):
     def generate(
             cls, root: pathlib.Path, batch_size: int, num_batches: int, func: typing.Callable,
             args: typing.Iterable = None, kwargs: typing.Mapping = None, progress: bool = False) \
-            -> None:
+            -> dict:
         """
         Generate a batched dataset.
 
