@@ -6,7 +6,7 @@ lint :
 	flake8
 
 tests :
-	pytest tests -v --cov=simulation_based_graph_inference --cov-fail-under=100 \
+	CI=true pytest tests -v --cov=simulation_based_graph_inference --cov-fail-under=100 \
 		--cov-report=term-missing --cov-report=html --durations=5
 
 docs :
