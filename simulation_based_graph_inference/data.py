@@ -3,6 +3,7 @@ from datetime import datetime
 import itertools as it
 import json
 import networkx as nx
+import numpy as np
 import pathlib
 import torch as th
 import torch_geometric as tg
@@ -45,33 +46,48 @@ class BatchedDataset(th.utils.data.IterableDataset):
         num_concurrent: Number of concurrent batches to load.
         shuffle: Whether to shuffle batches and elements in each batch.
         transform: Transform applied to every element.
+        index_batches: Indices to select for each batch.
     """
     def __init__(self, root: str, num_concurrent: int = 1, shuffle: bool = False,
-                 transform: typing.Callable = None) -> None:
+                 transform: typing.Callable = None, index_batches: list[th.Tensor] = None) -> None:
         self.root = pathlib.Path(root)
         self.num_concurrent = num_concurrent
         self.shuffle = shuffle
         self.transform = transform
+        self.index_batches = index_batches
 
         with open(self.root / "meta.json") as fp:
             self.meta = json.load(fp)
 
+        if self.index_batches is not None and len(self.index_batches) != self.meta["num_batches"]:
+            raise ValueError(f"dataset has {self.meta['num_batches']} batches, but "
+                             f"{len(self.index_batches)} index batches were supplied")
+
     def __len__(self):
-        return self.meta["length"]
+        if self.index_batches is None:
+            return self.meta["length"]
+        else:
+            return sum(len(index_batch) for index_batch in self.index_batches)
 
     def __iter__(self):
-        filenames = list(self.meta["filenames"])
+        if self.index_batches is None:
+            index = th.arange(self.meta["batch_size"])
+            batches = [(filename, index) for filename in self.meta["filenames"]]
+        else:
+            batches = [(filename, index) for filename, index in
+                       zip(self.meta["filenames"], self.index_batches)]
         if self.shuffle:
-            filenames = [filenames[i] for i in th.randperm(len(filenames))]
+            batches = [batches[i] for i in th.randperm(self.meta["num_batches"])]
 
         iterators = []
         while True:
             # Populate concurrent iterators.
-            while len(iterators) < self.num_concurrent and filenames:
-                filename = filenames.pop(0)
+            while len(iterators) < self.num_concurrent and batches:
+                filename, index = batches.pop(0)
                 batch = th.load(self.root / filename)
                 if self.shuffle:
-                    batch = [batch[i] for i in th.randperm(len(batch))]
+                    index = index[th.randperm(len(index))]
+                batch = [batch[i] for i in index]
                 iterators.append(iter(batch))
 
             # We are done if there are no more iterators.
@@ -90,6 +106,42 @@ class BatchedDataset(th.utils.data.IterableDataset):
                 except StopIteration:
                     pass
             iterators = next_iterators
+
+    def _unravel_indices(self, indices: th.Tensor) -> list[th.Tensor]:
+        """
+        Transform indices over the entire dataset to indices within each batch.
+        """
+        batch_size = self.meta["batch_size"]
+        return [indices[th.div(indices, th.as_tensor(batch_size), rounding_mode="floor") == batch]
+                % batch_size for batch in range(self.meta["num_batches"])]
+
+    def bootstrap_split(self, num_concurrent: int = None, shuffle: bool = None,
+                        transform: typing.Callable = None) -> tuple[BatchedDataset, BatchedDataset]:
+        """
+        Create a bootstrapped dataset by sampling without replacement and the out-of-bag dataset.
+
+        Args:
+            num_concurrent: Number of concurrent batches to load (defaults to value of parent).
+            shuffle: Whether to shuffle batches and elements in each batch (defaults to value of
+                parent).
+            transform: Transform applied to every element (defaults to value of parent).
+
+        Returns:
+            bootstrap: Bootstrapped dataset obtained by sampling without replacement.
+            out_of_bag: Out-of-bag dataset of instances not included in the bootstrapped dataset.
+        """
+        if self.index_batches is not None:
+            raise NotImplementedError("cannot bootstrap datasets with index batches")
+        n = self.meta["length"]
+        selected = th.randint(n, size=[n])
+        not_selected = th.asarray(np.setdiff1d(th.arange(n), selected))
+        kwargs = {
+            "num_concurrent": self.num_concurrent if num_concurrent is None else num_concurrent,
+            "shuffle": self.shuffle if shuffle is None else self.shuffle,
+            "transform": self.transform if transform is None else transform,
+        }
+        return BatchedDataset(self.root, **kwargs, index_batches=self._unravel_indices(selected)), \
+            BatchedDataset(self.root, **kwargs, index_batches=self._unravel_indices(not_selected))
 
     @classmethod
     def generate(
