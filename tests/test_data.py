@@ -78,6 +78,10 @@ def test_batched_dataset_generate(tmpwd: str, progress, num_concurrent: int, shu
     else:
         assert list(dataset) == list(dataset) and list(dataset)
 
+    # Check we get a complaint if the indices are wrong.
+    with pytest.raises(ValueError):
+        data.BatchedDataset(tmpwd, num_concurrent, shuffle, index_batches=[None for _ in range(5)])
+
 
 @pytest.mark.parametrize("num_concurrent", [1, 3])
 @pytest.mark.parametrize("shuffle", [True, False])

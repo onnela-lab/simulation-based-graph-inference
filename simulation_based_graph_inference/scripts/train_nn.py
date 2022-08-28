@@ -105,7 +105,6 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                         "graph-level transform; if starting with `file:`, the dense layers will be "
                         "loaded from a previous result", required=True)
     parser.add_argument("--test", help="path to test set", required=True)
-    parser.add_argument("--validation", help="path to validation set", required=True)
     parser.add_argument("--train", help="path to training set", required=True)
     parser.add_argument("--max_num_epochs", help="maximum number of epochs to run", type=int)
     parser.add_argument("--epsilon", help="L2 penalty for latent representations", type=float,
@@ -151,12 +150,11 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     model = models.Model(conv, dense, dists)
 
     # Prepare the datasets and optimizer. Only shuffle the training set.
-    datasets = {key: BatchedDataset(getattr(args, key), transform=ensure_long_edge_index,
-                shuffle=key == "train") for key in ["train", "test", "validation"]}
-    loaders = {
-        "train": DataLoader(datasets["train"], batch_size=args.batch_size),
-        "validation": DataLoader(datasets["validation"], batch_size=args.batch_size),
-    }
+    dataset = BatchedDataset(args.train, transform=ensure_long_edge_index, shuffle=True,
+                             num_concurrent=4)
+    train_dataset, validation_dataset = dataset.bootstrap_split()
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size)
+    validation_loader = DataLoader(validation_dataset, batch_size=args.batch_size)
     optimizer = th.optim.Adam((param for param in model.parameters() if param.requires_grad),
                               lr=0.01)
     scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
@@ -173,9 +171,9 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         while num_bad_epochs < args.patience and (args.max_num_epochs is None
                                                   or epoch < args.max_num_epochs):
             # Run one training epoch and evaluate the validation loss.
-            train_loss = run_epoch(model, loaders["train"], args.epsilon, optimizer,
+            train_loss = run_epoch(model, train_loader, args.epsilon, optimizer,
                                    args.steps_per_epoch)["epoch_loss"]
-            validation_loss = run_epoch(model, loaders["validation"], args.epsilon)["epoch_loss"]
+            validation_loss = run_epoch(model, validation_loader, args.epsilon)["epoch_loss"]
             losses.setdefault("train", []).append(train_loss)
             losses.setdefault("validation", []).append(validation_loss)
             progress.update()
@@ -193,7 +191,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
             epoch += 1
 
     # Evaluate on the test set using full batch evaluation.
-    dataset = datasets["test"]
+    dataset = BatchedDataset(args.test, transform=ensure_long_edge_index)
     result = run_epoch(model, DataLoader(dataset, len(dataset)), epsilon=0)
     assert result["num_batches"] == 1, "got more than one evaluation batch"
     assert result["log_prob"].shape == (len(dataset),)

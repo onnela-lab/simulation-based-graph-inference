@@ -41,7 +41,7 @@ def test_train_nn(configuration: str, transfer_configuration: str, dense: str, c
     args = dict(
         patience=5, num_nodes=1, result=filename, batch_size=batch_size,
         configuration=configuration, seed=13, conv=conv, dense=dense, train="data",
-        test="data", validation="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
+        test="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
     )
     train_nn.__main__(dict2args(args))
     _check_result(filename, batch_size, num_batches)
