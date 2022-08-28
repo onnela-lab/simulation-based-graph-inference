@@ -91,34 +91,34 @@ def _poisson_random_attachment_graph(num_nodes: int, rate: float, **kwargs):
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent
 # on the prior. TODO: reinstate some of the missing generators as `Configuration` objects.
 GENERATOR_CONFIGURATIONS = {
-    "copy_graph": Configuration(
-        {"copy_proba": th.distributions.Beta(1, 2)}, generators.copy_graph, localization=1
-    ),
-    "duplication_complementation_graph": Configuration({
-        "interaction_proba": th.distributions.Beta(1, 2),
-        "divergence_proba": th.distributions.Beta(2, 1)
-        }, generators.duplication_complementation_graph),
-    "duplication_mutation_graph": Configuration({
-        "mutation_proba": th.distributions.Beta(1, 2),
-        "divergence_proba": th.distributions.Beta(2, 1)
-        }, generators.duplication_mutation_graph, localization=1),
     "poisson_random_attachment_graph": Configuration(
         {"rate": th.distributions.Gamma(2, 1)}, _poisson_random_attachment_graph, localization=0,
+    ),
+    "newman_watts_strogatz_graph": Configuration(
+        {"p": th.distributions.Beta(1, 1)}, nx.newman_watts_strogatz_graph, {"k": 5},
+        localization=0
     ),
     "redirection_graph": Configuration(
         {"redirection_proba": th.distributions.Beta(1, 1)}, generators.redirection_graph,
         {"max_num_connections": 1}, localization=1,
     ),
+    "copy_graph": Configuration(
+        {"copy_proba": th.distributions.Beta(1, 2)}, generators.copy_graph, localization=1
+    ),
+    "duplication_mutation_graph": Configuration({
+        "mutation_proba": th.distributions.Beta(1, 2),
+        "divergence_proba": th.distributions.Beta(2, 1)
+        }, generators.duplication_mutation_graph, localization=1),
+    "duplication_complementation_graph": Configuration({
+        "interaction_proba": th.distributions.Beta(1, 2),
+        "divergence_proba": th.distributions.Beta(2, 1)
+        }, generators.duplication_complementation_graph),
     # random_geometric_graph: (nx.random_geometric_graph, {"dim": 2}),
     # waxman_graph: (nx.waxman_graph, {}),
     # web_graph: (generators.web_graph, {"dist_degree_new": np.arange(3) == 2}),
     # planted_partition_graph: (_planted_partition_graph, {"num_groups": 2}),
     "watts_strogatz_graph": Configuration(
         {"p": th.distributions.Beta(1, 1)}, nx.watts_strogatz_graph, {"k": 5}
-    ),
-    "newman_watts_strogatz_graph": Configuration(
-        {"p": th.distributions.Beta(1, 1)}, nx.newman_watts_strogatz_graph, {"k": 5},
-        localization=0
     ),
     # latent_space_graph: (_latent_space_graph, {"dim": 2}),
     # Start with two connected nodes as described in 10.1155/2008/190836 for numerical experiments.
@@ -130,11 +130,7 @@ GENERATOR_CONFIGURATIONS = {
     "jackson_rogers_graph": Configuration({
         "pr": th.distributions.Beta(1, 1),
         "pn": th.distributions.Beta(1, 1),
-    }, generators.jackson_rogers_graph, {"mr": 4, "localized": False}),
-    "localized_jackson_rogers_graph": Configuration({
-        "pr": th.distributions.Beta(1, 1),
-        "pn": th.distributions.Beta(1, 1),
-    }, generators.jackson_rogers_graph, {"mr": 4, "localized": True}, localization=1),
+    }, generators.jackson_rogers_graph, {"mr": 4}),
     "surfer_graph": Configuration(
         {"hop_proba": th.distributions.Beta(1, 1)}, generators.surfer_graph,
     ),

@@ -32,8 +32,8 @@ di.SubprocessAction.set_global_env({
 # Load basic configuration from the environment.
 CONFIG = {
     "MAX_DEPTH": (int, 5),
-    "NUM_SEEDS": (int, 1),
-    "NUM_NODES": (int, 1000),
+    "NUM_SEEDS": (int, 3),
+    "NUM_NODES": (int, 100),
 }
 CONFIG = {key: type(os.environ.get(key, default)) for key, (type, default) in CONFIG.items()}
 
@@ -73,7 +73,6 @@ for depth in DEPTHS:
 BATCH_SIZE = 100
 SPLITS = {
     "train": 10_000,
-    "validation": 1_000,
     "test": 1_000,
     "debug": 100,
 }
