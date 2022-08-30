@@ -94,6 +94,9 @@ GENERATOR_CONFIGURATIONS = {
     "poisson_random_attachment_graph": Configuration(
         {"rate": th.distributions.Gamma(2, 1)}, _poisson_random_attachment_graph, localization=0,
     ),
+    "random_connection_graph": Configuration(
+        {"proba": th.distributions.Beta(1, 1)}, generators.random_connection_graph, localization=0,
+    ),
     "newman_watts_strogatz_graph": Configuration(
         {"p": th.distributions.Beta(1, 1)}, nx.newman_watts_strogatz_graph, {"k": 5},
         localization=0
