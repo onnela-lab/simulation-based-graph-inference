@@ -24,6 +24,7 @@ import typing
     (generators.web_graph, (0.5, 0.5, 0.5, np.arange(3) / 3)),
     (generators.jackson_rogers_graph, (4, .5, 3, .7)),
     (generators.surfer_graph, (.1,)),
+    (generators.random_connection_graph, (.4,)),
 ])
 @pytest.mark.parametrize("rng", [None, np.random.default_rng()])
 def test_generator(num_nodes: int, generator: typing.Callable, args: list, rng):

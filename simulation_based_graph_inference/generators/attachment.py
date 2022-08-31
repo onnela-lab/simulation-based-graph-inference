@@ -188,3 +188,41 @@ def jackson_rogers_graph(num_nodes: int, mr: int, pr: float, mn: int = None, pn:
         graph.add_edges_from((node, neighbor) for neighbor in neighbors)
 
     return graph
+
+
+def random_connection_graph(num_nodes: int, proba: float, rng: np.random.Generator = None,
+                            graph: nx.Graph = None) -> nx.Graph:
+    """
+    Generate a graph by adding a random connections whenever a random node is added as described by
+    `Callaway et al. (2001) <https://doi.org/10.1103/PhysRevE.64.041902>`__.
+
+    Args:
+        num_nodes: Final number of nodes.
+        proba: Probability of creating an edge at each step.
+        graph: Seed graph to modify in place. If `None`, an empty graph with one node is created.
+        rng: Random number generator.
+
+    .. plot::
+
+        _plot_generated_graph(generators.random_connection_graph, .5)
+    """
+    rng = rng or np.random
+    assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
+    proba = assert_interval("proba", proba, 0, 1)
+    graph = assert_normalized_nodel_labels(graph or nx.Graph())
+    if not graph:
+        graph = nx.empty_graph(1)
+
+    for node in range(graph.number_of_nodes(), num_nodes):
+        # Try to add random edges until we find one that doesn't already exist.
+        graph.add_node(node)
+        # Continue and don't add an edge.
+        if rng.binomial(1, 1 - proba):
+            continue
+        while True:
+            u, v = rng.choice(graph.number_of_nodes(), 2, False)
+            if not graph.has_edge(u, v):
+                graph.add_edge(u, v)
+                break
+
+    return graph

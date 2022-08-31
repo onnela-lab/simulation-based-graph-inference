@@ -1,4 +1,5 @@
 from doit_interface import dict2args
+import numpy as np
 import pickle
 import pytest
 import random
@@ -17,6 +18,7 @@ def _check_result(filename: str, num_batches: int, batch_size: int) -> None:
         param = result["params"][key]
         assert dist.batch_shape == expected_shape
         assert param.shape[:1] == expected_shape
+    np.testing.assert_array_less(np.abs(result["features"]), 1)
     return result
 
 
