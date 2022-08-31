@@ -80,6 +80,7 @@ def run_epoch(model: models.Model, loader: DataLoader, epsilon: float,
         "log_prob": log_prob,
         "epoch_loss": epoch_loss / num_batches,
         "num_batches": num_batches,
+        "features": features,
     }
 
 
@@ -108,7 +109,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser.add_argument("--train", help="path to training set", required=True)
     parser.add_argument("--max_num_epochs", help="maximum number of epochs to run", type=int)
     parser.add_argument("--epsilon", help="L2 penalty for latent representations", type=float,
-                        default=1e-3)
+                        default=0)
     args = parser.parse_args(args)
 
     # Set up the convoluational network for node-level representations.
@@ -207,6 +208,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         "dists": result["dists"],
         "params": {key: result["batch"][key] for key in result["dists"]},
         "log_prob": result["log_prob"],
+        "features": result["features"],
         "num_epochs": epoch,
         "losses": {key: th.as_tensor(value) for key, value in losses.items()},
         "conv": args.conv if args.conv.startswith("file:") else model.conv,
