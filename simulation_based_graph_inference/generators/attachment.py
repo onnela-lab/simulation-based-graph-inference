@@ -194,7 +194,7 @@ def random_connection_graph(num_nodes: int, proba: float, rng: np.random.Generat
                             graph: nx.Graph = None) -> nx.Graph:
     """
     Generate a graph by adding a random connections whenever a random node is added as described by
-    `Callaway et al. (2001) <10.1103/PhysRevE.64.041902>`__.
+    `Callaway et al. (2001) <https://doi.org/10.1103/PhysRevE.64.041902>`__.
 
     Args:
         num_nodes: Final number of nodes.
