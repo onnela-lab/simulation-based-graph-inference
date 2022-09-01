@@ -26,6 +26,8 @@ jobs:
         run: |
           # Install torch first because we need the headers for torch-scatter, etc.
           pip install `cat test_requirements.txt | grep torch==`
+          # Install pybind11 first because we need the package for fasttr.
+          pip install `cat test_requirements.txt | grep pybind11==`
           pip install -r test_requirements.txt
       - name: "Build the project"
         run: "make build"

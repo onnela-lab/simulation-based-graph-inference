@@ -143,6 +143,16 @@ for configuration in GENERATOR_CONFIGURATIONS:
             transfer_learning(task)
 
 
+# Inference for trees using a different method to compare with.
+config = "gn_graph"
+test_data = ROOT / config / "data/test"
+target = ROOT / config / "cantwell/result.pkl"
+args = ["$!", "-m", "simulation_based_graph_inference.scripts.infer_tree_kernel"] \
+    + dict2args(test=test_data, result=target)
+manager(basename="gn_graph/cantwell", file_dep=[test_data / "meta.json"], targets=[target],
+        actions=[args])
+
+
 # Profiling targets.
 for configuration in GENERATOR_CONFIGURATIONS:
     basename = f"profile/{configuration}"
