@@ -7,6 +7,7 @@ setup(
     version="0.1.0",
     install_requires=[
         "doit-interface>=0.1.6",
+        "fasttr @ git+https://github.com/gstonge/fasttr",
         "matplotlib",
         "networkx",
         "numpy",
