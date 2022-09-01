@@ -60,7 +60,7 @@ class Configuration:
                     th.distributions.Gamma, concentration=th.nn.LazyLinear(1),
                     rate=th.nn.LazyLinear(1),
                 )
-            elif constraint is constraints.real:
+            elif constraint is constraints.real:  # pragma: no cover
                 estimator[name] = DistributionModule(
                     th.distributions.Normal, loc=th.nn.LazyLinear(1), scale=th.nn.LazyLinear(1),
                 )
@@ -147,6 +147,5 @@ GENERATOR_CONFIGURATIONS = {
     ),
     "gn_graph": Configuration(
         {"gamma": th.distributions.Beta(1, 1)}, _gn_graph,
-        parameter_constraints={"gamma": constraints.real},
     ),
 }
