@@ -27,7 +27,7 @@ def generate_data(generator_config: config.Configuration, num_nodes: int,
         data: Synthetic graph in :mod:`torch_geometric` data format.
     """
     params = generator_config.sample_params()
-    graph: nx.Graph = generator_config.sample_graph(num_nodes, **params)
+    graph: nx.Graph = generator_config.sample_graph(num_nodes, **params).to_undirected()
     if len(graph) != num_nodes:  # pragma: no cover
         raise ValueError(f"expected {num_nodes} but {generator_config} generated {len(graph)}")
     edge_index = to_edge_index(graph, dtype=dtype)
