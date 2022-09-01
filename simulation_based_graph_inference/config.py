@@ -60,6 +60,10 @@ class Configuration:
                     th.distributions.Gamma, concentration=th.nn.LazyLinear(1),
                     rate=th.nn.LazyLinear(1),
                 )
+            elif constraint is constraints.real:
+                estimator[name] = DistributionModule(
+                    th.distributions.Normal, loc=th.nn.LazyLinear(1), scale=th.nn.LazyLinear(1),
+                )
             else:
                 raise NotImplementedError(f"{constraint} constraint is not supported")
         return estimator
@@ -86,6 +90,10 @@ def _latent_space_graph(num_nodes: int, alpha: float, beta: float, **kwargs) \
 def _poisson_random_attachment_graph(num_nodes: int, rate: float, **kwargs):
     return generators.random_attachment_graph(num_nodes, th.distributions.Poisson(rate).sample,
                                               **kwargs)
+
+
+def _gn_graph(num_nodes: int, gamma: float, **kwargs) -> nx.Graph:
+    return nx.gn_graph(num_nodes, lambda k: k ** gamma, **kwargs)
 
 
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent
@@ -136,5 +144,9 @@ GENERATOR_CONFIGURATIONS = {
     }, generators.jackson_rogers_graph, {"mr": 4}),
     "surfer_graph": Configuration(
         {"hop_proba": th.distributions.Beta(1, 1)}, generators.surfer_graph,
+    ),
+    "gn_graph": Configuration(
+        {"gamma": th.distributions.Beta(1, 1)}, _gn_graph,
+        parameter_constraints={"gamma": constraints.real},
     ),
 }
