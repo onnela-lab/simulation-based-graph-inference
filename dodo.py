@@ -149,7 +149,17 @@ test_data = ROOT / config / "data/test"
 target = ROOT / config / "cantwell/result.pkl"
 args = ["$!", "-m", "simulation_based_graph_inference.scripts.infer_tree_kernel"] \
     + dict2args(test=test_data, result=target)
-manager(basename="gn_graph/cantwell", file_dep=[test_data / "meta.json"], targets=[target],
+manager(basename=f"{config}/cantwell", file_dep=[test_data / "meta.json"], targets=[target],
+        actions=[args])
+
+
+# Monte Carlo sampling for the latent space model.
+config = "latent_space_graph"
+test_data = ROOT / config / "data/test"
+target = ROOT / config / "mcmc/result.pkl"
+args = ["$!", "-m", "simulation_based_graph_inference.scripts.infer_latent_space_params"] \
+    + dict2args(test=test_data, result=target)
+manager(basename=f"{config}/mcmc", file_dep=[test_data / "meta.json"], targets=[target],
         actions=[args])
 
 

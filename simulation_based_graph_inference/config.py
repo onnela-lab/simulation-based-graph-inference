@@ -5,7 +5,6 @@ one-to-one mapping between configurations and generators. E.g., there may be mul
 for a given generator.
 """
 import networkx as nx
-from scipy import special
 import torch as th
 from torch.distributions import constraints
 from typing import Any, Callable, Mapping, Optional
@@ -77,16 +76,6 @@ def _planted_partition_graph(num_nodes: int, num_groups: int, **kwargs) \
     return nx.planted_partition_graph(num_groups, num_nodes // num_groups, **kwargs)
 
 
-def _latent_space_graph(num_nodes: int, alpha: float, beta: float, **kwargs) \
-        -> nx.Graph:  # pragma: no cover
-    """
-    Wrapper for a soft random geometric graph to generate Hoff's latent space model.
-    """
-    # We use an enormous radius to consider all nodes.
-    return nx.soft_random_geometric_graph(num_nodes, radius=1e9,
-                                          p_dist=lambda dist: beta * special.expit(-alpha * dist))
-
-
 def _poisson_random_attachment_graph(num_nodes: int, rate: float, **kwargs):
     return generators.random_attachment_graph(num_nodes, th.distributions.Poisson(rate).sample,
                                               **kwargs)
@@ -147,5 +136,9 @@ GENERATOR_CONFIGURATIONS = {
     ),
     "gn_graph": Configuration(
         {"gamma": th.distributions.Beta(1, 1)}, _gn_graph,
+    ),
+    "latent_space_graph": Configuration(
+        {"bias": th.distributions.Normal(0, 1), "scale": th.distributions.Gamma(2, 2)},
+        generators.latent_space_graph, {"num_dims": 2},
     ),
 }
