@@ -1,6 +1,7 @@
 import argparse
 import cmdstanpy
 import networkx as nx
+import numpy as np
 import pathlib
 import pickle
 from scipy.spatial.distance import squareform
@@ -48,6 +49,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser.add_argument("--test", help="path to test set", required=True)
     parser.add_argument("--result", help="path at which to store evaluation on test set",
                         required=True)
+    parser.add_argument("--iter_warmup", type=int, help="number of warmup steps")
+    parser.add_argument("--iter_sampling", type=int, help="number of sampling steps", default=500)
     args = parser.parse_args(args)
 
     config = GENERATOR_CONFIGURATIONS["latent_space_graph"]
@@ -62,12 +65,14 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         fit = infer_planted_partition_params(
             graph, config.priors["bias"].loc.item(), config.priors["bias"].scale.item(),
             config.priors["scale"].concentration.item(), config.priors["scale"].rate.item(),
-            config.generator_kwargs["num_dims"], iter_warmup=500, iter_sampling=500,
+            config.generator_kwargs["num_dims"], iter_warmup=args.iter_warmup or args.iter_sampling,
+            iter_sampling=args.iter_sampling,
         )
         # Save the samples for parameters.
         result.setdefault("samples", {}).setdefault("bias", []).append(fit.stan_variable("bias"))
         result.setdefault("samples", {}).setdefault("scale", []).append(fit.stan_variable("scale"))
 
+    result["samples"] = {key: np.asarray(value) for key, value in result["samples"].items()}
     with open(args.result, "wb") as fp:
         pickle.dump(result, fp)
 
