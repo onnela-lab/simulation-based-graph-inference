@@ -13,7 +13,7 @@ from ..config import GENERATOR_CONFIGURATIONS
 from ..data import BatchedDataset
 
 
-def infer_planted_partition_params(
+def infer_latent_space_params(
         graph: nx.Graph, bias_loc: float, bias_scale: float, scale_conc: float, scale_rate: float,
         num_dims: int = 2, chains: int = 1, **kwargs) -> cmdstanpy.CmdStanMCMC:
     """
@@ -62,7 +62,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         result.setdefault("params", {}).setdefault("scale", []).append(graph.scale.item())
         graph = to_networkx(graph).to_undirected()
         # Run the inference.
-        fit = infer_planted_partition_params(
+        fit = infer_latent_space_params(
             graph, config.priors["bias"].loc.item(), config.priors["bias"].scale.item(),
             config.priors["scale"].concentration.item(), config.priors["scale"].rate.item(),
             config.generator_kwargs["num_dims"], iter_warmup=args.iter_warmup or args.iter_sampling,
