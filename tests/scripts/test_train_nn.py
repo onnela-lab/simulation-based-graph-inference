@@ -35,7 +35,7 @@ def test_train_nn(configuration: str, transfer_configuration: str, dense: str, c
     batch_size = 13
     num_batches = 11
     args = dict2args(directory="data", configuration=configuration, batch_size=batch_size,
-                     num_batches=num_batches, num_nodes=10)
+                     num_batches=num_batches, num_nodes=12)
     generate_data.__main__(args)
 
     # Run the training.

@@ -12,7 +12,7 @@ def generator_configuration(request):
 @pytest.fixture
 def batch(generator_configuration: str):
     configuration = config.GENERATOR_CONFIGURATIONS[generator_configuration]
-    dataset = data.SimulatedDataset(data.generate_data, (configuration, 10))
+    dataset = data.SimulatedDataset(data.generate_data, (configuration, 12))
     loader = tg.loader.DataLoader(dataset, batch_size=32)
     for batch in loader:
         return batch
