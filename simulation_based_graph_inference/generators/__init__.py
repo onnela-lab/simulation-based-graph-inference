@@ -3,6 +3,7 @@ from .duplication_divergence import duplication_complementation_graph, duplicati
 from .attachment import jackson_rogers_graph, random_attachment_graph, degree_attachment_graph, \
     rank_attachment_graph, random_connection_graph
 from .redirection import redirection_graph, surfer_graph
+from .spatial import latent_space_graph
 from .web import web_graph
 
 
@@ -11,6 +12,7 @@ __all__ = [
     "duplication_complementation_graph",
     "duplication_mutation_graph",
     "jackson_rogers_graph",
+    "latent_space_graph",
     "random_attachment_graph",
     "random_connection_graph",
     "degree_attachment_graph",

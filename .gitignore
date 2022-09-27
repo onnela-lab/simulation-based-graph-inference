@@ -138,3 +138,5 @@ workspace/
 simulation_based_graph_inference/**/*.html
 simulation_based_graph_inference/**/*.cpp
 simulation_based_graph_inference/**/*.pyi
+simulation_based_graph_inference/scripts/*.hpp
+simulation_based_graph_inference/scripts/infer_latent_space_params

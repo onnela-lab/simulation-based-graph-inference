@@ -7,6 +7,9 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
+env:
+  cmdstanVersion: "2.30.1"
+
 jobs:
   build:
     name: Continuous Integration
@@ -20,7 +23,9 @@ jobs:
         run: "gcc --version"
       - uses: actions/cache@v2
         with:
-          path: ${{ env.pythonLocation }}
+          path: |
+            ${{ env.pythonLocation }}
+            /home/runner/.cmdstan
           key: ${{ env.pythonLocation }}-${{ hashFiles('test_requirements.txt') }}
       - name: "Install dependencies"
         run: |
@@ -29,6 +34,8 @@ jobs:
           # Install pybind11 first because we need the package for fasttr.
           pip install `cat test_requirements.txt | grep pybind11==`
           pip install -r test_requirements.txt
+      - name: Install cmdstanpy
+        run: python -m cmdstanpy.install_cmdstan --version ${{ env.cmdstanVersion }}
       - name: "Build the project"
         run: "make build"
         env:
