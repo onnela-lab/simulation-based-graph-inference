@@ -5,6 +5,7 @@ import numpy as np
 import numbers
 import torch as th
 from torch_geometric.data import Data
+from torch_geometric.utils.convert import to_scipy_sparse_matrix
 import typing
 
 
@@ -163,3 +164,34 @@ class random_sequence:
             self.batch = self.generator(*self.args, size=self.size, **self.kwargs)
             self.iter = iter(self.batch)
             return next(self.iter)
+
+
+def clustering_coefficient(edge_index: th.Tensor, num_nodes: typing.Optional[int] = None) \
+        -> th.Tensor:
+    """
+    Evaluate the local clustering coefficient.
+
+    .. note::
+
+        We calculate the clustering coefficient with scipy sparse matrices because it's an order of
+        magnitude faster than sparse torch tensors.
+
+    Args:
+        edge_index: Directed edge index.
+        num_nodes: Number of nodes in the graph.
+
+    Returns:
+        clustering: Clustering coefficient for each node.
+    """
+    num_nodes = num_nodes or edge_index.max() + 1
+    # Count the triangles
+    adjacency = to_scipy_sparse_matrix(edge_index, num_nodes=num_nodes).tocsr()
+    triangles = (adjacency @ adjacency @ adjacency).diagonal()
+
+    # Get the reciprocated degrees.
+    reciprocated = adjacency.multiply(adjacency.T).sum(axis=0).A1
+
+    # Evaluate the denominator and clustering coefficient.
+    denominator = th.bincount(edge_index[0], minlength=num_nodes) \
+        * th.bincount(edge_index[1], minlength=num_nodes) - reciprocated
+    return triangles / denominator.clip(min=1)

@@ -130,6 +130,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
                 conv.append(tg.nn.GINConv(th.nn.Identity()))
             elif layer == "norm":
                 conv.append(models.Normalize(tg.nn.GINConv(th.nn.Identity())))
+            elif layer == "insert-clustering":
+                conv.append(models.InsertClusteringCoefficient()),
             else:
                 nn = models.create_dense_nn(map(int, layer.split(',')), activation, True)
                 conv.append(tg.nn.GINConv(nn))

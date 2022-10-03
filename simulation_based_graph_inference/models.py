@@ -4,6 +4,7 @@ import torch_geometric as tg
 import torch_scatter as ts
 import typing
 import warnings
+from .util import clustering_coefficient
 
 
 warnings.filterwarnings("ignore", message="Lazy modules are a new feature")
@@ -88,6 +89,15 @@ class Normalize(th.nn.Module):
 
         batch[norm_key] = norm
         return x / norm
+
+
+class InsertClusteringCoefficient(th.nn.Module):
+    """
+    Insert the clustering coefficient as a feature.
+    """
+    def forward(self, x: th.Tensor, edge_index: th.LongTensor) -> th.Tensor:
+        num_nodes, _ = x.shape
+        return th.hstack([x, clustering_coefficient(edge_index, num_nodes).to(x)[:, None]])
 
 
 def create_dense_nn(units: typing.Iterable[int], activation: th.nn.Module, final_activation: bool) \
