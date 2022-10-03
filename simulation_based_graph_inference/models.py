@@ -1,6 +1,7 @@
 import inspect
 import torch as th
 import torch_geometric as tg
+from torch_geometric.data import Data
 import torch_scatter as ts
 import typing
 import warnings
@@ -95,9 +96,13 @@ class InsertClusteringCoefficient(th.nn.Module):
     """
     Insert the clustering coefficient as a feature.
     """
-    def forward(self, x: th.Tensor, edge_index: th.LongTensor) -> th.Tensor:
+    def forward(self, x: th.Tensor, batch: Data) -> th.Tensor:
         num_nodes, _ = x.shape
-        return th.hstack([x, clustering_coefficient(edge_index, num_nodes).to(x)[:, None]])
+        try:
+            y = getattr(batch, "clustering_coefficient")
+        except AttributeError:
+            y = clustering_coefficient(batch.edge_index, num_nodes)
+        return th.hstack([x, y.to(x)[:, None]])
 
 
 def create_dense_nn(units: typing.Iterable[int], activation: th.nn.Module, final_activation: bool) \

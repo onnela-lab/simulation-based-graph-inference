@@ -10,11 +10,11 @@ import torch_geometric as tg
 from tqdm import tqdm
 import typing
 from . import config
-from .util import to_edge_index
+from .util import to_edge_index, clustering_coefficient
 
 
 def generate_data(generator_config: config.Configuration, num_nodes: int,
-                  dtype=th.long) -> tg.data.Data:
+                  dtype=th.long, clustering: bool = False) -> tg.data.Data:
     """
     Generate a graph in :mod:`torch_geometric` data format.
 
@@ -22,6 +22,7 @@ def generate_data(generator_config: config.Configuration, num_nodes: int,
         generator_config: Generator to obtain a synthetic graph.
         num_nodes: Number of nodes in the synthetic graph.
         dtype: Data type of the `edge_index` tensor.
+        clustering: Precompute clustering coefficient and add it to the data.
 
     Returns:
         data: Synthetic graph in :mod:`torch_geometric` data format.
@@ -31,8 +32,13 @@ def generate_data(generator_config: config.Configuration, num_nodes: int,
     if len(graph) != num_nodes:  # pragma: no cover
         raise ValueError(f"expected {num_nodes} but {generator_config} generated {len(graph)}")
     edge_index = to_edge_index(graph, dtype=dtype)
-    return tg.data.Data(edge_index=edge_index, num_nodes=num_nodes,
-                        **{key: param[None] for key, param in params.items()})
+    data = {
+        "edge_index": edge_index,
+        "num_nodes": num_nodes,
+    }
+    if clustering:
+        data["clustering_coefficient"] = clustering_coefficient(edge_index, graph.number_of_nodes())
+    return tg.data.Data(**data, **{key: param[None] for key, param in params.items()})
 
 
 class BatchedDataset(th.utils.data.IterableDataset):

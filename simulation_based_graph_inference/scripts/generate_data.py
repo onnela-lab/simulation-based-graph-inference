@@ -15,6 +15,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser.add_argument("--directory", help="path to store the dataset", required=True)
     parser.add_argument("--dtype", help="dtype for edge indices", default="int16",
                         choices=["int16", "int32", "int64"])
+    parser.add_argument("--no_clustering", help="do not precompute clustering coefficients",
+                        action="store_true")
     args = parser.parse_args(args)
 
     # Make sure we can store the samples.
@@ -30,7 +32,8 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     start = datetime.now()
     meta = BatchedDataset.generate(
         args.directory, args.batch_size, args.num_batches, data.generate_data,
-        (generator_config, args.num_nodes), {"dtype": dtype}, progress=True,
+        (generator_config, args.num_nodes), {"dtype": dtype, "clustering": not args.no_clustering},
+        progress=True,
     )
     duration = datetime.now() - start
     print(f"saved {meta['length']} samples of {args.configuration} to {args.directory} in "
