@@ -16,6 +16,7 @@ REFERENCE_CONFIGURATIONS = [
     "watts_strogatz_graph",
     "localized_jackson_rogers_graph",
     # "degree_attachment_graph",
+    "latent_space_graph",
 ]
 ROOT = pathlib.Path("workspace")
 DOIT_CONFIG = di.DOIT_CONFIG
@@ -68,6 +69,22 @@ for depth in DEPTHS:
     ARCHITECTURE_SPECIFICATIONS[("gin-medium", f"depth-{depth}")] = {
         "dense": "16,16",
         "conv": "_".join(["16,16"] * depth) if depth else "none",
+    }
+
+    # Graph isomorphism networks with an insertion of the clustering coefficient after the second
+    # layer.
+    if depth:
+        conv = ["8,8,8"] * depth
+        if depth > 1:
+            conv.insert(2, "insert-clustering")
+        conv = "_".join(conv)
+    else:
+        conv = "none"
+    ARCHITECTURE_SPECIFICATIONS[("gin-narrow-clustering", f"depth-{depth}")] = {
+        # We may want slightly deeper dense network if we're injecting the clustering because it's
+        # an "engineered" feature.
+        "dense": "8,8",
+        "conv": conv,
     }
 
 BATCH_SIZE = 100
