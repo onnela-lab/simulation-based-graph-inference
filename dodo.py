@@ -74,7 +74,7 @@ for depth in DEPTHS:
     # Graph isomorphism networks with an insertion of the clustering coefficient after the second
     # layer.
     if depth:
-        conv = ["8,8,8"] * depth
+        conv = ["8,8"] * depth
         if depth > 1:
             conv.insert(2, "insert-clustering")
         conv = "_".join(conv)
