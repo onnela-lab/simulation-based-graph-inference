@@ -24,7 +24,7 @@ def test_simulated_dataset():
         assert batch.shape == (batch_size, 7)
         if i > num_batches:
             break
-    assert num_simulations == batch_size * (num_batches + loader.prefetch_factor)
+    assert num_simulations == batch_size * (num_batches + (loader.prefetch_factor or 2))
     with pytest.raises(TypeError):
         len(dataset)
 

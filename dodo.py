@@ -16,6 +16,7 @@ REFERENCE_CONFIGURATIONS = [
     "watts_strogatz_graph",
     "localized_jackson_rogers_graph",
     # "degree_attachment_graph",
+    "latent_space_graph",
 ]
 ROOT = pathlib.Path("workspace")
 DOIT_CONFIG = di.DOIT_CONFIG
@@ -46,7 +47,7 @@ REFERENCE_ARCHITECTURE = "gin-narrow"
 ARCHITECTURE_SPECIFICATIONS = {}
 for depth in DEPTHS:
     # Create simple convolutional isomorphism layers with normalization for all but the first layer.
-    conv = "_".join(["simple"] + ["norm"] * (depth - 1)) if depth else "none"
+    conv = ["simple"] + ["norm"] * (depth - 1) if depth else ["none"]
     ARCHITECTURE_SPECIFICATIONS[("simple-narrow", f"depth-{depth}")] = {
         "dense": "8,8",
         "conv": conv,
@@ -63,12 +64,42 @@ for depth in DEPTHS:
     # Create convolutional isomorphism layers with two-layer dense networks after each layer.
     ARCHITECTURE_SPECIFICATIONS[("gin-narrow", f"depth-{depth}")] = {
         "dense": "8,8",
-        "conv": "_".join(["8,8"] * depth) if depth else "none",
+        "conv": ["8,8"] * depth if depth else ["none"],
+    }
+    ARCHITECTURE_SPECIFICATIONS[("gin-narrow-dropout", f"depth-{depth}")] = {
+        "dense": "8,8",
+        "conv": (["8,8"] * depth if depth else ["none"]) + ["dropout-0.5"],
+    }
+    ARCHITECTURE_SPECIFICATIONS[("residual-identity-gin-narrow", f"depth-{depth}")] = {
+        "dense": "8,8",
+        "conv": ["res-identity-8,8"] * depth if depth else ["none"],
+    }
+    ARCHITECTURE_SPECIFICATIONS[("residual-scalar-gin-narrow", f"depth-{depth}")] = {
+        "dense": "8,8",
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
     }
     ARCHITECTURE_SPECIFICATIONS[("gin-medium", f"depth-{depth}")] = {
         "dense": "16,16",
-        "conv": "_".join(["16,16"] * depth) if depth else "none",
+        "conv": ["16,16"] * depth if depth else ["none"],
     }
+
+    # Graph isomorphism networks with an insertion of the clustering coefficient after the second
+    # layer.
+    if depth:
+        conv = ["8,8"] * depth
+        if depth > 1:
+            conv.insert(2, "insert-clustering")
+        conv.append("dropout-0.5")
+    else:
+        conv = ["none"]
+    ARCHITECTURE_SPECIFICATIONS[("gin-narrow-clustering", f"depth-{depth}")] = {
+        # We may want slightly deeper dense network if we're injecting the clustering because it's
+        # an "engineered" feature.
+        "dense": "8,8",
+        "conv": conv,
+    }
+for arch in ARCHITECTURE_SPECIFICATIONS.values():
+    arch["conv"] = "_".join(arch["conv"])
 
 BATCH_SIZE = 100
 SPLITS = {

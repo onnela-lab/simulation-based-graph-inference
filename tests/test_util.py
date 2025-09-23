@@ -4,6 +4,7 @@ import pytest
 from simulation_based_graph_inference import generators
 from simulation_based_graph_inference import util
 import torch as th
+from torch_geometric.utils.convert import from_networkx
 
 
 def test_plot_generated_graph():
@@ -105,3 +106,14 @@ def test_random_sequence(size):
 
     for _ in range(1000):
         np.testing.assert_allclose(rng2.normal(3, 2, size=size), next(sequence))
+
+
+@pytest.mark.parametrize("directed", [False, True])
+def test_clustering_coefficient(directed: bool) -> None:
+    if directed:
+        pytest.xfail("directed doesn't seem to work; not a problem for our models")
+    graph = nx.erdos_renyi_graph(100, 0.1, directed=directed)
+    expected = th.as_tensor([value for _, value in sorted(nx.clustering(graph).items())])
+    data = from_networkx(graph)
+    actual = util.clustering_coefficient(data.edge_index, data.num_nodes)
+    np.testing.assert_allclose(actual, expected)

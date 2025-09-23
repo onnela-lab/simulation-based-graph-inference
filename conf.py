@@ -25,4 +25,4 @@ intersphinx_mapping = {
     'matplotlib': ('https://matplotlib.org/stable', None),
     'torch': ('https://pytorch.org/docs/stable/', None),
 }
-exclude_patterns = ['playground']
+exclude_patterns = ['playground', '.venv']
