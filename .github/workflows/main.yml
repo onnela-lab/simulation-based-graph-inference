@@ -35,7 +35,7 @@ jobs:
           path: /home/runner/.cmdstan
           key: ${{ env.cmdstanVersion }}
       - name: Install cmdstanpy
-        run: uv run python -m cmdstanpy.install_cmdstan --version ${{ env.cmdstanVersion }}
+        run: uv run python -m cmdstanpy.install_cmdstan --verbose --version ${{ env.cmdstanVersion }}
       - name: "Build the project"
         run: "uv run make build"
         env:
