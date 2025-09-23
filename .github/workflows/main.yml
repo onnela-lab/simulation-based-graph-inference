@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  cmdstanVersion: "2.30.1"
+  cmdstanVersion: "2.37.0"
 
 jobs:
   build:
@@ -29,6 +29,11 @@ jobs:
           python-version-file: .python-version
       - name: Install project
         run: uv sync --all-groups
+      - name: Cache cmdstan build
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cmdstan
+          key: ${{ env.cmdstanVersion }}
       - name: Install cmdstanpy
         run: uv run python -m cmdstanpy.install_cmdstan --version ${{ env.cmdstanVersion }}
       - name: "Build the project"
