@@ -1,4 +1,4 @@
-name: CI
+name: Simulation-Based Graph Inference
 
 on:
   push:
@@ -15,29 +15,22 @@ jobs:
     name: Continuous Integration
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v2"
-      - uses: "actions/setup-python@v2"
+      - uses: "actions/checkout@v4"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.9"
-      - name: "Check GCC version"
-        run: "gcc --version"
-      - uses: actions/cache@v2
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          path: |
-            ${{ env.pythonLocation }}
-            /home/runner/.cmdstan
-          key: ${{ env.pythonLocation }}-${{ hashFiles('test_requirements.txt') }}
-      - name: "Install dependencies"
-        run: |
-          # Install torch first because we need the headers for torch-scatter, etc.
-          pip install `cat test_requirements.txt | grep torch==`
-          # Install pybind11 first because we need the package for fasttr.
-          pip install `cat test_requirements.txt | grep pybind11==`
-          pip install -r test_requirements.txt
+          python-version-file: .python-version
+      - name: Install project
+        run: uv sync --all-groups
       - name: Install cmdstanpy
-        run: python -m cmdstanpy.install_cmdstan --version ${{ env.cmdstanVersion }}
+        run: uv run python -m cmdstanpy.install_cmdstan --version ${{ env.cmdstanVersion }}
       - name: "Build the project"
-        run: "make build"
+        run: "uv run make build"
         env:
           # Our tests may contain a number of stochastic elements. Setting a seed will make sure
           # they're not flaky (but also hide potential issues).
