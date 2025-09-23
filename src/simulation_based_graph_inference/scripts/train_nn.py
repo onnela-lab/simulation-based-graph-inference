@@ -84,7 +84,11 @@ def run_epoch(model: models.Model, loader: DataLoader, epsilon: float,
     }
 
 
-def __main__(args: typing.Optional[list[str]] = None) -> None:
+def dense_from_str(layer: str, activation: typing.Callable, final_activation: bool) -> th.nn.Module:
+    return models.create_dense_nn(map(int, layer.split(',')), activation, final_activation)
+
+
+def __main__(argv: typing.Optional[list[str]] = None) -> None:
     if "CI" not in os.environ:  # pragma: no cover
         th.set_num_threads(1)
         th.set_num_interop_threads(1)
@@ -110,11 +114,11 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser.add_argument("--max_num_epochs", help="maximum number of epochs to run", type=int)
     parser.add_argument("--epsilon", help="L2 penalty for latent representations", type=float,
                         default=0)
-    args = parser.parse_args(args)
+    args = parser.parse_args(argv)
 
     # Set up the convoluational network for node-level representations.
     activation = th.nn.Tanh()
-    if args.conv == "none":
+    if args.conv.startswith("none"):
         conv = None
     elif args.conv.startswith("file:"):
         # This must be a previously-saved result file.
@@ -126,14 +130,23 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     else:
         conv = []
         for layer in args.conv.split('_'):
+            # Each layer operates independently on a feature representation of shape
+            # `(num_nodes, num_features)`.
             if layer == "simple":
                 conv.append(tg.nn.GINConv(th.nn.Identity()))
             elif layer == "norm":
                 conv.append(models.Normalize(tg.nn.GINConv(th.nn.Identity())))
             elif layer == "insert-clustering":
                 conv.append(models.InsertClusteringCoefficient()),
+            elif layer.startswith("dropout"):
+                _, proba = layer.split("-")
+                conv.append(th.nn.Dropout(float(proba)))
+            elif layer.startswith("res"):
+                _, method, layer = layer.split("-")
+                nn = dense_from_str(layer, activation, True)
+                conv.append(models.Residual(tg.nn.GINConv(nn), method=method))
             else:
-                nn = models.create_dense_nn(map(int, layer.split(',')), activation, True)
+                nn = dense_from_str(layer, activation, True)
                 conv.append(tg.nn.GINConv(nn))
 
     # Set up the dense network for transforming graph-level representations.
@@ -161,7 +174,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     optimizer = th.optim.Adam((param for param in model.parameters() if param.requires_grad),
                               lr=0.01)
     scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, verbose=True, factor=0.5, cooldown=20, min_lr=1e-6
+        optimizer, factor=0.5, cooldown=20, min_lr=1e-6
     )
 
     losses = {}
@@ -195,6 +208,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
 
     # Evaluate on the test set using full batch evaluation.
     dataset = BatchedDataset(args.test, transform=ensure_long_edge_index)
+    model.eval()
     result = run_epoch(model, DataLoader(dataset, len(dataset)), epsilon=0)
     assert result["num_batches"] == 1, "got more than one evaluation batch"
     assert result["log_prob"].shape == (len(dataset),)

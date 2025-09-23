@@ -1,7 +1,10 @@
+import numpy as np
 import pytest
 from simulation_based_graph_inference import config, data, models
 import torch as th
 import torch_geometric as tg
+from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
 
 
 @pytest.fixture(params=config.GENERATOR_CONFIGURATIONS)
@@ -10,10 +13,10 @@ def generator_configuration(request):
 
 
 @pytest.fixture
-def batch(generator_configuration: str):
+def batch(generator_configuration: str) -> Data:
     configuration = config.GENERATOR_CONFIGURATIONS[generator_configuration]
     dataset = data.SimulatedDataset(data.generate_data, (configuration, 12))
-    loader = tg.loader.DataLoader(dataset, batch_size=32)
+    loader = DataLoader(dataset, batch_size=32)
     for batch in loader:
         return batch
 
@@ -43,6 +46,12 @@ MODEL_CONFIGURATIONS = [
     {
         "conv": None,
         "dense": th.nn.Linear(1, 5),
+    },
+    {
+        "conv": [
+            models.Residual(tg.nn.GINConv(models.create_dense_nn([1, 4], th.nn.Tanh(), True))),
+        ],
+        "dense": th.nn.Linear(4, 5),
     }
 ]
 
@@ -95,3 +104,14 @@ def test_distribution_module():
     x = dist.sample([1000])
     assert x.min() > 1
     assert x.max() < 5
+
+
+def test_residual_module(batch: Data) -> None:
+    residual = models.Residual(lambda x, edge_index: 0)
+    x = th.randn((batch.num_nodes, 3))
+    np.testing.assert_allclose(x, residual(x, batch.edge_index))
+
+    residual = models.Residual(lambda x, edge_index: 2, method="scalar")
+    residual._scalar = th.nn.Parameter(7 * th.ones([]))
+    x = th.randn((batch.num_nodes, 3))
+    np.testing.assert_allclose(2 + 7 * x, residual(x, batch.edge_index).detach())

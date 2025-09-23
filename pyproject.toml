@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simulation_based_graph_inference"
+version = "0.1"
+dependencies = [
+    "cmdstanpy>=1.2.5",
+    "fasttr",
+    "matplotlib>=3.10.6",
+    "scipy>=1.16.2",
+    "torch>=2.8.0",
+    "torch-geometric>=2.6.1",
+    "torch-scatter>=2.1.2",
+]
+requires-python = ">=3.13"
+
+[dependency-groups]
+dev = [
+    "doit-interface>=0.1.10",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.13.1",
+    "sphinx>=8.2.3",
+]
+
+[tool.uv.extra-build-dependencies]
+torch-scatter = ["torch"]
+fasttr = ["pybind11"]
+
+[tool.uv.sources]
+fasttr = { git = "https://github.com/gstonge/fasttr" }

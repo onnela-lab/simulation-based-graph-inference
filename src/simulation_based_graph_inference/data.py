@@ -90,7 +90,7 @@ class BatchedDataset(th.utils.data.IterableDataset):
             # Populate concurrent iterators.
             while len(iterators) < self.num_concurrent and batches:
                 filename, index = batches.pop(0)
-                batch = th.load(self.root / filename)
+                batch = th.load(self.root / filename, weights_only=False)
                 if self.shuffle:
                     index = index[th.randperm(len(index))]
                 batch = [batch[i] for i in index]

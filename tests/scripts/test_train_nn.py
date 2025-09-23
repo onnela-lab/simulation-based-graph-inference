@@ -23,7 +23,12 @@ def _check_result(filename: str, num_batches: int, batch_size: int) -> None:
 
 @pytest.mark.parametrize("configuration", config.GENERATOR_CONFIGURATIONS)
 @pytest.mark.parametrize("dense", ["11,5", "7"])
-@pytest.mark.parametrize("conv", ["none", "simple_norm_3_5,7", "2,3_insert-clustering_4,2"])
+@pytest.mark.parametrize("conv", [
+    "none",
+    "simple_norm_3_5,7",
+    "2,3_insert-clustering_4,2",
+    # "res-2,3_dropout-0.2",
+])
 def test_train_nn(configuration: str, dense: str, conv: str, tmpwd: str) -> None:
     # Generate some data.
     steps_per_epoch = 7

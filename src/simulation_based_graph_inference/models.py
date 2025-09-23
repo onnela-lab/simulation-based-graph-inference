@@ -48,6 +48,28 @@ class DistributionModule(th.nn.Module):
         return distribution
 
 
+class Residual(th.nn.Module):
+    """
+    A residual graph convolutional layer.
+    """
+    def __init__(self, module, method: str = "identity") -> None:
+        super().__init__()
+        self._module = module
+        self._method = method
+        if self._method == "scalar":
+            self._scalar = th.nn.Parameter(th.ones([]), requires_grad=True)
+
+    def forward(self, x: th.Tensor, edge_index: th.LongTensor, **kwargs) -> th.Tensor:
+        y = self._module(x, edge_index=edge_index, **kwargs)
+        if self._method == "identity":
+            y = y + x
+        elif self._method == "scalar":
+            y = y + self._scalar * x
+        else:
+            raise NotImplementedError
+        return y
+
+
 class Normalize(th.nn.Module):
     """
     Normalize the output of a graph convolutional layer.
@@ -169,10 +191,13 @@ class Model(th.nn.Module):
         x = th.ones((batch.num_nodes, 1))
         xs = []
         for conv in self.conv:
-            if "batch" in inspect.signature(conv.forward).parameters:
+            parameters = inspect.signature(conv.forward).parameters
+            if "batch" in parameters:
                 x = conv(x, batch=batch)
-            else:
+            elif "edge_index" in parameters:
                 x = conv(x, edge_index=batch.edge_index)
+            else:
+                x = conv(x)
             if not getattr(conv, "hidden", False):
                 xs.append(x)
         x = th.concat(xs, dim=1)
