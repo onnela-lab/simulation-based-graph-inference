@@ -1,12 +1,21 @@
 import networkx as nx
 import numpy as np
-from ..util import assert_interval, assert_normalized_nodel_labels, randint, random_sequence
+from ..util import (
+    assert_interval,
+    assert_normalized_nodel_labels,
+    randint,
+    random_sequence,
+)
 
 
 def duplication_complementation_graph(
-        num_nodes: int, interaction_proba: float, divergence_proba: float,
-        add_isolated_nodes: bool = False, graph: nx.Graph = None, rng: np.random.Generator = None) \
-            -> nx.Graph:
+    num_nodes: int,
+    interaction_proba: float,
+    divergence_proba: float,
+    add_isolated_nodes: bool = False,
+    graph: nx.Graph = None,
+    rng: np.random.Generator = None,
+) -> nx.Graph:
     """
     Generate a protein interaction graph as described by
     `Vazquez et al. (2003) <https://doi.org/10.1159/000067642>`_.
@@ -78,9 +87,13 @@ def duplication_complementation_graph(
 
 
 def duplication_mutation_graph(
-        num_nodes: int, mutation_proba: float, divergence_proba: float,
-        add_isolated_nodes: bool = False, graph: nx.Graph = None, rng: np.random.Generator = None) \
-            -> nx.Graph:
+    num_nodes: int,
+    mutation_proba: float,
+    divergence_proba: float,
+    add_isolated_nodes: bool = False,
+    graph: nx.Graph = None,
+    rng: np.random.Generator = None,
+) -> nx.Graph:
     r"""
     Generate a protein interaction graph as described by
     `Sole et al. (2002) <https://doi.org/10.1142/S021952590200047X>`_.
@@ -136,7 +149,9 @@ def duplication_mutation_graph(
     while (node := len(graph)) < num_nodes:
         # First pick the additional neighbors, we sample one additional one as the seed.
         num_extra_connections = rng.binomial(node - 1, mutation_proba / node)
-        source, *random_neighbors = rng.choice(node, num_extra_connections + 1, replace=False)
+        source, *random_neighbors = rng.choice(
+            node, num_extra_connections + 1, replace=False
+        )
 
         # Create connections to neighbors of source node.
         for neighbor in graph.neighbors(source):

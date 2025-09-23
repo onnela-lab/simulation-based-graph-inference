@@ -7,9 +7,15 @@ from torch_geometric.loader import DataLoader
 
 def test_generate_data(tmpwd: str):
     num_nodes = 97
-    generate_data.__main__(dict2args(configuration="poisson_random_attachment_graph",
-                                     directory=tmpwd, num_batches=3, batch_size=2,
-                                     num_nodes=num_nodes))
+    generate_data.__main__(
+        dict2args(
+            configuration="poisson_random_attachment_graph",
+            directory=tmpwd,
+            num_batches=3,
+            batch_size=2,
+            num_nodes=num_nodes,
+        )
+    )
     dataset = BatchedDataset(tmpwd)
     loader = DataLoader(dataset, batch_size=3)
     batch_size = 3
@@ -20,7 +26,13 @@ def test_generate_data(tmpwd: str):
 
 def test_generate_data_dtype_too_small(tmpwd: str):
     with pytest.raises(ValueError):
-        generate_data.__main__(dict2args(
-            configuration="poisson_random_attachment_graph", directory=tmpwd, num_batches=2,
-            batch_size=3, num_nodes=100_000, dtype="int16",
-        ))
+        generate_data.__main__(
+            dict2args(
+                configuration="poisson_random_attachment_graph",
+                directory=tmpwd,
+                num_batches=2,
+                batch_size=3,
+                num_nodes=100_000,
+                dtype="int16",
+            )
+        )

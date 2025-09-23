@@ -17,10 +17,16 @@ def get_parser(default_num_nodes: int) -> argparse.ArgumentParser:
     Create a basic parser to parameterize scripts.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num_nodes", "-n", help="number of nodes", default=default_num_nodes,
-                        type=int)
-    parser.add_argument("--seed", "-s", help="random number generator seed", type=_apply_seed)
     parser.add_argument(
-        "--configuration", help="configuration to use for sampling graphs", required=True,
-        choices=GENERATOR_CONFIGURATIONS)
+        "--num_nodes", "-n", help="number of nodes", default=default_num_nodes, type=int
+    )
+    parser.add_argument(
+        "--seed", "-s", help="random number generator seed", type=_apply_seed
+    )
+    parser.add_argument(
+        "--configuration",
+        help="configuration to use for sampling graphs",
+        required=True,
+        choices=GENERATOR_CONFIGURATIONS,
+    )
     return parser

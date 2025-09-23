@@ -23,8 +23,13 @@ class TreeKernelPosterior:
         lim: Half width of the interval around the MAP estimate to consider for obtaining the
             normalization constant.
     """
-    def __init__(self, graph: nx.Graph, prior: th.distributions.Distribution,
-                 num_history_samples: int = 100):
+
+    def __init__(
+        self,
+        graph: nx.Graph,
+        prior: th.distributions.Distribution,
+        num_history_samples: int = 100,
+    ):
         self.graph = graph
         self.sampler = HistorySampler(graph)
         self.sampler.sample(num_history_samples)
@@ -34,7 +39,8 @@ class TreeKernelPosterior:
         # Find the maximum so we get better numerics.
         self.max = 0
         result = optimize.minimize_scalar(
-            lambda gamma: - self.log_target(gamma), method="bounded",
+            lambda gamma: -self.log_target(gamma),
+            method="bounded",
             bounds=[self.support.lower_bound, self.support.upper_bound],
         )
         assert result.success
@@ -47,18 +53,25 @@ class TreeKernelPosterior:
 
         # Integrate to find the normalization constant.
         self.log_norm = 0
-        norm, *_ = integrate.quad(lambda x: np.exp(self.log_prob(x)),
-                                  self.support.lower_bound, self.support.upper_bound)
+        norm, *_ = integrate.quad(
+            lambda x: np.exp(self.log_prob(x)),
+            self.support.lower_bound,
+            self.support.upper_bound,
+        )
         self.log_norm = np.log(norm)
 
     def log_target(self, gamma):
         """
         Evaluate the unnormalized log posterior.
         """
-        self.sampler.set_kernel(kernel=lambda k: k ** gamma)
+        self.sampler.set_kernel(kernel=lambda k: k**gamma)
         log_likelihoods = self.sampler.get_log_posterior()
-        log_posterior = special.logsumexp(log_likelihoods) - np.log(len(log_likelihoods)) \
-            - self.max + self.prior.log_prob(th.as_tensor(gamma)).item()
+        log_posterior = (
+            special.logsumexp(log_likelihoods)
+            - np.log(len(log_likelihoods))
+            - self.max
+            + self.prior.log_prob(th.as_tensor(gamma)).item()
+        )
         return log_posterior
 
     def log_prob(self, gamma):
@@ -73,8 +86,9 @@ class TreeKernelPosterior:
 def __main__(args: list[str] = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", help="path to test set", required=True)
-    parser.add_argument("--result", help="path at which to store evaluation on test set",
-                        required=True)
+    parser.add_argument(
+        "--result", help="path at which to store evaluation on test set", required=True
+    )
     args = parser.parse_args(args)
 
     prior = GENERATOR_CONFIGURATIONS["gn_graph"].priors["gamma"]

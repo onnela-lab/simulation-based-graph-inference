@@ -13,8 +13,12 @@ from . import config
 from .util import to_edge_index, clustering_coefficient
 
 
-def generate_data(generator_config: config.Configuration, num_nodes: int,
-                  dtype=th.long, clustering: bool = False) -> tg.data.Data:
+def generate_data(
+    generator_config: config.Configuration,
+    num_nodes: int,
+    dtype=th.long,
+    clustering: bool = False,
+) -> tg.data.Data:
     """
     Generate a graph in :mod:`torch_geometric` data format.
 
@@ -30,14 +34,18 @@ def generate_data(generator_config: config.Configuration, num_nodes: int,
     params = generator_config.sample_params()
     graph: nx.Graph = generator_config.sample_graph(num_nodes, **params).to_undirected()
     if len(graph) != num_nodes:  # pragma: no cover
-        raise ValueError(f"expected {num_nodes} but {generator_config} generated {len(graph)}")
+        raise ValueError(
+            f"expected {num_nodes} but {generator_config} generated {len(graph)}"
+        )
     edge_index = to_edge_index(graph, dtype=dtype)
     data = {
         "edge_index": edge_index,
         "num_nodes": num_nodes,
     }
     if clustering:
-        data["clustering_coefficient"] = clustering_coefficient(edge_index, graph.number_of_nodes())
+        data["clustering_coefficient"] = clustering_coefficient(
+            edge_index, graph.number_of_nodes()
+        )
     return tg.data.Data(**data, **{key: param[None] for key, param in params.items()})
 
 
@@ -54,8 +62,15 @@ class BatchedDataset(th.utils.data.IterableDataset):
         transform: Transform applied to every element.
         index_batches: Indices to select for each batch.
     """
-    def __init__(self, root: str, num_concurrent: int = 1, shuffle: bool = False,
-                 transform: typing.Callable = None, index_batches: list[th.Tensor] = None) -> None:
+
+    def __init__(
+        self,
+        root: str,
+        num_concurrent: int = 1,
+        shuffle: bool = False,
+        transform: typing.Callable = None,
+        index_batches: list[th.Tensor] = None,
+    ) -> None:
         self.root = pathlib.Path(root)
         self.num_concurrent = num_concurrent
         self.shuffle = shuffle
@@ -65,9 +80,14 @@ class BatchedDataset(th.utils.data.IterableDataset):
         with open(self.root / "meta.json") as fp:
             self.meta = json.load(fp)
 
-        if self.index_batches is not None and len(self.index_batches) != self.meta["num_batches"]:
-            raise ValueError(f"dataset has {self.meta['num_batches']} batches, but "
-                             f"{len(self.index_batches)} index batches were supplied")
+        if (
+            self.index_batches is not None
+            and len(self.index_batches) != self.meta["num_batches"]
+        ):
+            raise ValueError(
+                f"dataset has {self.meta['num_batches']} batches, but "
+                f"{len(self.index_batches)} index batches were supplied"
+            )
 
     def __len__(self):
         if self.index_batches is None:
@@ -80,8 +100,10 @@ class BatchedDataset(th.utils.data.IterableDataset):
             index = th.arange(self.meta["batch_size"])
             batches = [(filename, index) for filename in self.meta["filenames"]]
         else:
-            batches = [(filename, index) for filename, index in
-                       zip(self.meta["filenames"], self.index_batches)]
+            batches = [
+                (filename, index)
+                for filename, index in zip(self.meta["filenames"], self.index_batches)
+            ]
         if self.shuffle:
             batches = [batches[i] for i in th.randperm(self.meta["num_batches"])]
 
@@ -118,11 +140,21 @@ class BatchedDataset(th.utils.data.IterableDataset):
         Transform indices over the entire dataset to indices within each batch.
         """
         batch_size = self.meta["batch_size"]
-        return [indices[th.div(indices, th.as_tensor(batch_size), rounding_mode="floor") == batch]
-                % batch_size for batch in range(self.meta["num_batches"])]
+        return [
+            indices[
+                th.div(indices, th.as_tensor(batch_size), rounding_mode="floor")
+                == batch
+            ]
+            % batch_size
+            for batch in range(self.meta["num_batches"])
+        ]
 
-    def bootstrap_split(self, num_concurrent: int = None, shuffle: bool = None,
-                        transform: typing.Callable = None) -> tuple[BatchedDataset, BatchedDataset]:
+    def bootstrap_split(
+        self,
+        num_concurrent: int = None,
+        shuffle: bool = None,
+        transform: typing.Callable = None,
+    ) -> tuple[BatchedDataset, BatchedDataset]:
         """
         Create a bootstrapped dataset by sampling without replacement and the out-of-bag dataset.
 
@@ -142,18 +174,29 @@ class BatchedDataset(th.utils.data.IterableDataset):
         selected = th.randint(n, size=[n])
         not_selected = th.asarray(np.setdiff1d(th.arange(n), selected))
         kwargs = {
-            "num_concurrent": self.num_concurrent if num_concurrent is None else num_concurrent,
+            "num_concurrent": self.num_concurrent
+            if num_concurrent is None
+            else num_concurrent,
             "shuffle": self.shuffle if shuffle is None else self.shuffle,
             "transform": self.transform if transform is None else transform,
         }
-        return BatchedDataset(self.root, **kwargs, index_batches=self._unravel_indices(selected)), \
-            BatchedDataset(self.root, **kwargs, index_batches=self._unravel_indices(not_selected))
+        return BatchedDataset(
+            self.root, **kwargs, index_batches=self._unravel_indices(selected)
+        ), BatchedDataset(
+            self.root, **kwargs, index_batches=self._unravel_indices(not_selected)
+        )
 
     @classmethod
     def generate(
-            cls, root: pathlib.Path, batch_size: int, num_batches: int, func: typing.Callable,
-            args: typing.Iterable = None, kwargs: typing.Mapping = None, progress: bool = False) \
-            -> dict:
+        cls,
+        root: pathlib.Path,
+        batch_size: int,
+        num_batches: int,
+        func: typing.Callable,
+        args: typing.Iterable = None,
+        kwargs: typing.Mapping = None,
+        progress: bool = False,
+    ) -> dict:
         """
         Generate a batched dataset.
 
@@ -213,8 +256,14 @@ class SimulatedDataset(th.utils.data.IterableDataset):
         kwargs: Keyword arguments for the simulator.
         length: Maximum number of simulations.
     """
-    def __init__(self, simulator: typing.Callable, args: typing.Iterable = None,
-                 kwargs: typing.Mapping = None, length: int = None):
+
+    def __init__(
+        self,
+        simulator: typing.Callable,
+        args: typing.Iterable = None,
+        kwargs: typing.Mapping = None,
+        length: int = None,
+    ):
         super().__init__()
         self.simulator = simulator
         self.args = args or ()
@@ -223,7 +272,7 @@ class SimulatedDataset(th.utils.data.IterableDataset):
 
     def __len__(self):
         if self.length is None:
-            raise TypeError('length of `SimulatedDataset` has not been specified')
+            raise TypeError("length of `SimulatedDataset` has not been specified")
         return self.length
 
     def __iter__(self):
@@ -243,7 +292,10 @@ class InterleavedDataset(th.utils.data.IterableDataset):
         longest: If `True`, yield all elements of all datasets even if some are exhausted. If
             `False`, yield elements until one or more datasets are exhausted.
     """
-    def __init__(self, datasets: typing.Iterable[th.utils.data.Dataset], longest: bool = False):
+
+    def __init__(
+        self, datasets: typing.Iterable[th.utils.data.Dataset], longest: bool = False
+    ):
         self.datasets = datasets
         self.longest = longest
 
@@ -255,7 +307,9 @@ class InterleavedDataset(th.utils.data.IterableDataset):
 
     def __iter__(self):
         for batch in it.zip_longest(*self.datasets, fillvalue=StopIteration):
-            filtered_batch = [element for element in batch if element is not StopIteration]
+            filtered_batch = [
+                element for element in batch if element is not StopIteration
+            ]
             if not self.longest and len(filtered_batch) < len(batch):
                 return
             for element in filtered_batch:

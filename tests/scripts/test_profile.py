@@ -10,5 +10,6 @@ def generator_configuration(request) -> config.Configuration:
 
 
 def test_profile(generator_configuration: str):
-    profile.__main__(dict2args(configuration=generator_configuration, num_samples=1,
-                               num_nodes=10))
+    profile.__main__(
+        dict2args(configuration=generator_configuration, num_samples=1, num_nodes=10)
+    )

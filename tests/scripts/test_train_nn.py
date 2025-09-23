@@ -23,27 +23,44 @@ def _check_result(filename: str, num_batches: int, batch_size: int) -> None:
 
 @pytest.mark.parametrize("configuration", config.GENERATOR_CONFIGURATIONS)
 @pytest.mark.parametrize("dense", ["11,5", "7"])
-@pytest.mark.parametrize("conv", [
-    "none",
-    "simple_norm_3_5,7",
-    "2,3_insert-clustering_4,2",
-    # "res-2,3_dropout-0.2",
-])
+@pytest.mark.parametrize(
+    "conv",
+    [
+        "none",
+        "simple_norm_3_5,7",
+        "2,3_insert-clustering_4,2",
+        # "res-2,3_dropout-0.2",
+    ],
+)
 def test_train_nn(configuration: str, dense: str, conv: str, tmpwd: str) -> None:
     # Generate some data.
     steps_per_epoch = 7
     batch_size = 13
     num_batches = 11
-    args = dict2args(directory="data", configuration=configuration, batch_size=batch_size,
-                     num_batches=num_batches, num_nodes=12)
+    args = dict2args(
+        directory="data",
+        configuration=configuration,
+        batch_size=batch_size,
+        num_batches=num_batches,
+        num_nodes=12,
+    )
     generate_data.__main__(args)
 
     # Run the training.
     filename = "result.pkl"
     args = dict(
-        patience=5, num_nodes=1, result=filename, batch_size=batch_size,
-        configuration=configuration, seed=13, conv=conv, dense=dense, train="data",
-        test="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
+        patience=5,
+        num_nodes=1,
+        result=filename,
+        batch_size=batch_size,
+        configuration=configuration,
+        seed=13,
+        conv=conv,
+        dense=dense,
+        train="data",
+        test="data",
+        steps_per_epoch=steps_per_epoch,
+        max_num_epochs=3,
     )
     train_nn.__main__(dict2args(args))
     _check_result(filename, batch_size, num_batches)
@@ -63,16 +80,30 @@ def test_train_no_precomputed_clustering(tmpwd: str) -> None:
     batch_size = 13
     num_batches = 11
     configuration = "latent_space_graph"
-    args = dict2args(directory="data", configuration=configuration, batch_size=batch_size,
-                     num_batches=num_batches, num_nodes=12) + ["--no_clustering"]
+    args = dict2args(
+        directory="data",
+        configuration=configuration,
+        batch_size=batch_size,
+        num_batches=num_batches,
+        num_nodes=12,
+    ) + ["--no_clustering"]
     generate_data.__main__(args)
 
     # Run the training.
     filename = "result.pkl"
     args = dict(
-        patience=5, num_nodes=1, result=filename, batch_size=batch_size,
-        configuration=configuration, seed=13, conv="2,3_insert-clustering_4,2", dense="2,3",
-        train="data", test="data", steps_per_epoch=steps_per_epoch, max_num_epochs=3,
+        patience=5,
+        num_nodes=1,
+        result=filename,
+        batch_size=batch_size,
+        configuration=configuration,
+        seed=13,
+        conv="2,3_insert-clustering_4,2",
+        dense="2,3",
+        train="data",
+        test="data",
+        steps_per_epoch=steps_per_epoch,
+        max_num_epochs=3,
     )
     train_nn.__main__(dict2args(args))
     _check_result(filename, batch_size, num_batches)

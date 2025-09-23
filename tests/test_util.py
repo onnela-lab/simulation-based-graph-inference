@@ -11,19 +11,22 @@ def test_plot_generated_graph():
     util._plot_generated_graph(generators.random_attachment_graph, 4)
 
 
-@pytest.mark.parametrize("fail, args", [
-    (False, (0.5, 0, 1)),  # General check.
-    (True, (-1, 1.1, 2)),  # Outside to the left.
-    (False, (0, 0, 1)),  # Left bound inclusive.
-    (True, (0, 0, 1, False)),  # Left bound exclusive.
-    (False, (-1000, None, 1)),  # Unbounded left.
-    (True, (2, None, 1)),  # Unbounded left, outside to the right.
-    (True, (2.5, 1.1, 2)),  # Outside to the right.
-    (False, (1, 0, 1)),  # Right bound inclusive.
-    (True, (1, 0, 1, True, False)),  # Right bound inclusive.
-    (False, (1000, 10, None)),  # Unbounded right.
-    (True, (3, 10, None)),  # Unbounded right, outside to the left.
-])
+@pytest.mark.parametrize(
+    "fail, args",
+    [
+        (False, (0.5, 0, 1)),  # General check.
+        (True, (-1, 1.1, 2)),  # Outside to the left.
+        (False, (0, 0, 1)),  # Left bound inclusive.
+        (True, (0, 0, 1, False)),  # Left bound exclusive.
+        (False, (-1000, None, 1)),  # Unbounded left.
+        (True, (2, None, 1)),  # Unbounded left, outside to the right.
+        (True, (2.5, 1.1, 2)),  # Outside to the right.
+        (False, (1, 0, 1)),  # Right bound inclusive.
+        (True, (1, 0, 1, True, False)),  # Right bound inclusive.
+        (False, (1000, 10, None)),  # Unbounded right.
+        (True, (3, 10, None)),  # Unbounded right, outside to the left.
+    ],
+)
 def test_assert_interval(fail, args):
     if fail:
         with pytest.raises(ValueError):
@@ -113,7 +116,9 @@ def test_clustering_coefficient(directed: bool) -> None:
     if directed:
         pytest.xfail("directed doesn't seem to work; not a problem for our models")
     graph = nx.erdos_renyi_graph(100, 0.1, directed=directed)
-    expected = th.as_tensor([value for _, value in sorted(nx.clustering(graph).items())])
+    expected = th.as_tensor(
+        [value for _, value in sorted(nx.clustering(graph).items())]
+    )
     data = from_networkx(graph)
     actual = util.clustering_coefficient(data.edge_index, data.num_nodes)
     np.testing.assert_allclose(actual, expected)

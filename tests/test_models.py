@@ -49,17 +49,23 @@ MODEL_CONFIGURATIONS = [
     },
     {
         "conv": [
-            models.Residual(tg.nn.GINConv(models.create_dense_nn([1, 4], th.nn.Tanh(), True))),
+            models.Residual(
+                tg.nn.GINConv(models.create_dense_nn([1, 4], th.nn.Tanh(), True))
+            ),
         ],
         "dense": th.nn.Linear(4, 5),
-    }
+    },
 ]
 
 
 @pytest.mark.parametrize("model_configuration", MODEL_CONFIGURATIONS)
-def test_model_with_architectures(generator_configuration: str, batch, model_configuration: str):
+def test_model_with_architectures(
+    generator_configuration: str, batch, model_configuration: str
+):
     dists = config.GENERATOR_CONFIGURATIONS[generator_configuration].create_estimator()
-    model = models.Model(model_configuration["conv"], model_configuration["dense"], dists)
+    model = models.Model(
+        model_configuration["conv"], model_configuration["dense"], dists
+    )
 
     # Check that the features for the initial and transformed graph representation are on a sensible
     # scale. If they are not, training will fail almost immediately because we are in strange
@@ -97,8 +103,10 @@ def test_create_dense(final_activation: bool):
 
 def test_distribution_module():
     parametrized = models.DistributionModule(
-        th.distributions.Beta, concentration0=th.nn.Linear(1, 1), concentration1=th.nn.Linear(1, 1),
-        transforms=[th.distributions.AffineTransform(3, -2)]
+        th.distributions.Beta,
+        concentration0=th.nn.Linear(1, 1),
+        concentration1=th.nn.Linear(1, 1),
+        transforms=[th.distributions.AffineTransform(3, -2)],
     )
     dist: th.distributions.Distribution = parametrized(th.ones(1))
     x = dist.sample([1000])

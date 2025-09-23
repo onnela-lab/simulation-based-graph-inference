@@ -3,8 +3,12 @@ import numpy as np
 from ..util import assert_interval, assert_normalized_nodel_labels, randint
 
 
-def copy_graph(num_nodes: int, copy_proba: float, graph: nx.Graph = None,
-               rng: np.random.Generator = None) -> nx.Graph:
+def copy_graph(
+    num_nodes: int,
+    copy_proba: float,
+    graph: nx.Graph = None,
+    rng: np.random.Generator = None,
+) -> nx.Graph:
     """
     Generate a graph by random attachment with probabilistic copying as described by
     `Lambiotte et al. (2016) <https://doi.org/10.1103/PhysRevLett.117.218301>`_.
@@ -32,8 +36,11 @@ def copy_graph(num_nodes: int, copy_proba: float, graph: nx.Graph = None,
 
     for node in range(graph.number_of_nodes(), num_nodes):
         seed = randint(rng, node)
-        edges = [(node, neighbor) for neighbor in graph.neighbors(seed) if
-                 rng.binomial(1, copy_proba)]
+        edges = [
+            (node, neighbor)
+            for neighbor in graph.neighbors(seed)
+            if rng.binomial(1, copy_proba)
+        ]
         edges.append((node, seed))
         graph.add_edges_from(edges)
 

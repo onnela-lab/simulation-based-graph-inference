@@ -4,7 +4,9 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.special import expit
 
 
-def latent_space_graph(num_nodes: int, bias: float, scale: float, num_dims: int) -> nx.Graph:
+def latent_space_graph(
+    num_nodes: int, bias: float, scale: float, num_dims: int
+) -> nx.Graph:
     """
     Generate a latent space graph.
 

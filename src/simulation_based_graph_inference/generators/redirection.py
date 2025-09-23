@@ -3,8 +3,13 @@ import numpy as np
 from ..util import assert_interval, assert_normalized_nodel_labels, randint
 
 
-def redirection_graph(num_nodes: int, max_num_connections: int, redirection_proba: float,
-                      graph: nx.Graph = None, rng: np.random.Generator = None) -> nx.Graph:
+def redirection_graph(
+    num_nodes: int,
+    max_num_connections: int,
+    redirection_proba: float,
+    graph: nx.Graph = None,
+    rng: np.random.Generator = None,
+) -> nx.Graph:
     """
     Generate a graph by random attachment with probabilistic redirection as described by
     `Krapivsky et al. (2001) <https://doi.org/10.1103/PhysRevE.63.066123>`_.
@@ -40,9 +45,17 @@ def redirection_graph(num_nodes: int, max_num_connections: int, redirection_prob
        _plot_generated_graph(generators.redirection_graph, 3, 0.5)
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
-    max_num_connections = assert_interval("max_num_connections", max_num_connections, 0, None,
-                                          inclusive_low=False, dtype=int)
-    redirection_proba = assert_interval("redirection_proba", redirection_proba, 0, 1, dtype=float)
+    max_num_connections = assert_interval(
+        "max_num_connections",
+        max_num_connections,
+        0,
+        None,
+        inclusive_low=False,
+        dtype=int,
+    )
+    redirection_proba = assert_interval(
+        "redirection_proba", redirection_proba, 0, 1, dtype=float
+    )
     rng = rng or np.random
     graph = graph or nx.Graph()
     if not len(graph):
@@ -68,8 +81,12 @@ def redirection_graph(num_nodes: int, max_num_connections: int, redirection_prob
     return graph
 
 
-def surfer_graph(num_nodes: int, hop_proba: float, graph: nx.Graph = None,
-                 rng: np.random.Generator = None) -> nx.Graph:
+def surfer_graph(
+    num_nodes: int,
+    hop_proba: float,
+    graph: nx.Graph = None,
+    rng: np.random.Generator = None,
+) -> nx.Graph:
     """
     Generate a random surfer graph as described by
     `Vazquez (2003) <https://doi.org/10.1103/PhysRevE.67.056104>`__.

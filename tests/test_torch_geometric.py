@@ -8,7 +8,7 @@ import torch_geometric.nn
 
 @pytest.fixture
 def graph() -> nx.Graph:
-    return generators.redirection_graph(100, 4, .5)
+    return generators.redirection_graph(100, 4, 0.5)
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def test_gcn(graph: nx.Graph, adjacency: th.Tensor, edge_index: th.Tensor):
     x = th.randn(len(graph), 3)
     conv = torch_geometric.nn.GCNConv(3, 4)
     y = conv(x, edge_index)
-    matrix = (adjacency + th.eye(adjacency.shape[0]))
+    matrix = adjacency + th.eye(adjacency.shape[0])
     degree = matrix.sum(axis=0)
     matrix = matrix / (degree[:, None] * degree).sqrt()
     z = matrix @ x @ conv.lin.weight.T

@@ -2,9 +2,8 @@
 
 build : lint tests docs doctests doit-list
 
-# FIXME: Add linting.
 lint :
-	true
+	ruff format --check .
 
 tests :
 	CI=true pytest tests -v --cov=simulation_based_graph_inference \

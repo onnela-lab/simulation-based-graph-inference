@@ -29,7 +29,7 @@ def test_simulated_dataset():
         len(dataset)
 
 
-@pytest.mark.parametrize('num_iterations', [1, 7])
+@pytest.mark.parametrize("num_iterations", [1, 7])
 def test_simulated_dataset_with_length(num_iterations):
     batch_size = 16
     dataset = data.SimulatedDataset(dists.Normal(0, 1).sample, ([7],), length=37)
@@ -40,9 +40,11 @@ def test_simulated_dataset_with_length(num_iterations):
         assert len(dataset) == dataset.length
 
 
-@pytest.mark.parametrize('longest', [False, True])
+@pytest.mark.parametrize("longest", [False, True])
 def test_interleaved_dataset(longest):
-    datasets = [TensorDataset(i * th.ones((10 + i, 3)), i * th.ones(10 + i)) for i in range(5)]
+    datasets = [
+        TensorDataset(i * th.ones((10 + i, 3)), i * th.ones(10 + i)) for i in range(5)
+    ]
     interleaved = data.InterleavedDataset(datasets, longest)
 
     if longest:
@@ -58,13 +60,19 @@ def test_interleaved_dataset(longest):
 @pytest.mark.parametrize("num_concurrent", [1, 3])
 @pytest.mark.parametrize("progress", [True, False, lambda x: x])
 @pytest.mark.parametrize("shuffle", [True, False])
-def test_batched_dataset_generate(tmpwd: str, progress, num_concurrent: int, shuffle: bool):
+def test_batched_dataset_generate(
+    tmpwd: str, progress, num_concurrent: int, shuffle: bool
+):
     sequence = it.count()
     iterator = iter(sequence)
-    meta = data.BatchedDataset.generate(tmpwd, 3, 7, next, [iterator], progress=progress)
+    meta = data.BatchedDataset.generate(
+        tmpwd, 3, 7, next, [iterator], progress=progress
+    )
 
     assert len(meta["filenames"]) == meta["num_batches"]
-    assert all((pathlib.Path(tmpwd) / filename).is_file() for filename in meta["filenames"])
+    assert all(
+        (pathlib.Path(tmpwd) / filename).is_file() for filename in meta["filenames"]
+    )
 
     dataset = data.BatchedDataset(tmpwd, num_concurrent, shuffle)
     if shuffle or num_concurrent > 1:
@@ -80,7 +88,9 @@ def test_batched_dataset_generate(tmpwd: str, progress, num_concurrent: int, shu
 
     # Check we get a complaint if the indices are wrong.
     with pytest.raises(ValueError):
-        data.BatchedDataset(tmpwd, num_concurrent, shuffle, index_batches=[None for _ in range(5)])
+        data.BatchedDataset(
+            tmpwd, num_concurrent, shuffle, index_batches=[None for _ in range(5)]
+        )
 
 
 @pytest.mark.parametrize("num_concurrent", [1, 3])
@@ -90,7 +100,9 @@ def test_batched_dataset_bootstrap_split(num_concurrent, shuffle, tmpwd: str):
     iterator = iter(sequence)
     num_batches = 97
     batch_size = 89
-    meta = data.BatchedDataset.generate(tmpwd, batch_size, num_batches, next, [iterator])
+    meta = data.BatchedDataset.generate(
+        tmpwd, batch_size, num_batches, next, [iterator]
+    )
     assert meta["batch_size"] == batch_size
     assert meta["num_batches"] == num_batches
 

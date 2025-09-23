@@ -14,8 +14,15 @@ from ..data import BatchedDataset
 
 
 def infer_latent_space_params(
-        graph: nx.Graph, bias_loc: float, bias_scale: float, scale_conc: float, scale_rate: float,
-        num_dims: int = 2, chains: int = 1, **kwargs) -> cmdstanpy.CmdStanMCMC:
+    graph: nx.Graph,
+    bias_loc: float,
+    bias_scale: float,
+    scale_conc: float,
+    scale_rate: float,
+    num_dims: int = 2,
+    chains: int = 1,
+    **kwargs,
+) -> cmdstanpy.CmdStanMCMC:
     """
     Infer the parameters of the latent space model described by
     `Hoff et al. (2002) <https://doi.org/10.1198/016214502388618906>`__.
@@ -47,10 +54,13 @@ def infer_latent_space_params(
 def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", help="path to test set", required=True)
-    parser.add_argument("--result", help="path at which to store evaluation on test set",
-                        required=True)
+    parser.add_argument(
+        "--result", help="path at which to store evaluation on test set", required=True
+    )
     parser.add_argument("--iter_warmup", type=int, help="number of warmup steps")
-    parser.add_argument("--iter_sampling", type=int, help="number of sampling steps", default=500)
+    parser.add_argument(
+        "--iter_sampling", type=int, help="number of sampling steps", default=500
+    )
     args = parser.parse_args(args)
 
     config = GENERATOR_CONFIGURATIONS["latent_space_graph"]
@@ -59,20 +69,32 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     result = {"args": vars(args)}
     for graph in tqdm(dataset):
         result.setdefault("params", {}).setdefault("bias", []).append(graph.bias.item())
-        result.setdefault("params", {}).setdefault("scale", []).append(graph.scale.item())
+        result.setdefault("params", {}).setdefault("scale", []).append(
+            graph.scale.item()
+        )
         graph = to_networkx(graph).to_undirected()
         # Run the inference.
         fit = infer_latent_space_params(
-            graph, config.priors["bias"].loc.item(), config.priors["bias"].scale.item(),
-            config.priors["scale"].concentration.item(), config.priors["scale"].rate.item(),
-            config.generator_kwargs["num_dims"], iter_warmup=args.iter_warmup or args.iter_sampling,
+            graph,
+            config.priors["bias"].loc.item(),
+            config.priors["bias"].scale.item(),
+            config.priors["scale"].concentration.item(),
+            config.priors["scale"].rate.item(),
+            config.generator_kwargs["num_dims"],
+            iter_warmup=args.iter_warmup or args.iter_sampling,
             iter_sampling=args.iter_sampling,
         )
         # Save the samples for parameters.
-        result.setdefault("samples", {}).setdefault("bias", []).append(fit.stan_variable("bias"))
-        result.setdefault("samples", {}).setdefault("scale", []).append(fit.stan_variable("scale"))
+        result.setdefault("samples", {}).setdefault("bias", []).append(
+            fit.stan_variable("bias")
+        )
+        result.setdefault("samples", {}).setdefault("scale", []).append(
+            fit.stan_variable("scale")
+        )
 
-    result["samples"] = {key: np.asarray(value) for key, value in result["samples"].items()}
+    result["samples"] = {
+        key: np.asarray(value) for key, value in result["samples"].items()
+    }
     with open(args.result, "wb") as fp:
         pickle.dump(result, fp)
 

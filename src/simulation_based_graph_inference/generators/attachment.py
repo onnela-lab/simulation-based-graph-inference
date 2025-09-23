@@ -7,8 +7,12 @@ from ..util import assert_interval, assert_normalized_nodel_labels
 
 
 def random_attachment_graph(
-        num_nodes: int, m: typing.Union[int, typing.Callable], add_isolated_nodes: bool = False,
-        graph: nx.Graph = None, rng: np.random.Generator = None) -> nx.Graph:
+    num_nodes: int,
+    m: typing.Union[int, typing.Callable],
+    add_isolated_nodes: bool = False,
+    graph: nx.Graph = None,
+    rng: np.random.Generator = None,
+) -> nx.Graph:
     """
     Grow a graph with Poisson-distributed number of stubs for new nodes that are randomly attached
     to existing nodes.
@@ -49,8 +53,13 @@ def random_attachment_graph(
     return graph
 
 
-def degree_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Graph = None,
-                            rng: np.random.Generator = None) -> nx.Graph:
+def degree_attachment_graph(
+    num_nodes: int,
+    m: int,
+    power: float,
+    graph: nx.Graph = None,
+    rng: np.random.Generator = None,
+) -> nx.Graph:
     r"""
     Grow a graph with power degree preferential attachment as described by
     `Krapivsky et al. (2000) <https://doi.org/10.1103/PhysRevLett.85.4629>`_. New nodes are
@@ -95,8 +104,13 @@ def degree_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Grap
     return graph
 
 
-def rank_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Graph = None,
-                          rng: np.random.Generator = None) -> nx.Graph:
+def rank_attachment_graph(
+    num_nodes: int,
+    m: int,
+    power: float,
+    graph: nx.Graph = None,
+    rng: np.random.Generator = None,
+) -> nx.Graph:
     r"""
     Grow a graph with power rank preferential attachment as described by
     `Fortunato et al. (2006) <https://doi.org/10.1103/PhysRevLett.96.218701>`_. New nodes are
@@ -126,7 +140,7 @@ def rank_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Graph 
     ranks = [node + 1 for node in sorted(graph)]
     while (node := len(graph)) < num_nodes:
         # Choose neighbors.
-        log_proba = - power * np.log(ranks)
+        log_proba = -power * np.log(ranks)
         proba = special.softmax(log_proba)
         degree = min(m, node)
         neighbors = rng.choice(node, size=degree, p=proba, replace=False)
@@ -138,8 +152,15 @@ def rank_attachment_graph(num_nodes: int, m: int, power: float, graph: nx.Graph 
     return graph
 
 
-def jackson_rogers_graph(num_nodes: int, mr: int, pr: float, mn: int = None, pn: float = None,
-                         rng: np.random.Generator = None, graph: nx.Graph = None) -> nx.Graph:
+def jackson_rogers_graph(
+    num_nodes: int,
+    mr: int,
+    pr: float,
+    mn: int = None,
+    pn: float = None,
+    rng: np.random.Generator = None,
+    graph: nx.Graph = None,
+) -> nx.Graph:
     """
     Generate a social graph based on random attachment and neighborhood exploration as described by
     `Jackson and Rogers (2007) <https://doi.org/10.1257/aer.97.3.890>`_.
@@ -175,12 +196,15 @@ def jackson_rogers_graph(num_nodes: int, mr: int, pr: float, mn: int = None, pn:
         # all parents are used in the next stage even if the node doesn't connect to them.
         parents = rng.choice(node, min(mr, node))
         # Get the union of the neighbors of parents (excluding parents)
-        neighbors = {neighbor for parent in parents for neighbor in graph.neighbors(parent)} \
-            - set(parents)
+        neighbors = {
+            neighbor for parent in parents for neighbor in graph.neighbors(parent)
+        } - set(parents)
 
         # The parents have a random order so we can just take a slice to identify the parents to
         # connect to.
-        graph.add_edges_from((node, parent) for parent in parents[:rng.binomial(parents.size, pr)])
+        graph.add_edges_from(
+            (node, parent) for parent in parents[: rng.binomial(parents.size, pr)]
+        )
 
         # Select neighbors.
         num_neighbors = rng.binomial(min(mn, len(neighbors)), pn)
@@ -190,8 +214,12 @@ def jackson_rogers_graph(num_nodes: int, mr: int, pr: float, mn: int = None, pn:
     return graph
 
 
-def random_connection_graph(num_nodes: int, proba: float, rng: np.random.Generator = None,
-                            graph: nx.Graph = None) -> nx.Graph:
+def random_connection_graph(
+    num_nodes: int,
+    proba: float,
+    rng: np.random.Generator = None,
+    graph: nx.Graph = None,
+) -> nx.Graph:
     """
     Generate a graph by adding a random connections whenever a random node is added as described by
     `Callaway et al. (2001) <https://doi.org/10.1103/PhysRevE.64.041902>`__.

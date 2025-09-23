@@ -1,7 +1,15 @@
 from .copy import copy_graph
-from .duplication_divergence import duplication_complementation_graph, duplication_mutation_graph
-from .attachment import jackson_rogers_graph, random_attachment_graph, degree_attachment_graph, \
-    rank_attachment_graph, random_connection_graph
+from .duplication_divergence import (
+    duplication_complementation_graph,
+    duplication_mutation_graph,
+)
+from .attachment import (
+    jackson_rogers_graph,
+    random_attachment_graph,
+    degree_attachment_graph,
+    rank_attachment_graph,
+    random_connection_graph,
+)
 from .redirection import redirection_graph, surfer_graph
 from .spatial import latent_space_graph
 from .web import web_graph

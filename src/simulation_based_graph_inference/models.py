@@ -21,8 +21,15 @@ class DistributionModule(th.nn.Module):
         squeeze: Squeeze the last parameter dimension.
         transforms: Transformations to apply to the distribution.
     """
-    def __init__(self, distribution_cls: typing.Callable, *, squeeze: bool = True,
-                 transforms: typing.Iterable = None, **params):
+
+    def __init__(
+        self,
+        distribution_cls: typing.Callable,
+        *,
+        squeeze: bool = True,
+        transforms: typing.Iterable = None,
+        **params,
+    ):
         super().__init__()
         self.distribution_cls = distribution_cls
         if not isinstance(params, th.nn.Module) and isinstance(params, typing.Mapping):
@@ -44,7 +51,9 @@ class DistributionModule(th.nn.Module):
             params[key] = y
         distribution = self.distribution_cls(**params)
         if self.transforms:
-            distribution = th.distributions.TransformedDistribution(distribution, self.transforms)
+            distribution = th.distributions.TransformedDistribution(
+                distribution, self.transforms
+            )
         return distribution
 
 
@@ -52,6 +61,7 @@ class Residual(th.nn.Module):
     """
     A residual graph convolutional layer.
     """
+
     def __init__(self, module, method: str = "identity") -> None:
         super().__init__()
         self._module = module
@@ -78,6 +88,7 @@ class Normalize(th.nn.Module):
         gcn: Graph convolutional layer.
         mode: Normalization mode.
     """
+
     MODES = {"mean_degree+1"}
 
     def __init__(self, gcn: th.nn.Module, mode: str = "mean_degree+1") -> None:
@@ -99,14 +110,17 @@ class Normalize(th.nn.Module):
             # Get the number of nodes and number of edges per graph.
             key = "__Normalize:connections_per_graph"
             if (connections_per_graph := batch.get(key)) is None:
-                batch[key] = connections_per_graph = \
-                    tg.utils.degree(batch.batch[batch.edge_index[0]], batch.num_graphs)
+                batch[key] = connections_per_graph = tg.utils.degree(
+                    batch.batch[batch.edge_index[0]], batch.num_graphs
+                )
             key = "__Normalize:nodes_per_graph"
             if (nodes_per_graph := batch.get(key)) is None:
-                batch[key] = nodes_per_graph = tg.utils.degree(batch.batch, batch.num_graphs)
+                batch[key] = nodes_per_graph = tg.utils.degree(
+                    batch.batch, batch.num_graphs
+                )
 
             # Evaluate the normalization.
-            norm = (connections_per_graph / nodes_per_graph)[batch.batch, None] + 1.
+            norm = (connections_per_graph / nodes_per_graph)[batch.batch, None] + 1.0
         else:  # pragma: no cover
             raise ValueError(self.mode)
 
@@ -118,6 +132,7 @@ class InsertClusteringCoefficient(th.nn.Module):
     """
     Insert the clustering coefficient as a feature.
     """
+
     def forward(self, x: th.Tensor, batch: Data) -> th.Tensor:
         num_nodes, _ = x.shape
         try:
@@ -127,8 +142,9 @@ class InsertClusteringCoefficient(th.nn.Module):
         return th.hstack([x, y.to(x)[:, None]])
 
 
-def create_dense_nn(units: typing.Iterable[int], activation: th.nn.Module, final_activation: bool) \
-        -> th.nn.Sequential:
+def create_dense_nn(
+    units: typing.Iterable[int], activation: th.nn.Module, final_activation: bool
+) -> th.nn.Sequential:
     """
     Get a dense neural network with a given activation between layers.
 
@@ -169,8 +185,13 @@ class Model(th.nn.Module):
         dense: Dense network that transforms initial to final graph representations.
         dists: Mapping of modules that evaluate distributions keyed by parameter names.
     """
-    def __init__(self, conv: typing.Iterable[th.nn.Module], dense: th.nn.Module,
-                 dists: typing.Mapping[str, th.nn.Module]) -> None:
+
+    def __init__(
+        self,
+        conv: typing.Iterable[th.nn.Module],
+        dense: th.nn.Module,
+        dists: typing.Mapping[str, th.nn.Module],
+    ) -> None:
         super().__init__()
         if not isinstance(conv, th.nn.Module) and isinstance(conv, typing.Iterable):
             conv = th.nn.ModuleList(conv)
@@ -204,19 +225,28 @@ class Model(th.nn.Module):
 
         # Validate the resulting features.
         num_conv_features = x.shape[-1]
-        if x.shape != (shape := (batch.num_nodes, num_conv_features)):  # pragma: no cover
-            raise ValueError(f"expected feature shape {shape} (num_nodes, num_features) but got "
-                             f"{x.shape}")
+        if x.shape != (
+            shape := (batch.num_nodes, num_conv_features)
+        ):  # pragma: no cover
+            raise ValueError(
+                f"expected feature shape {shape} (num_nodes, num_features) but got "
+                f"{x.shape}"
+            )
 
         # Mean-pool stratified by graph.
-        x = ts.scatter(x, batch.batch, dim=0, reduce='mean')
-        if x.shape != (shape := (batch.num_graphs, num_conv_features)):  # pragma: no cover
-            raise ValueError(f"expected feature shape {shape} (num_graphs, num_features) but got "
-                             f"{x.shape}")
+        x = ts.scatter(x, batch.batch, dim=0, reduce="mean")
+        if x.shape != (
+            shape := (batch.num_graphs, num_conv_features)
+        ):  # pragma: no cover
+            raise ValueError(
+                f"expected feature shape {shape} (num_graphs, num_features) but got "
+                f"{x.shape}"
+            )
         return x
 
-    def forward(self, batch) -> typing.Tuple[typing.Mapping[str, th.distributions.Distribution],
-                                             th.Tensor]:
+    def forward(
+        self, batch
+    ) -> typing.Tuple[typing.Mapping[str, th.distributions.Distribution], th.Tensor]:
         """
         Evaluate posterior density estimates and latent features.
 

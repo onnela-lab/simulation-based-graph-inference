@@ -10,8 +10,11 @@ from simulation_based_graph_inference.scripts import generate_data, infer_tree_k
 def test_infer_tree_kernel(tmpwd: str):
     n = 10
     datadir = os.path.join(tmpwd, "data")
-    generate_data.__main__(dict2args(configuration="gn_graph", batch_size=n, num_batches=1,
-                                     directory=datadir))
+    generate_data.__main__(
+        dict2args(
+            configuration="gn_graph", batch_size=n, num_batches=1, directory=datadir
+        )
+    )
     filename = os.path.join(tmpwd, "result.pkl")
     infer_tree_kernel.__main__(dict2args(test=datadir, result=filename))
 

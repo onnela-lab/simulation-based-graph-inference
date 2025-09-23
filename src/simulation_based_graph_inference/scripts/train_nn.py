@@ -18,8 +18,13 @@ def null_context(*args, **kwargs):
     yield
 
 
-def run_epoch(model: models.Model, loader: DataLoader, epsilon: float,
-              optimizer: th.optim.Optimizer = None, max_num_batches: int = None) -> dict:
+def run_epoch(
+    model: models.Model,
+    loader: DataLoader,
+    epsilon: float,
+    optimizer: th.optim.Optimizer = None,
+    max_num_batches: int = None,
+) -> dict:
     """
     Run one epoch for the model using data from the given loader.
 
@@ -43,13 +48,17 @@ def run_epoch(model: models.Model, loader: DataLoader, epsilon: float,
             optimizer.zero_grad()
 
         # Apply the model to get posterior estimates and evaluate the loss.
-        with (null_context() if optimizer else th.no_grad()):
+        with null_context() if optimizer else th.no_grad():
             features: th.Tensor
             dists, features = model(batch)
             assert features.ndim == 2
             assert features.shape[0] == batch.num_graphs
-            assert batch.num_graphs == loader.batch_size or num_batches == len(loader) - 1
-            assert all(dist.batch_shape == (batch.num_graphs,) for dist in dists.values())
+            assert (
+                batch.num_graphs == loader.batch_size or num_batches == len(loader) - 1
+            )
+            assert all(
+                dist.batch_shape == (batch.num_graphs,) for dist in dists.values()
+            )
             log_prob = sum(dist.log_prob(batch[key]) for key, dist in dists.items())
             # Evaluate negative log probability loss plus small regularization on latent state. This
             # regularization can't just apply to the norm, however. Otherwise, the model will simply
@@ -57,8 +66,10 @@ def run_epoch(model: models.Model, loader: DataLoader, epsilon: float,
             # want to regularize such that the embeddings are approximately unit vectors. We achieve
             # this "soft" constraint by including a penalty `epsilon * (1 - norm) ** 2` averaged
             # over the batch.
-            loss = - log_prob.mean() \
+            loss = (
+                -log_prob.mean()
                 + epsilon * (features.square().sum(axis=-1) - 1).square().mean()
+            )
 
         # Update the model weights if desired.
         if optimizer:
@@ -84,8 +95,12 @@ def run_epoch(model: models.Model, loader: DataLoader, epsilon: float,
     }
 
 
-def dense_from_str(layer: str, activation: typing.Callable, final_activation: bool) -> th.nn.Module:
-    return models.create_dense_nn(map(int, layer.split(',')), activation, final_activation)
+def dense_from_str(
+    layer: str, activation: typing.Callable, final_activation: bool
+) -> th.nn.Module:
+    return models.create_dense_nn(
+        map(int, layer.split(",")), activation, final_activation
+    )
 
 
 def __main__(argv: typing.Optional[list[str]] = None) -> None:
@@ -93,27 +108,55 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         th.set_num_threads(1)
         th.set_num_interop_threads(1)
     parser = get_parser(100)
-    parser.add_argument("--batch_size", "-b", help="batch size for each optimization step",
-                        type=int, default=32)
-    parser.add_argument("--steps_per_epoch", "-e", help="number of optimization steps per epoch",
-                        type=int, default=32)
-    parser.add_argument("--patience", "-p", type=int, default=25, help="number of consecutive "
-                        "epochs without loss improvement after which to terminate training")
-    parser.add_argument("--result", help="path at which to store evaluation on test set",
-                        required=True)
-    parser.add_argument("--conv", help="sequence of graph isomorphism convolutional layers "
-                        "separated by underscores; e.g. `simple_8,8_norm` denotes a three-layer "
-                        "network comprising a simple layer, a two-layer transform, and a "
-                        "normalized simple layer; if starting with `file:`, the convolutional "
-                        "layers will be loaded from a previous result", required=True)
-    parser.add_argument("--dense", help="sequence of number of hidden units for the dense "
-                        "graph-level transform; if starting with `file:`, the dense layers will be "
-                        "loaded from a previous result", required=True)
+    parser.add_argument(
+        "--batch_size",
+        "-b",
+        help="batch size for each optimization step",
+        type=int,
+        default=32,
+    )
+    parser.add_argument(
+        "--steps_per_epoch",
+        "-e",
+        help="number of optimization steps per epoch",
+        type=int,
+        default=32,
+    )
+    parser.add_argument(
+        "--patience",
+        "-p",
+        type=int,
+        default=25,
+        help="number of consecutive "
+        "epochs without loss improvement after which to terminate training",
+    )
+    parser.add_argument(
+        "--result", help="path at which to store evaluation on test set", required=True
+    )
+    parser.add_argument(
+        "--conv",
+        help="sequence of graph isomorphism convolutional layers "
+        "separated by underscores; e.g. `simple_8,8_norm` denotes a three-layer "
+        "network comprising a simple layer, a two-layer transform, and a "
+        "normalized simple layer; if starting with `file:`, the convolutional "
+        "layers will be loaded from a previous result",
+        required=True,
+    )
+    parser.add_argument(
+        "--dense",
+        help="sequence of number of hidden units for the dense "
+        "graph-level transform; if starting with `file:`, the dense layers will be "
+        "loaded from a previous result",
+        required=True,
+    )
     parser.add_argument("--test", help="path to test set", required=True)
     parser.add_argument("--train", help="path to training set", required=True)
-    parser.add_argument("--max_num_epochs", help="maximum number of epochs to run", type=int)
-    parser.add_argument("--epsilon", help="L2 penalty for latent representations", type=float,
-                        default=0)
+    parser.add_argument(
+        "--max_num_epochs", help="maximum number of epochs to run", type=int
+    )
+    parser.add_argument(
+        "--epsilon", help="L2 penalty for latent representations", type=float, default=0
+    )
     args = parser.parse_args(argv)
 
     # Set up the convoluational network for node-level representations.
@@ -129,7 +172,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
                 parameter.requires_grad = False
     else:
         conv = []
-        for layer in args.conv.split('_'):
+        for layer in args.conv.split("_"):
             # Each layer operates independently on a feature representation of shape
             # `(num_nodes, num_features)`.
             if layer == "simple":
@@ -137,7 +180,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
             elif layer == "norm":
                 conv.append(models.Normalize(tg.nn.GINConv(th.nn.Identity())))
             elif layer == "insert-clustering":
-                conv.append(models.InsertClusteringCoefficient()),
+                (conv.append(models.InsertClusteringCoefficient()),)
             elif layer.startswith("dropout"):
                 _, proba = layer.split("-")
                 conv.append(th.nn.Dropout(float(proba)))
@@ -157,7 +200,9 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         for parameter in dense.parameters():
             parameter.requires_grad = False
     else:
-        dense = models.create_dense_nn(map(int, args.dense.split(',')), activation, True)
+        dense = models.create_dense_nn(
+            map(int, args.dense.split(",")), activation, True
+        )
 
     configuration = config.GENERATOR_CONFIGURATIONS[args.configuration]
 
@@ -166,13 +211,15 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     model = models.Model(conv, dense, dists)
 
     # Prepare the datasets and optimizer. Only shuffle the training set.
-    dataset = BatchedDataset(args.train, transform=ensure_long_edge_index, shuffle=True,
-                             num_concurrent=4)
+    dataset = BatchedDataset(
+        args.train, transform=ensure_long_edge_index, shuffle=True, num_concurrent=4
+    )
     train_dataset, validation_dataset = dataset.bootstrap_split()
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size)
     validation_loader = DataLoader(validation_dataset, batch_size=args.batch_size)
-    optimizer = th.optim.Adam((param for param in model.parameters() if param.requires_grad),
-                              lr=0.01)
+    optimizer = th.optim.Adam(
+        (param for param in model.parameters() if param.requires_grad), lr=0.01
+    )
     scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, factor=0.5, cooldown=20, min_lr=1e-6
     )
@@ -184,12 +231,16 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
 
     start = datetime.now()
     with tqdm() as progress:
-        while num_bad_epochs < args.patience and (args.max_num_epochs is None
-                                                  or epoch < args.max_num_epochs):
+        while num_bad_epochs < args.patience and (
+            args.max_num_epochs is None or epoch < args.max_num_epochs
+        ):
             # Run one training epoch and evaluate the validation loss.
-            train_loss = run_epoch(model, train_loader, args.epsilon, optimizer,
-                                   args.steps_per_epoch)["epoch_loss"]
-            validation_loss = run_epoch(model, validation_loader, args.epsilon)["epoch_loss"]
+            train_loss = run_epoch(
+                model, train_loader, args.epsilon, optimizer, args.steps_per_epoch
+            )["epoch_loss"]
+            validation_loss = run_epoch(model, validation_loader, args.epsilon)[
+                "epoch_loss"
+            ]
             losses.setdefault("train", []).append(train_loss)
             losses.setdefault("validation", []).append(validation_loss)
             progress.update()
