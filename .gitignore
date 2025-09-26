@@ -1,6 +1,6 @@
 __pycache__
 .coverage*
-.doit.db
+.doit.db*
 .DS_Store
 .ipynb_checkpoints
 .vscode
