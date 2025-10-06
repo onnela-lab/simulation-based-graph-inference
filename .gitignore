@@ -5,6 +5,7 @@ __pycache__
 .ipynb_checkpoints
 .vscode
 *.egg-info
+*.ipynb
 docs/_build/
 playground/
 src/simulation_based_graph_inference/**/*.cpp
