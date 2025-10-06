@@ -168,6 +168,10 @@ GENERATOR_CONFIGURATIONS = {
         {"hop_proba": th.distributions.Beta(1, 1)},
         generators.surfer_graph,
     ),
+    "long_surfer_graph": Configuration(
+        {"hop_proba": th.distributions.Beta(4, 2)},
+        generators.surfer_graph,
+    ),
     "gn_graph": Configuration(
         {"gamma": th.distributions.Beta(1, 1)},
         _gn_graph,
