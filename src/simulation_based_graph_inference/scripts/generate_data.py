@@ -7,7 +7,10 @@ from .. import config, data
 
 
 def __main__(args: typing.Optional[list[str]] = None) -> None:
-    parser = get_parser(100)
+    parser = get_parser()
+    parser.add_argument(
+        "--num_nodes", "-n", help="number of nodes", type=int, required=True
+    )
     parser.add_argument(
         "--batch_size", type=int, help="number of samples per batch", required=True
     )
@@ -38,6 +41,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     generator_config = config.GENERATOR_CONFIGURATIONS[args.configuration]
 
     # Prepare the dataset.
+    assert args.num_nodes == 1000
     start = datetime.now()
     meta = BatchedDataset.generate(
         args.directory,
