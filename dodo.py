@@ -183,6 +183,9 @@ for configuration in GENERATOR_CONFIGURATIONS:
         if architecture == REFERENCE_ARCHITECTURE:
             reference_architecture(task)
 
+        # NOTE: Do not run transfer learning.
+        continue
+
         # Skip transfer learning if this is not the reference configuration.
         if architecture != REFERENCE_ARCHITECTURE:
             continue
