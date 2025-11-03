@@ -13,7 +13,10 @@ def test_infer_tree_kernel(tmpwd: str):
     generate_data.__main__(
         dict2args(
             num_nodes=100,
-            configuration="gn_graph", batch_size=n, num_batches=1, directory=datadir
+            configuration="gn_graph",
+            batch_size=n,
+            num_batches=1,
+            directory=datadir,
         )
     )
     filename = os.path.join(tmpwd, "result.pkl")
