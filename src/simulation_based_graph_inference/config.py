@@ -94,7 +94,10 @@ def _poisson_random_attachment_graph(num_nodes: int, rate: float, **kwargs):
 
 
 def _gn_graph(num_nodes: int, gamma: float, **kwargs) -> nx.Graph:
-    return nx.gn_graph(num_nodes, lambda k: k**gamma, **kwargs)
+    graph: nx.Graph = nx.gn_graph(num_nodes, lambda k: k**gamma, **kwargs)
+    graph = graph.to_undirected()
+    assert not nx.number_of_selfloops(graph)
+    return graph
 
 
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent

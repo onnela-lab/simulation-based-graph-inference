@@ -7,7 +7,10 @@ from .. import config, data
 
 
 def __main__(args: typing.Optional[list[str]] = None) -> None:
-    parser = get_parser(100)
+    parser = get_parser()
+    parser.add_argument(
+        "--num_nodes", "-n", help="number of nodes", type=int, required=True
+    )
     parser.add_argument(
         "--batch_size", type=int, help="number of samples per batch", required=True
     )

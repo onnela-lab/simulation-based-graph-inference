@@ -107,7 +107,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     if "CI" not in os.environ:  # pragma: no cover
         th.set_num_threads(1)
         th.set_num_interop_threads(1)
-    parser = get_parser(100)
+    parser = get_parser()
     parser.add_argument(
         "--batch_size",
         "-b",

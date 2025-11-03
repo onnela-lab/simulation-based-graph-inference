@@ -19,6 +19,8 @@ requires-python = ">=3.13"
 [dependency-groups]
 dev = [
     "doit-interface>=0.1.10",
+    "jupyter>=1.1.1",
+    "jupytext>=1.17.3",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
     "ruff>=0.13.1",

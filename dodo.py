@@ -36,7 +36,7 @@ di.SubprocessAction.set_global_env(
 CONFIG = {
     "MAX_DEPTH": (int, 5),
     "NUM_SEEDS": (int, 3),
-    "NUM_NODES": (int, 100),
+    "NUM_NODES": (int, 1000),
 }
 CONFIG = {
     key: type(os.environ.get(key, default)) for key, (type, default) in CONFIG.items()
@@ -183,6 +183,9 @@ for configuration in GENERATOR_CONFIGURATIONS:
         if architecture == REFERENCE_ARCHITECTURE:
             reference_architecture(task)
 
+        # NOTE: Do not run transfer learning.
+        continue
+
         # Skip transfer learning if this is not the reference configuration.
         if architecture != REFERENCE_ARCHITECTURE:
             continue
@@ -262,7 +265,7 @@ for configuration in GENERATOR_CONFIGURATIONS:
         name="prof",
         targets=[target],
         actions=[args],
-        file_dep=["simulation_based_graph_inference/scripts/profile.py"],
+        file_dep=["src/simulation_based_graph_inference/scripts/profile.py"],
     )
 
     target = ROOT / f"{basename}.lineprof"

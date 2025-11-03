@@ -12,6 +12,7 @@ def test_infer_tree_kernel(tmpwd: str):
     datadir = os.path.join(tmpwd, "data")
     generate_data.__main__(
         dict2args(
+            num_nodes=100,
             configuration="gn_graph", batch_size=n, num_batches=1, directory=datadir
         )
     )
