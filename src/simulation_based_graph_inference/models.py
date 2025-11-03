@@ -1,9 +1,10 @@
 import inspect
 import torch as th
-import torch_geometric as tg
 from torch_geometric.data import Data
+from torch_geometric.utils import degree
 import torch_scatter as ts
 import typing
+from typing import Callable
 import warnings
 from .util import clustering_coefficient
 
@@ -27,7 +28,7 @@ class DistributionModule(th.nn.Module):
         distribution_cls: typing.Callable,
         *,
         squeeze: bool = True,
-        transforms: typing.Iterable = None,
+        transforms: typing.Optional[typing.Iterable] = None,
         **params,
     ):
         super().__init__()
@@ -43,7 +44,7 @@ class DistributionModule(th.nn.Module):
         params = {}
         for key, module in self.params.items():
             y = module(x)
-            constraint = self.distribution_cls.arg_constraints[key]
+            constraint = self.distribution_cls.arg_constraints[key]  # type: ignore[attr-defined]
             transform = th.distributions.transform_to(constraint)
             y = transform(y)
             if self.squeeze:
@@ -52,7 +53,8 @@ class DistributionModule(th.nn.Module):
         distribution = self.distribution_cls(**params)
         if self.transforms:
             distribution = th.distributions.TransformedDistribution(
-                distribution, self.transforms
+                distribution,
+                list(self.transforms),  # type: ignore[arg-type]
             )
         return distribution
 
@@ -110,14 +112,12 @@ class Normalize(th.nn.Module):
             # Get the number of nodes and number of edges per graph.
             key = "__Normalize:connections_per_graph"
             if (connections_per_graph := batch.get(key)) is None:
-                batch[key] = connections_per_graph = tg.utils.degree(
+                batch[key] = connections_per_graph = degree(
                     batch.batch[batch.edge_index[0]], batch.num_graphs
                 )
             key = "__Normalize:nodes_per_graph"
             if (nodes_per_graph := batch.get(key)) is None:
-                batch[key] = nodes_per_graph = tg.utils.degree(
-                    batch.batch, batch.num_graphs
-                )
+                batch[key] = nodes_per_graph = degree(batch.batch, batch.num_graphs)
 
             # Evaluate the normalization.
             norm = (connections_per_graph / nodes_per_graph)[batch.batch, None] + 1.0
@@ -138,12 +138,14 @@ class InsertClusteringCoefficient(th.nn.Module):
         try:
             y = getattr(batch, "clustering_coefficient")
         except AttributeError:
-            y = clustering_coefficient(batch.edge_index, num_nodes)
+            y = clustering_coefficient(batch.edge_index, num_nodes)  # type: ignore[arg-type]
         return th.hstack([x, y.to(x)[:, None]])
 
 
 def create_dense_nn(
-    units: typing.Iterable[int], activation: th.nn.Module, final_activation: bool
+    units: typing.Iterable[int],
+    activation: th.nn.Module | Callable,
+    final_activation: bool,
 ) -> th.nn.Sequential:
     """
     Get a dense neural network with a given activation between layers.
@@ -188,19 +190,13 @@ class Model(th.nn.Module):
 
     def __init__(
         self,
-        conv: typing.Iterable[th.nn.Module],
+        conv: th.nn.ModuleList | None,
         dense: th.nn.Module,
-        dists: typing.Mapping[str, th.nn.Module],
+        dists: th.nn.ModuleDict,
     ) -> None:
         super().__init__()
-        if not isinstance(conv, th.nn.Module) and isinstance(conv, typing.Iterable):
-            conv = th.nn.ModuleList(conv)
         self.conv = conv
-        if not isinstance(dense, th.nn.Module) and isinstance(dense, typing.Iterable):
-            dense = th.nn.Sequential(*dense)
         self.dense = dense
-        if not isinstance(dists, th.nn.Module) and isinstance(dists, typing.Mapping):
-            dists = th.nn.ModuleDict(dists)
         self.dists = dists
 
     def evaluate_graph_features(self, batch):
@@ -260,3 +256,8 @@ class Model(th.nn.Module):
         x = self.evaluate_graph_features(batch)
         x = self.dense(x)
         return {key: module(x) for key, module in self.dists.items()}, x
+
+    def __call__(
+        self, batch
+    ) -> typing.Tuple[typing.Mapping[str, th.distributions.Distribution], th.Tensor]:
+        return super().__call__(batch)

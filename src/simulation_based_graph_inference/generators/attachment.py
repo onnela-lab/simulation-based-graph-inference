@@ -1,5 +1,4 @@
 import networkx as nx
-import numbers
 import numpy as np
 from scipy import special
 import typing
@@ -10,8 +9,8 @@ def random_attachment_graph(
     num_nodes: int,
     m: typing.Union[int, typing.Callable],
     add_isolated_nodes: bool = False,
-    graph: nx.Graph = None,
-    rng: np.random.Generator = None,
+    graph: typing.Optional[nx.Graph] = None,
+    rng: typing.Optional[np.random.Generator] = None,
 ) -> nx.Graph:
     """
     Grow a graph with Poisson-distributed number of stubs for new nodes that are randomly attached
@@ -33,18 +32,18 @@ def random_attachment_graph(
         _plot_generated_graph(generators.random_attachment_graph, 4)
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
-    if isinstance(m, numbers.Integral):
+    if isinstance(m, int):
         assert_interval("m", m, 0, None, inclusive_low=False)
     elif not isinstance(m, typing.Callable):
         raise ValueError("m must be an integer or callable that returns an integer")
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     graph = graph or nx.Graph()
     assert_normalized_nodel_labels(graph)
 
     for node in range(len(graph), num_nodes):
         graph.add_node(node)
         # Sample the degree and obtain neighbors.
-        degree = min(node, m if isinstance(m, numbers.Integral) else m())
+        degree = min(node, m if isinstance(m, int) else m())
         neighbors = rng.choice(node, int(degree), replace=False)
         graph.add_edges_from((node, neighbor) for neighbor in neighbors)
         if add_isolated_nodes:
@@ -57,8 +56,8 @@ def degree_attachment_graph(
     num_nodes: int,
     m: int,
     power: float,
-    graph: nx.Graph = None,
-    rng: np.random.Generator = None,
+    graph: nx.Graph | None = None,
+    rng: typing.Optional[np.random.Generator] = None,
 ) -> nx.Graph:
     r"""
     Grow a graph with power degree preferential attachment as described by
@@ -79,7 +78,7 @@ def degree_attachment_graph(
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("m", m, 0, None, inclusive_low=False)
     assert_interval("power", power, 0, None)
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     if not graph:
         graph = nx.Graph()
         graph.add_edge(0, 1)
@@ -87,7 +86,10 @@ def degree_attachment_graph(
         raise ValueError("graph must have at least one edge")
     assert_normalized_nodel_labels(graph)
 
-    degrees = [graph.degree[node] for node in sorted(graph)]
+    if graph is None:
+        graph = typing.cast(nx.Graph, nx.empty_graph())
+
+    degrees = [graph.degree[node] for node in sorted(graph)]  # pyright: ignore[reportIndexIssue]
     while (node := len(graph)) < num_nodes:
         # Choose neighbors.
         log_proba = power * np.log(degrees)
@@ -108,8 +110,8 @@ def rank_attachment_graph(
     num_nodes: int,
     m: int,
     power: float,
-    graph: nx.Graph = None,
-    rng: np.random.Generator = None,
+    graph: typing.Optional[nx.Graph] = None,
+    rng: typing.Optional[np.random.Generator] = None,
 ) -> nx.Graph:
     r"""
     Grow a graph with power rank preferential attachment as described by
@@ -131,7 +133,7 @@ def rank_attachment_graph(
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("m", m, 0, None, inclusive_low=False)
     assert_interval("power", power, 0, None)
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     if not graph:
         graph = nx.Graph()
         graph.add_node(0)
@@ -156,10 +158,10 @@ def jackson_rogers_graph(
     num_nodes: int,
     mr: int,
     pr: float,
-    mn: int = None,
-    pn: float = None,
-    rng: np.random.Generator = None,
-    graph: nx.Graph = None,
+    mn: typing.Optional[int] = None,
+    pn: typing.Optional[float] = None,
+    rng: typing.Optional[np.random.Generator] = None,
+    graph: typing.Optional[nx.Graph] = None,
 ) -> nx.Graph:
     """
     Generate a social graph based on random attachment and neighborhood exploration as described by
@@ -180,15 +182,15 @@ def jackson_rogers_graph(
     Returns:
         graph: Generated graph with `num_nodes` nodes.
     """
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
-    assert_interval("mr", mr, 0, None, inclusive_low=None)
+    assert_interval("mr", mr, 0, None, inclusive_low=False)
     mn = assert_interval("mn", mr if mn is None else mn, 0, None, inclusive_low=False)
     assert_interval("pr", pr, 0, 1)
     pn = assert_interval("pn", pr if pn is None else pn, 0, 1)
     graph = assert_normalized_nodel_labels(graph or nx.Graph())
     if not graph:
-        graph = nx.complete_graph(mn + mr + 1)
+        graph = typing.cast(nx.Graph, nx.complete_graph(mn + mr + 1))
 
     while (node := len(graph)) < num_nodes:
         # Pick random "parents". See JacksonRogers-simulation1.nb in
@@ -217,8 +219,8 @@ def jackson_rogers_graph(
 def random_connection_graph(
     num_nodes: int,
     proba: float,
-    rng: np.random.Generator = None,
-    graph: nx.Graph = None,
+    rng: typing.Optional[np.random.Generator] = None,
+    graph: typing.Optional[nx.Graph] = None,
 ) -> nx.Graph:
     """
     Generate a graph by adding a random connections whenever a random node is added as described by
@@ -234,12 +236,12 @@ def random_connection_graph(
 
         _plot_generated_graph(generators.random_connection_graph, .5)
     """
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     proba = assert_interval("proba", proba, 0, 1)
     graph = assert_normalized_nodel_labels(graph or nx.Graph())
     if not graph:
-        graph = nx.empty_graph(1)
+        graph = typing.cast(nx.Graph, nx.empty_graph(1))
 
     for node in range(graph.number_of_nodes(), num_nodes):
         # Try to add random edges until we find one that doesn't already exist.

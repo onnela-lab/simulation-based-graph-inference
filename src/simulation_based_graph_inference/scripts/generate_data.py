@@ -6,7 +6,7 @@ from ..data import BatchedDataset
 from .. import config, data
 
 
-def __main__(args: typing.Optional[list[str]] = None) -> None:
+def __main__(argv: typing.Optional[list[str]] = None) -> None:
     parser = get_parser()
     parser.add_argument(
         "--num_nodes", "-n", help="number of nodes", type=int, required=True
@@ -29,7 +29,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
         help="do not precompute clustering coefficients",
         action="store_true",
     )
-    args = parser.parse_args(args)
+    args = parser.parse_args(argv)
 
     # Make sure we can store the samples.
     dtype = getattr(th, args.dtype)
