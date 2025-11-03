@@ -50,7 +50,6 @@ def test_train_nn(configuration: str, dense: str, conv: str, tmpwd: str) -> None
     filename = "result.pkl"
     args = dict(
         patience=5,
-        num_nodes=1,
         result=filename,
         batch_size=batch_size,
         configuration=configuration,
@@ -93,7 +92,6 @@ def test_train_no_precomputed_clustering(tmpwd: str) -> None:
     filename = "result.pkl"
     args = dict(
         patience=5,
-        num_nodes=1,
         result=filename,
         batch_size=batch_size,
         configuration=configuration,

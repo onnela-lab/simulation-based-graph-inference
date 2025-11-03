@@ -41,7 +41,6 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     generator_config = config.GENERATOR_CONFIGURATIONS[args.configuration]
 
     # Prepare the dataset.
-    assert args.num_nodes == 1000
     start = datetime.now()
     meta = BatchedDataset.generate(
         args.directory,

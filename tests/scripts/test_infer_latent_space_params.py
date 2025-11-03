@@ -13,6 +13,7 @@ def test_infer_latent_space_params(tmpwd: str):
     datadir = os.path.join(tmpwd, "data")
     generate_data.__main__(
         dict2args(
+            num_nodes=10,
             configuration="latent_space_graph",
             batch_size=n,
             num_batches=1,
