@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+import typing
 from ..util import assert_interval, assert_normalized_nodel_labels, randint
 
 
@@ -17,10 +18,10 @@ def web_graph(
     proba_uniform_new: float,
     proba_uniform_old1: float,
     dist_degree_new: np.ndarray,
-    proba_uniform_old2: float = None,
-    dist_degree_old: np.ndarray = None,
-    graph: nx.Graph = None,
-    rng: np.random.Generator = None,
+    proba_uniform_old2: typing.Optional[float] = None,
+    dist_degree_old: typing.Optional[np.ndarray] = None,
+    graph: typing.Optional[nx.Graph] = None,
+    rng: typing.Optional[np.random.Generator] = None,
 ) -> nx.Graph:
     """
     Generate a web graph according to the undirected model of
@@ -64,10 +65,12 @@ def web_graph(
     )
     if dist_degree_old is None:
         dist_degree_old = dist_degree_new
-    rng = rng or np.random
-    graph = assert_normalized_nodel_labels(graph)
-    if not len(graph):
-        graph.add_node(0)
+    rng = rng or np.random.default_rng()
+    if graph is None:
+        graph = nx.empty_graph()
+        graph.add_node(0)  # pyright: ignore[reportOptionalMemberAccess]
+
+    assert graph is not None
 
     # We keep track of the edgelist for easier sampling proportional to degree.
     edges = list(graph.edges)

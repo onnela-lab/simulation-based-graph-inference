@@ -7,6 +7,7 @@ import numpy as np
 import pathlib
 import torch as th
 import torch_geometric as tg
+from torch_geometric.data import Data
 from tqdm import tqdm
 import typing
 from . import config
@@ -18,7 +19,7 @@ def generate_data(
     num_nodes: int,
     dtype=th.long,
     clustering: bool = False,
-) -> tg.data.Data:
+) -> Data:
     """
     Generate a graph in :mod:`torch_geometric` data format.
 
@@ -46,7 +47,7 @@ def generate_data(
         data["clustering_coefficient"] = clustering_coefficient(
             edge_index, graph.number_of_nodes()
         )
-    return tg.data.Data(**data, **{key: param[None] for key, param in params.items()})
+    return Data(**data, **{key: param[None] for key, param in params.items()})
 
 
 class BatchedDataset(th.utils.data.IterableDataset):
@@ -65,11 +66,11 @@ class BatchedDataset(th.utils.data.IterableDataset):
 
     def __init__(
         self,
-        root: str,
+        root: str | pathlib.Path,
         num_concurrent: int = 1,
         shuffle: bool = False,
-        transform: typing.Callable = None,
-        index_batches: list[th.Tensor] = None,
+        transform: typing.Optional[typing.Callable] = None,
+        index_batches: typing.Optional[list[th.Tensor]] = None,
     ) -> None:
         self.root = pathlib.Path(root)
         self.num_concurrent = num_concurrent
@@ -151,9 +152,9 @@ class BatchedDataset(th.utils.data.IterableDataset):
 
     def bootstrap_split(
         self,
-        num_concurrent: int = None,
-        shuffle: bool = None,
-        transform: typing.Callable = None,
+        num_concurrent: typing.Optional[int] = None,
+        shuffle: typing.Optional[bool] = None,
+        transform: typing.Optional[typing.Callable] = None,
     ) -> tuple[BatchedDataset, BatchedDataset]:
         """
         Create a bootstrapped dataset by sampling without replacement and the out-of-bag dataset.
@@ -193,8 +194,8 @@ class BatchedDataset(th.utils.data.IterableDataset):
         batch_size: int,
         num_batches: int,
         func: typing.Callable,
-        args: typing.Iterable = None,
-        kwargs: typing.Mapping = None,
+        args: typing.Optional[typing.Iterable] = None,
+        kwargs: typing.Optional[typing.Mapping] = None,
         progress: bool = False,
     ) -> dict:
         """
@@ -260,9 +261,9 @@ class SimulatedDataset(th.utils.data.IterableDataset):
     def __init__(
         self,
         simulator: typing.Callable,
-        args: typing.Iterable = None,
-        kwargs: typing.Mapping = None,
-        length: int = None,
+        args: typing.Optional[typing.Iterable] = None,
+        kwargs: typing.Optional[typing.Mapping] = None,
+        length: typing.Optional[int] = None,
     ):
         super().__init__()
         self.simulator = simulator
@@ -294,16 +295,18 @@ class InterleavedDataset(th.utils.data.IterableDataset):
     """
 
     def __init__(
-        self, datasets: typing.Iterable[th.utils.data.Dataset], longest: bool = False
+        self,
+        datasets: typing.Sequence[th.utils.data.IterableDataset],
+        longest: bool = False,
     ):
-        self.datasets = datasets
+        self.datasets = list(datasets)
         self.longest = longest
 
     def __len__(self):
         if self.longest:
-            return sum(len(dataset) for dataset in self.datasets)
+            return sum(len(dataset) for dataset in self.datasets)  # type: ignore[arg-type]
         else:
-            return len(self.datasets) * min(len(dataset) for dataset in self.datasets)
+            return len(self.datasets) * min(len(dataset) for dataset in self.datasets)  # type: ignore[arg-type]
 
     def __iter__(self):
         for batch in it.zip_longest(*self.datasets, fillvalue=StopIteration):

@@ -51,7 +51,7 @@ def infer_latent_space_params(
     return model.sample(data, chains, **kwargs)
 
 
-def __main__(args: typing.Optional[list[str]] = None) -> None:
+def __main__(argv: typing.Optional[list[str]] = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", help="path to test set", required=True)
     parser.add_argument(
@@ -61,7 +61,7 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
     parser.add_argument(
         "--iter_sampling", type=int, help="number of sampling steps", default=500
     )
-    args = parser.parse_args(args)
+    args = parser.parse_args(argv)
 
     config = GENERATOR_CONFIGURATIONS["latent_space_graph"]
 
@@ -73,13 +73,15 @@ def __main__(args: typing.Optional[list[str]] = None) -> None:
             graph.scale.item()
         )
         graph = to_networkx(graph).to_undirected()
-        # Run the inference.
+        # Run the inference. We ignore the warnings about loc, scale, concentration,
+        # rate access because, the config doesn't know what type the different density
+        # estimates have.
         fit = infer_latent_space_params(
             graph,
-            config.priors["bias"].loc.item(),
-            config.priors["bias"].scale.item(),
-            config.priors["scale"].concentration.item(),
-            config.priors["scale"].rate.item(),
+            config.priors["bias"].loc.item(),  # pyright: ignore[reportAttributeAccessIssue]
+            config.priors["bias"].scale.item(),  # pyright: ignore[reportAttributeAccessIssue]
+            config.priors["scale"].concentration.item(),  # pyright: ignore[reportAttributeAccessIssue]
+            config.priors["scale"].rate.item(),  # pyright: ignore[reportAttributeAccessIssue]
             config.generator_kwargs["num_dims"],
             iter_warmup=args.iter_warmup or args.iter_sampling,
             iter_sampling=args.iter_sampling,

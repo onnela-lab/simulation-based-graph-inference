@@ -8,6 +8,7 @@ import torch as th
 from torch.distributions import constraints
 from torch_geometric.utils.convert import to_networkx
 from tqdm import tqdm
+from typing import cast
 from ..data import BatchedDataset
 from ..config import GENERATOR_CONFIGURATIONS
 
@@ -32,16 +33,19 @@ class TreeKernelPosterior:
     ):
         self.graph = graph
         self.sampler = HistorySampler(graph)
-        self.sampler.sample(num_history_samples)
+        self.sampler.sample(num_history_samples)  # pyright: ignore[reportAttributeAccessIssue]
         self.prior = prior
-        self.support: constraints.interval = self.prior.support
+        self.support = cast(constraints.interval, self.prior.support)
 
         # Find the maximum so we get better numerics.
         self.max = 0
-        result = optimize.minimize_scalar(
-            lambda gamma: -self.log_target(gamma),
-            method="bounded",
-            bounds=[self.support.lower_bound, self.support.upper_bound],
+        result = cast(
+            optimize.OptimizeResult,
+            optimize.minimize_scalar(
+                lambda gamma: -self.log_target(gamma),
+                method="bounded",
+                bounds=[self.support.lower_bound, self.support.upper_bound],
+            ),
         )
         assert result.success
         self.argmax = result.x
@@ -65,7 +69,7 @@ class TreeKernelPosterior:
         Evaluate the unnormalized log posterior.
         """
         self.sampler.set_kernel(kernel=lambda k: k**gamma)
-        log_likelihoods = self.sampler.get_log_posterior()
+        log_likelihoods = self.sampler.get_log_posterior()  # pyright: ignore[reportAttributeAccessIssue]
         log_posterior = (
             special.logsumexp(log_likelihoods)
             - np.log(len(log_likelihoods))
@@ -83,20 +87,23 @@ class TreeKernelPosterior:
         return np.reshape([self.log_prob(x) for x in np.ravel(gamma)], np.shape(gamma))
 
 
-def __main__(args: list[str] = None) -> None:
+def __main__(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", help="path to test set", required=True)
     parser.add_argument(
         "--result", help="path at which to store evaluation on test set", required=True
     )
-    args = parser.parse_args(args)
+    args = parser.parse_args(argv)
 
     prior = GENERATOR_CONFIGURATIONS["gn_graph"].priors["gamma"]
     # Use 101 elements just to catch accidental issues with tensor shapes.
+    assert isinstance(prior.support, constraints.interval), (
+        f"Interval support required, got: {prior.support}"
+    )
     lin = np.linspace(prior.support.lower_bound, prior.support.upper_bound, 101)
 
     dataset = BatchedDataset(args.test)
-    result = {}
+    result: dict = {}
     for graph in tqdm(dataset):
         gamma = graph.gamma.item()
         graph = to_networkx(graph).to_undirected()

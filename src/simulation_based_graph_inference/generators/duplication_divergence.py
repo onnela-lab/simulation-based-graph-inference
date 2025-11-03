@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+import typing
 from ..util import (
     assert_interval,
     assert_normalized_nodel_labels,
@@ -13,8 +14,8 @@ def duplication_complementation_graph(
     interaction_proba: float,
     divergence_proba: float,
     add_isolated_nodes: bool = False,
-    graph: nx.Graph = None,
-    rng: np.random.Generator = None,
+    graph: typing.Optional[nx.Graph] = None,
+    rng: typing.Optional[np.random.Generator] = None,
 ) -> nx.Graph:
     """
     Generate a protein interaction graph as described by
@@ -55,7 +56,7 @@ def duplication_complementation_graph(
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("divergence_proba", divergence_proba, 0, 1)
     assert_interval("interaction_proba", interaction_proba, 0, 1)
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     graph = graph or nx.Graph()
     assert_normalized_nodel_labels(graph)
     # Ensure there is at least one node in the graph.
@@ -91,8 +92,8 @@ def duplication_mutation_graph(
     mutation_proba: float,
     divergence_proba: float,
     add_isolated_nodes: bool = False,
-    graph: nx.Graph = None,
-    rng: np.random.Generator = None,
+    graph: typing.Optional[nx.Graph] = None,
+    rng: typing.Optional[np.random.Generator] = None,
 ) -> nx.Graph:
     r"""
     Generate a protein interaction graph as described by
@@ -136,7 +137,7 @@ def duplication_mutation_graph(
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("mutation_proba", mutation_proba, 0, 1)
     assert_interval("divergence_proba", divergence_proba, 0, 1)
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     if not graph:
         graph = nx.Graph()
         graph.add_edge(0, 1)

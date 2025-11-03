@@ -3,10 +3,11 @@ from datetime import datetime
 import os
 import pickle
 import torch as th
-import torch_geometric as tg
+from torch_geometric import nn as tgnn
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 import typing
+from typing import cast
 from .util import get_parser
 from ..data import BatchedDataset
 from ..util import ensure_long_edge_index
@@ -22,8 +23,8 @@ def run_epoch(
     model: models.Model,
     loader: DataLoader,
     epsilon: float,
-    optimizer: th.optim.Optimizer = None,
-    max_num_batches: int = None,
+    optimizer: th.optim.Optimizer | None = None,
+    max_num_batches: int | None = None,
 ) -> dict:
     """
     Run one epoch for the model using data from the given loader.
@@ -42,6 +43,9 @@ def run_epoch(
     epoch_loss = 0
     num_batches = 0
     batch = None
+    dists = None
+    log_prob = None
+    features: th.Tensor | None = None
     for batch in loader:
         # Reset gradients if we're training the model.
         if optimizer:
@@ -49,8 +53,10 @@ def run_epoch(
 
         # Apply the model to get posterior estimates and evaluate the loss.
         with null_context() if optimizer else th.no_grad():
-            features: th.Tensor
             dists, features = model(batch)
+            assert dists, (
+                "There must be at least one output distribution for parameters."
+            )
             assert features.ndim == 2
             assert features.shape[0] == batch.num_graphs
             assert (
@@ -59,16 +65,18 @@ def run_epoch(
             assert all(
                 dist.batch_shape == (batch.num_graphs,) for dist in dists.values()
             )
-            log_prob = sum(dist.log_prob(batch[key]) for key, dist in dists.items())
+            log_prob = cast(
+                th.Tensor, sum(dist.log_prob(batch[key]) for key, dist in dists.items())
+            )
             # Evaluate negative log probability loss plus small regularization on latent state. This
             # regularization can't just apply to the norm, however. Otherwise, the model will simply
             # learn to make the embeddings tiny and then scale up in the density estimator. So we
             # want to regularize such that the embeddings are approximately unit vectors. We achieve
             # this "soft" constraint by including a penalty `epsilon * (1 - norm) ** 2` averaged
             # over the batch.
-            loss = (
+            loss: th.Tensor = (
                 -log_prob.mean()
-                + epsilon * (features.square().sum(axis=-1) - 1).square().mean()
+                + epsilon * (features.square().sum(axis=-1) - 1).square().mean()  # pyright: ignore[reportCallIssue]
             )
 
         # Update the model weights if desired.
@@ -82,7 +90,7 @@ def run_epoch(
         if max_num_batches and num_batches >= max_num_batches:
             break
 
-    if batch is None:  # pragma: no cover
+    if not num_batches:  # pragma: no cover
         raise RuntimeError("did not process any batch")
 
     return {
@@ -161,13 +169,15 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
 
     # Set up the convoluational network for node-level representations.
     activation = th.nn.Tanh()
+    conv: list[th.nn.Module] | th.nn.ModuleList | None
     if args.conv.startswith("none"):
         conv = None
     elif args.conv.startswith("file:"):
         # This must be a previously-saved result file.
         with open(args.conv.removeprefix("file:"), "rb") as fp:
-            conv: th.nn.Module = pickle.load(fp)["conv"]
+            conv = pickle.load(fp)["conv"]
         if conv is not None:
+            assert isinstance(conv, th.nn.ModuleList)
             for parameter in conv.parameters():
                 parameter.requires_grad = False
     else:
@@ -176,21 +186,21 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
             # Each layer operates independently on a feature representation of shape
             # `(num_nodes, num_features)`.
             if layer == "simple":
-                conv.append(tg.nn.GINConv(th.nn.Identity()))
+                conv.append(tgnn.GINConv(th.nn.Identity()))
             elif layer == "norm":
-                conv.append(models.Normalize(tg.nn.GINConv(th.nn.Identity())))
+                conv.append(models.Normalize(tgnn.GINConv(th.nn.Identity())))
             elif layer == "insert-clustering":
-                (conv.append(models.InsertClusteringCoefficient()),)
+                conv.append(models.InsertClusteringCoefficient())
             elif layer.startswith("dropout"):
                 _, proba = layer.split("-")
                 conv.append(th.nn.Dropout(float(proba)))
             elif layer.startswith("res"):
                 _, method, layer = layer.split("-")
                 nn = dense_from_str(layer, activation, True)
-                conv.append(models.Residual(tg.nn.GINConv(nn), method=method))
+                conv.append(models.Residual(tgnn.GINConv(nn), method=method))
             else:
                 nn = dense_from_str(layer, activation, True)
-                conv.append(tg.nn.GINConv(nn))
+                conv.append(tgnn.GINConv(nn))
 
     # Set up the dense network for transforming graph-level representations.
     if args.dense.startswith("file:"):
@@ -208,6 +218,8 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
 
     # Set up the parameterized distributions and model.
     dists = configuration.create_estimator()
+    if isinstance(conv, list):
+        conv = th.nn.ModuleList(conv)
     model = models.Model(conv, dense, dists)
 
     # Prepare the datasets and optimizer. Only shuffle the training set.
@@ -215,8 +227,8 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         args.train, transform=ensure_long_edge_index, shuffle=True, num_concurrent=4
     )
     train_dataset, validation_dataset = dataset.bootstrap_split()
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size)
-    validation_loader = DataLoader(validation_dataset, batch_size=args.batch_size)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size)  # pyright: ignore[reportArgumentType]
+    validation_loader = DataLoader(validation_dataset, batch_size=args.batch_size)  # pyright: ignore[reportArgumentType]
     optimizer = th.optim.Adam(
         (param for param in model.parameters() if param.requires_grad), lr=0.01
     )
@@ -260,7 +272,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     # Evaluate on the test set using full batch evaluation.
     dataset = BatchedDataset(args.test, transform=ensure_long_edge_index)
     model.eval()
-    result = run_epoch(model, DataLoader(dataset, len(dataset)), epsilon=0)
+    result = run_epoch(model, DataLoader(dataset, len(dataset)), epsilon=0)  # pyright: ignore[reportArgumentType]
     assert result["num_batches"] == 1, "got more than one evaluation batch"
     assert result["log_prob"].shape == (len(dataset),)
 

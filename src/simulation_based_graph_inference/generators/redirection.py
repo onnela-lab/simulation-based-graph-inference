@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+import typing
 from ..util import assert_interval, assert_normalized_nodel_labels, randint
 
 
@@ -7,8 +8,8 @@ def redirection_graph(
     num_nodes: int,
     max_num_connections: int,
     redirection_proba: float,
-    graph: nx.Graph = None,
-    rng: np.random.Generator = None,
+    graph: typing.Optional[nx.Graph] = None,
+    rng: typing.Optional[np.random.Generator] = None,
 ) -> nx.Graph:
     """
     Generate a graph by random attachment with probabilistic redirection as described by
@@ -56,7 +57,7 @@ def redirection_graph(
     redirection_proba = assert_interval(
         "redirection_proba", redirection_proba, 0, 1, dtype=float
     )
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     graph = graph or nx.Graph()
     if not len(graph):
         graph.add_node(0)
@@ -84,8 +85,8 @@ def redirection_graph(
 def surfer_graph(
     num_nodes: int,
     hop_proba: float,
-    graph: nx.Graph = None,
-    rng: np.random.Generator = None,
+    graph: typing.Optional[nx.Graph] = None,
+    rng: typing.Optional[np.random.Generator] = None,
 ) -> nx.Graph:
     """
     Generate a random surfer graph as described by
@@ -102,7 +103,7 @@ def surfer_graph(
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     hop_proba = assert_interval("hop_proba", hop_proba, 0, 1, dtype=float)
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     graph = graph or nx.Graph()
     if not len(graph):
         graph.add_node(0)

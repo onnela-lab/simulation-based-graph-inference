@@ -2,7 +2,6 @@ import functools as ft
 from matplotlib import pyplot as plt
 import networkx as nx
 import numpy as np
-import numbers
 import torch as th
 from torch_geometric.data import Data
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
@@ -28,15 +27,18 @@ def _plot_generated_graph(
     fig.tight_layout()
 
 
+N = typing.TypeVar("N", bound=float | int)
+
+
 def assert_interval(
     name: str,
-    value: numbers.Number,
-    low: numbers.Number,
-    high: numbers.Number,
+    value: N,
+    low: typing.Optional[N],
+    high: typing.Optional[N],
     inclusive_low: bool = True,
     inclusive_high: bool = True,
-    dtype: typing.Type = None,
-) -> None:
+    dtype: typing.Optional[typing.Type] = None,
+) -> N:
     """
     Assert that a value falls in a certain interval and raise a `ValueError` if not.
 
@@ -75,7 +77,7 @@ def ensure_long_edge_index(data: Data) -> Data:
     """
     Ensure that the `edge_index` of the data is a long tensor.
     """
-    data.edge_index = data.edge_index.to(th.long)
+    data.edge_index = data.edge_index.to(th.long)  # type: ignore[union-attr]
     return data
 
 
@@ -110,7 +112,9 @@ def randint(rng, *args, **kwargs):
 
 
 def to_edge_index(
-    graph: nx.Graph, edge_index: th.Tensor = None, dtype: th.dtype = th.long
+    graph: nx.Graph,
+    edge_index: typing.Optional[th.Tensor] = None,
+    dtype: th.dtype = th.long,
 ) -> th.Tensor:
     """
     Convert a graph to a :mod:`torch_geometric` edge index.
@@ -179,7 +183,7 @@ class random_sequence:
 
     def __next__(self):
         try:
-            return next(self.iter)
+            return next(self.iter)  # type: ignore[arg-type]
         except (TypeError, StopIteration):
             self.batch = self.generator(*self.args, size=self.size, **self.kwargs)
             self.iter = iter(self.batch)
@@ -204,7 +208,8 @@ def clustering_coefficient(
     Returns:
         clustering: Clustering coefficient for each node.
     """
-    num_nodes = num_nodes or edge_index.max() + 1
+    if num_nodes is None:
+        num_nodes = int(edge_index.max()) + 1
     # Count the triangles
     adjacency = to_scipy_sparse_matrix(edge_index, num_nodes=num_nodes).tocsr()
     triangles = (adjacency @ adjacency @ adjacency).diagonal()

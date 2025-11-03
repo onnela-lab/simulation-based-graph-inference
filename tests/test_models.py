@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from simulation_based_graph_inference import config, data, models
 import torch as th
-import torch_geometric as tg
+from torch_geometric import nn as tgnn
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 
@@ -24,24 +24,22 @@ def batch(generator_configuration: str) -> Data:
 MODEL_CONFIGURATIONS = [
     {
         "conv": [
-            tg.nn.GINConv(lambda x: x),
-            models.Normalize(tg.nn.GINConv(lambda x: x)),
-            models.Normalize(tg.nn.GINConv(lambda x: x)),
+            tgnn.GINConv(lambda x: x),
+            models.Normalize(tgnn.GINConv(lambda x: x)),
+            models.Normalize(tgnn.GINConv(lambda x: x)),
         ],
-        "dense": [
+        "dense": th.nn.Sequential(
             th.nn.Linear(3, 4),
             th.nn.Linear(4, 5),
-        ],
+        ),
     },
     {
         "conv": [
-            tg.nn.GINConv(lambda x: x),
-            tg.nn.GINConv(models.create_dense_nn([1, 4], th.nn.Tanh(), True)),
-            tg.nn.GINConv(lambda x: x),
+            tgnn.GINConv(lambda x: x),
+            tgnn.GINConv(models.create_dense_nn([1, 4], th.nn.Tanh(), True)),
+            tgnn.GINConv(lambda x: x),
         ],
-        "dense": [
-            th.nn.Linear(9, 4),
-        ],
+        "dense": th.nn.Linear(9, 4),
     },
     {
         "conv": None,
@@ -50,7 +48,7 @@ MODEL_CONFIGURATIONS = [
     {
         "conv": [
             models.Residual(
-                tg.nn.GINConv(models.create_dense_nn([1, 4], th.nn.Tanh(), True))
+                tgnn.GINConv(models.create_dense_nn([1, 4], th.nn.Tanh(), True))
             ),
         ],
         "dense": th.nn.Linear(4, 5),
@@ -86,7 +84,7 @@ def test_model_with_architectures(
 
 def test_normalize_mean_degree(batch):
     conv = [
-        models.Normalize(tg.nn.GINConv(lambda x: x), "mean_degree+1"),
+        models.Normalize(tgnn.GINConv(lambda x: x), "mean_degree+1"),
     ]
     model = models.Model(conv, None, None)
     graph_features = model.evaluate_graph_features(batch)

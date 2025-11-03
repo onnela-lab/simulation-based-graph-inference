@@ -31,7 +31,7 @@ class Configuration:
         self,
         priors: Mapping[str, th.distributions.Distribution],
         generator: Optional[Callable] = None,
-        generator_kwargs: Mapping[dict, Any] = None,
+        generator_kwargs: Optional[Mapping[str, Any]] = None,
         localization: Optional[int] = None,
         parameter_constraints: Optional[Mapping[str, constraints.Constraint]] = None,
     ) -> None:
@@ -52,7 +52,7 @@ class Configuration:
             return self.generator(num_nodes, **kwargs, **self.generator_kwargs)
         raise NotImplementedError
 
-    def create_estimator(self):
+    def create_estimator(self) -> th.nn.ModuleDict:
         estimator = {}
         for name, constraint in self.parameter_constraints.items():
             if constraint is constraints.unit_interval:
@@ -75,7 +75,7 @@ class Configuration:
                 )
             else:
                 raise NotImplementedError(f"{constraint} constraint is not supported")
-        return estimator
+        return th.nn.ModuleDict(estimator)
 
 
 def _planted_partition_graph(

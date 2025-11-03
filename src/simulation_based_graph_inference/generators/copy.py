@@ -1,13 +1,14 @@
 import networkx as nx
 import numpy as np
+import typing
 from ..util import assert_interval, assert_normalized_nodel_labels, randint
 
 
 def copy_graph(
     num_nodes: int,
     copy_proba: float,
-    graph: nx.Graph = None,
-    rng: np.random.Generator = None,
+    graph: typing.Optional[nx.Graph] = None,
+    rng: typing.Optional[np.random.Generator] = None,
 ) -> nx.Graph:
     """
     Generate a graph by random attachment with probabilistic copying as described by
@@ -28,7 +29,7 @@ def copy_graph(
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     copy_proba = assert_interval("copy_proba", copy_proba, 0, 1, dtype=float)
-    rng = rng or np.random
+    rng = rng or np.random.default_rng()
     graph = graph or nx.Graph()
     if not len(graph):
         graph.add_node(0)
