@@ -1,3 +1,4 @@
+# type: ignore
 import doit_interface as di
 from doit_interface import dict2args
 import itertools as it
@@ -17,6 +18,7 @@ REFERENCE_CONFIGURATIONS = [
     "localized_jackson_rogers_graph",
     # "degree_attachment_graph",
     "latent_space_graph",
+    "newman_watts_strogatz_graph",
 ]
 ROOT = pathlib.Path("workspace")
 DOIT_CONFIG = di.DOIT_CONFIG
@@ -47,7 +49,7 @@ DEPTHS = range(CONFIG["MAX_DEPTH"] + 1)
 SEEDS = range(CONFIG["NUM_SEEDS"])
 
 # This is the architecture we apply to all generators, not just the reference generators.
-REFERENCE_ARCHITECTURE = "gin-narrow"
+REFERENCE_ARCHITECTURES = {"residual-identity-gin-narrow", "gin-narrow"}
 ARCHITECTURE_SPECIFICATIONS = {}
 for depth in DEPTHS:
     # Create simple convolutional isomorphism layers with normalization for all but the first layer.
@@ -153,7 +155,7 @@ for configuration in GENERATOR_CONFIGURATIONS:
     ):
         # Don't run the training if this is not the reference architecture or a reference generator.
         if (
-            architecture != REFERENCE_ARCHITECTURE
+            architecture not in REFERENCE_ARCHITECTURES
             and configuration not in REFERENCE_CONFIGURATIONS
         ):
             continue
@@ -180,14 +182,14 @@ for configuration in GENERATOR_CONFIGURATIONS:
         )
         if configuration in REFERENCE_CONFIGURATIONS:
             reference_configurations(task)
-        if architecture == REFERENCE_ARCHITECTURE:
+        if architecture in REFERENCE_ARCHITECTURES:
             reference_architecture(task)
 
         # NOTE: Do not run transfer learning.
         continue
 
         # Skip transfer learning if this is not the reference configuration.
-        if architecture != REFERENCE_ARCHITECTURE:
+        if architecture not in REFERENCE_ARCHITECTURES:
             continue
 
         # Run transfer learning for this configuration given features extractetd from all other
