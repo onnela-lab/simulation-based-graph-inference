@@ -181,7 +181,7 @@ GENERATOR_CONFIGURATIONS = {
         _gn_graph,
     ),
     "latent_space_graph": Configuration(
-        {"bias": th.distributions.Normal(0, 1), "scale": th.distributions.Gamma(2, 2)},
+        {"bias": th.distributions.Normal(1, 1), "scale": th.distributions.Gamma(2, 2)},
         generators.latent_space_graph,
         {"num_dims": 2},
     ),

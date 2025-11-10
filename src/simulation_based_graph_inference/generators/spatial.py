@@ -12,7 +12,7 @@ def latent_space_graph(
 
     Args:
         num_nodes: Number of nodes.
-        bias: Kernel bias.
+        bias: Kernel bias, log(# of nodes) is subtracted.
         scale: Latent space scale.
         num_dims: Number of latent space dimensions.
 
@@ -20,6 +20,6 @@ def latent_space_graph(
         graph: Latent space graph.
     """
     x = np.random.normal(0, scale, (num_nodes, num_dims))
-    proba = expit(bias - pdist(x))
+    proba = expit(bias - pdist(x) - np.log(num_nodes))
     adjacency = squareform(np.random.binomial(1, proba))
     return nx.from_numpy_array(adjacency)
