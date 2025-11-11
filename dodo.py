@@ -49,7 +49,11 @@ DEPTHS = range(CONFIG["MAX_DEPTH"] + 1)
 SEEDS = range(CONFIG["NUM_SEEDS"])
 
 # This is the architecture we apply to all generators, not just the reference generators.
-REFERENCE_ARCHITECTURES = {"residual-identity-gin-narrow", "gin-narrow"}
+REFERENCE_ARCHITECTURES = {
+    # "residual-identity-gin-narrow",
+    # "gin-narrow",
+    "residual-scalar-gin-narrow",
+}
 ARCHITECTURE_SPECIFICATIONS = {}
 for depth in DEPTHS:
     # Create simple convolutional isomorphism layers with normalization for all but the first layer.
