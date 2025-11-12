@@ -82,6 +82,29 @@ class Residual(th.nn.Module):
         return y
 
 
+class DenseResidual(th.nn.Module):
+    """
+    A residual dense layer for feed-forward networks.
+    """
+
+    def __init__(self, module, method: str = "identity") -> None:
+        super().__init__()
+        self._module = module
+        self._method = method
+        if self._method == "scalar":
+            self._scalar = th.nn.Parameter(th.ones([]), requires_grad=True)
+
+    def forward(self, x: th.Tensor) -> th.Tensor:
+        y = self._module(x)
+        if self._method == "identity":
+            y = y + x
+        elif self._method == "scalar":
+            y = y + self._scalar * x
+        else:
+            raise NotImplementedError
+        return y
+
+
 class Normalize(th.nn.Module):
     """
     Normalize the output of a graph convolutional layer.
@@ -193,11 +216,15 @@ class Model(th.nn.Module):
         conv: th.nn.ModuleList | None,
         dense: th.nn.Module,
         dists: th.nn.ModuleDict,
+        pooling: str = "concat",
     ) -> None:
         super().__init__()
         self.conv = conv
         self.dense = dense
         self.dists = dists
+        if pooling not in ("concat", "last"):
+            raise ValueError(f"pooling must be 'concat' or 'last', got {pooling!r}")
+        self.pooling = pooling
 
     def evaluate_graph_features(self, batch):
         # Return trivial features if there are no convolutional layers.
@@ -217,7 +244,14 @@ class Model(th.nn.Module):
                 x = conv(x)
             if not getattr(conv, "hidden", False):
                 xs.append(x)
-        x = th.concat(xs, dim=1)
+
+        # Pool GNN layer outputs based on pooling strategy.
+        if self.pooling == "concat":
+            x = th.concat(xs, dim=1)
+        elif self.pooling == "last":
+            x = xs[-1] if xs else th.ones((batch.num_nodes, 1))
+        else:
+            raise NotImplementedError(f"pooling strategy {self.pooling!r} not implemented")
 
         # Validate the resulting features.
         num_conv_features = x.shape[-1]

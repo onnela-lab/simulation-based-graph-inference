@@ -165,6 +165,13 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     parser.add_argument(
         "--epsilon", help="L2 penalty for latent representations", type=float, default=0
     )
+    parser.add_argument(
+        "--pooling",
+        help="pooling strategy for GNN layer outputs: 'concat' (default, concatenate all) or 'last' (use only last layer)",
+        type=str,
+        default="concat",
+        choices=["concat", "last"],
+    )
     args = parser.parse_args(argv)
 
     # Set up the convoluational network for node-level representations.
@@ -210,9 +217,24 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         for parameter in dense.parameters():
             parameter.requires_grad = False
     else:
-        dense = models.create_dense_nn(
-            map(int, args.dense.split(",")), activation, True
-        )
+        # Parse dense specification, supporting residual blocks
+        dense_layers = []
+        for block in args.dense.split("_"):
+            if block.startswith("res-"):
+                # Parse residual block: "res-scalar-8,8" -> residual around 2-layer MLP
+                _, method, layer = block.split("-", 2)
+                nn = dense_from_str(layer, activation, True)
+                dense_layers.append(models.DenseResidual(nn, method=method))
+            else:
+                # Regular dense layers
+                nn = dense_from_str(block, activation, True)
+                dense_layers.append(nn)
+
+        # Combine into sequential or just use single module
+        if len(dense_layers) == 1:
+            dense = dense_layers[0]
+        else:
+            dense = th.nn.Sequential(*dense_layers)
 
     configuration = config.GENERATOR_CONFIGURATIONS[args.configuration]
 
@@ -220,7 +242,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     dists = configuration.create_estimator()
     if isinstance(conv, list):
         conv = th.nn.ModuleList(conv)
-    model = models.Model(conv, dense, dists)
+    model = models.Model(conv, dense, dists, pooling=args.pooling)
 
     # Prepare the datasets and optimizer. Only shuffle the training set.
     dataset = BatchedDataset(
@@ -242,6 +264,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     epoch = 0
 
     start = datetime.now()
+    params_printed = False  # Track whether we've printed parameter count
     with tqdm() as progress:
         while num_bad_epochs < args.patience and (
             args.max_num_epochs is None or epoch < args.max_num_epochs
@@ -250,6 +273,14 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
             train_loss = run_epoch(
                 model, train_loader, args.epsilon, optimizer, args.steps_per_epoch
             )["epoch_loss"]
+
+            # Print parameter count after first epoch (when lazy layers are initialized)
+            if not params_printed:
+                total_params = sum(p.numel() for p in model.parameters())
+                trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+                print(f"\nTarget: {args.result}")
+                print(f"Model parameters: {total_params:,} total, {trainable_params:,} trainable")
+                params_printed = True
             validation_loss = run_epoch(model, validation_loader, args.epsilon)[
                 "epoch_loss"
             ]

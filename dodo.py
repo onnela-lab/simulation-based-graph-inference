@@ -53,6 +53,7 @@ REFERENCE_ARCHITECTURES = {
     # "residual-identity-gin-narrow",
     # "gin-narrow",
     "residual-scalar-gin-narrow",
+    "residual-scalar-gin-narrow-last",
 }
 ARCHITECTURE_SPECIFICATIONS = {}
 for depth in DEPTHS:
@@ -87,6 +88,19 @@ for depth in DEPTHS:
     ARCHITECTURE_SPECIFICATIONS[("residual-scalar-gin-narrow", f"depth-{depth}")] = {
         "dense": "8,8",
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+    }
+
+    # Create architecture specification with last-layer pooling and depth-compensated dense layers.
+    # This ensures fair comparison by keeping total layer count constant across different GNN depths.
+    # Each GIN layer has a 2-layer MLP ("8,8"), so we compensate with 2-layer dense blocks.
+    # Use residual connections around each dense block for consistency with GNN residual blocks.
+    num_dense_blocks = CONFIG["MAX_DEPTH"] - depth + 1  # +1 for the baseline dense block ("8,8")
+    dense_blocks = ["res-scalar-8,8"] * num_dense_blocks
+    dense_spec = "_".join(dense_blocks)
+    ARCHITECTURE_SPECIFICATIONS[("residual-scalar-gin-narrow-last", f"depth-{depth}")] = {
+        "dense": dense_spec,
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+        "pooling": "last",
     }
     ARCHITECTURE_SPECIFICATIONS[("gin-medium", f"depth-{depth}")] = {
         "dense": "16,16",

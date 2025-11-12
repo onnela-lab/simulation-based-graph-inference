@@ -121,3 +121,16 @@ def test_residual_module(batch: Data) -> None:
     residual._scalar = th.nn.Parameter(7 * th.ones([]))
     x = th.randn((batch.num_nodes, 3))
     np.testing.assert_allclose(2 + 7 * x, residual(x, batch.edge_index).detach())
+
+
+def test_dense_residual_module() -> None:
+    # Test identity residual
+    residual = models.DenseResidual(lambda x: th.zeros_like(x))
+    x = th.randn((10, 3))
+    np.testing.assert_allclose(x, residual(x).detach())
+
+    # Test scalar residual
+    residual = models.DenseResidual(lambda x: 2 * th.ones_like(x), method="scalar")
+    residual._scalar = th.nn.Parameter(7 * th.ones([]))
+    x = th.randn((10, 3))
+    np.testing.assert_allclose(2 + 7 * x, residual(x).detach())
