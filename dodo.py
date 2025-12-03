@@ -37,7 +37,7 @@ di.SubprocessAction.set_global_env(
 # Load basic configuration from the environment.
 CONFIG = {
     "MAX_DEPTH": (int, 5),
-    "NUM_SEEDS": (int, 3),
+    "NUM_SEEDS": (int, 5),
     "NUM_NODES": (int, 1000),
 }
 CONFIG = {
@@ -94,10 +94,14 @@ for depth in DEPTHS:
     # This ensures fair comparison by keeping total layer count constant across different GNN depths.
     # Each GIN layer has a 2-layer MLP ("8,8"), so we compensate with 2-layer dense blocks.
     # Use residual connections around each dense block for consistency with GNN residual blocks.
-    num_dense_blocks = CONFIG["MAX_DEPTH"] - depth + 1  # +1 for the baseline dense block ("8,8")
+    num_dense_blocks = (
+        CONFIG["MAX_DEPTH"] - depth + 1
+    )  # +1 for the baseline dense block ("8,8")
     dense_blocks = ["res-scalar-8,8"] * num_dense_blocks
     dense_spec = "_".join(dense_blocks)
-    ARCHITECTURE_SPECIFICATIONS[("residual-scalar-gin-narrow-last", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        ("residual-scalar-gin-narrow-last", f"depth-{depth}")
+    ] = {
         "dense": dense_spec,
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
         "pooling": "last",

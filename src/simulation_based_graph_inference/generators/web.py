@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 import typing
-from ..util import assert_interval, assert_normalized_nodel_labels, randint
+from ..util import assert_interval, randint
 
 
 def _sample_by_degree(rng: np.random.Generator, edges: list) -> int:

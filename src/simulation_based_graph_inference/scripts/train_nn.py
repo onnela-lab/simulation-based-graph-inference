@@ -277,9 +277,13 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
             # Print parameter count after first epoch (when lazy layers are initialized)
             if not params_printed:
                 total_params = sum(p.numel() for p in model.parameters())
-                trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+                trainable_params = sum(
+                    p.numel() for p in model.parameters() if p.requires_grad
+                )
                 print(f"\nTarget: {args.result}")
-                print(f"Model parameters: {total_params:,} total, {trainable_params:,} trainable")
+                print(
+                    f"Model parameters: {total_params:,} total, {trainable_params:,} trainable"
+                )
                 params_printed = True
             validation_loss = run_epoch(model, validation_loader, args.epsilon)[
                 "epoch_loss"

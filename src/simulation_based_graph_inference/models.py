@@ -251,7 +251,9 @@ class Model(th.nn.Module):
         elif self.pooling == "last":
             x = xs[-1] if xs else th.ones((batch.num_nodes, 1))
         else:
-            raise NotImplementedError(f"pooling strategy {self.pooling!r} not implemented")
+            raise NotImplementedError(
+                f"pooling strategy {self.pooling!r} not implemented"
+            )
 
         # Validate the resulting features.
         num_conv_features = x.shape[-1]

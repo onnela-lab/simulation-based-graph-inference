@@ -6,7 +6,6 @@ import networkx as nx
 import numpy as np
 import pathlib
 import torch as th
-import torch_geometric as tg
 from torch_geometric.data import Data
 from tqdm import tqdm
 import typing

@@ -8,6 +8,7 @@ __pycache__
 *.ipynb
 docs/_build/
 notebooks/*.pdf
+notebooks/*.png
 playground/
 src/simulation_based_graph_inference/**/*.cpp
 src/simulation_based_graph_inference/**/*.html
