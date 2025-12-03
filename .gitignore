@@ -3,7 +3,8 @@ __pycache__
 .doit.db*
 .DS_Store
 .ipynb_checkpoints
-.vscode
+.venv/
+.vscode/
 *.egg-info
 *.ipynb
 docs/_build/
