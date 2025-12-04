@@ -10,7 +10,7 @@ dependencies = [
     "fasttr",
     "matplotlib>=3.10.6",
     "scipy>=1.16.2",
-    "torch>=2.8.0",
+    "torch==2.8.*",
     "torch-geometric>=2.6.1",
     "torch-scatter>=2.1.2",
 ]
@@ -26,6 +26,11 @@ dev = [
     "pytest-cov>=7.0.0",
     "ruff>=0.13.1",
     "sphinx>=8.2.3",
+]
+
+[tool.uv]
+find-links = [
+    "https://data.pyg.org/whl/torch-2.8.0+cpu.html",
 ]
 
 [tool.uv.extra-build-dependencies]
