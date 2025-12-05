@@ -17,7 +17,7 @@ REFERENCE_CONFIGURATIONS = [
     "watts_strogatz_graph",
     "localized_jackson_rogers_graph",
     # "degree_attachment_graph",
-    "latent_space_graph",
+    # "latent_space_graph",
     "newman_watts_strogatz_graph",
 ]
 ROOT = pathlib.Path("workspace")
@@ -132,6 +132,7 @@ for arch in ARCHITECTURE_SPECIFICATIONS.values():
 BATCH_SIZE = 100
 SPLITS = {
     "train": 10_000,
+    "validation": 1_000,
     "test": 1_000,
     "debug": 100,
 }

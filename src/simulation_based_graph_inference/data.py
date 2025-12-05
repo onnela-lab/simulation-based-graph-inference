@@ -135,57 +135,6 @@ class BatchedDataset(th.utils.data.IterableDataset):
                     pass
             iterators = next_iterators
 
-    def _unravel_indices(self, indices: th.Tensor) -> list[th.Tensor]:
-        """
-        Transform indices over the entire dataset to indices within each batch.
-        """
-        batch_size = self.meta["batch_size"]
-        return [
-            indices[
-                th.div(indices, th.as_tensor(batch_size), rounding_mode="floor")
-                == batch
-            ]
-            % batch_size
-            for batch in range(self.meta["num_batches"])
-        ]
-
-    def bootstrap_split(
-        self,
-        num_concurrent: typing.Optional[int] = None,
-        shuffle: typing.Optional[bool] = None,
-        transform: typing.Optional[typing.Callable] = None,
-    ) -> tuple[BatchedDataset, BatchedDataset]:
-        """
-        Create a bootstrapped dataset by sampling without replacement and the out-of-bag dataset.
-
-        Args:
-            num_concurrent: Number of concurrent batches to load (defaults to value of parent).
-            shuffle: Whether to shuffle batches and elements in each batch (defaults to value of
-                parent).
-            transform: Transform applied to every element (defaults to value of parent).
-
-        Returns:
-            bootstrap: Bootstrapped dataset obtained by sampling without replacement.
-            out_of_bag: Out-of-bag dataset of instances not included in the bootstrapped dataset.
-        """
-        if self.index_batches is not None:
-            raise NotImplementedError("cannot bootstrap datasets with index batches")
-        n = self.meta["length"]
-        selected = th.randint(n, size=[n])
-        not_selected = th.asarray(np.setdiff1d(th.arange(n), selected))
-        kwargs = {
-            "num_concurrent": self.num_concurrent
-            if num_concurrent is None
-            else num_concurrent,
-            "shuffle": self.shuffle if shuffle is None else self.shuffle,
-            "transform": self.transform if transform is None else transform,
-        }
-        return BatchedDataset(
-            self.root, **kwargs, index_batches=self._unravel_indices(selected)
-        ), BatchedDataset(
-            self.root, **kwargs, index_batches=self._unravel_indices(not_selected)
-        )
-
     @classmethod
     def generate(
         cls,

@@ -159,6 +159,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     )
     parser.add_argument("--test", help="path to test set", required=True)
     parser.add_argument("--train", help="path to training set", required=True)
+    parser.add_argument("--validation", help="path to validation set", required=True)
     parser.add_argument(
         "--max_num_epochs", help="maximum number of epochs to run", type=int
     )
@@ -245,10 +246,12 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     model = models.Model(conv, dense, dists, pooling=args.pooling)
 
     # Prepare the datasets and optimizer. Only shuffle the training set.
-    dataset = BatchedDataset(
+    train_dataset = BatchedDataset(
         args.train, transform=ensure_long_edge_index, shuffle=True, num_concurrent=4
     )
-    train_dataset, validation_dataset = dataset.bootstrap_split()
+    validation_dataset = BatchedDataset(
+        args.validation, transform=ensure_long_edge_index, shuffle=False, num_concurrent=1
+    )
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size)  # pyright: ignore[reportArgumentType]
     validation_loader = DataLoader(validation_dataset, batch_size=args.batch_size)  # pyright: ignore[reportArgumentType]
     optimizer = th.optim.Adam(
