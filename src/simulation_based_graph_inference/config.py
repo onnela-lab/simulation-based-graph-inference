@@ -104,11 +104,11 @@ def _gn_graph(num_nodes: int, gamma: float, **kwargs) -> nx.Graph:
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent
 # on the prior. TODO: reinstate some of the missing generators as `Configuration` objects.
 GENERATOR_CONFIGURATIONS = {
-    "poisson_random_attachment_graph": Configuration(
-        {"rate": th.distributions.Gamma(2, 1)},
-        _poisson_random_attachment_graph,
-        localization=0,
-    ),
+    # "poisson_random_attachment_graph": Configuration(
+    #     {"rate": th.distributions.Gamma(2, 1)},
+    #     _poisson_random_attachment_graph,
+    #     localization=0,
+    # ),
     "random_connection_graph": Configuration(
         {"proba": th.distributions.Beta(1, 1)},
         generators.random_connection_graph,
@@ -167,22 +167,23 @@ GENERATOR_CONFIGURATIONS = {
         },
         generators.jackson_rogers_graph,
         {"mr": 4},
+        localization=None,
     ),
-    "surfer_graph": Configuration(
-        {"hop_proba": th.distributions.Beta(1, 1)},
-        generators.surfer_graph,
-    ),
-    "long_surfer_graph": Configuration(
-        {"hop_proba": th.distributions.Beta(4, 2)},
-        generators.surfer_graph,
-    ),
+    # "surfer_graph": Configuration(
+    #     {"hop_proba": th.distributions.Beta(1, 1)},
+    #     generators.surfer_graph,
+    # ),
+    # "long_surfer_graph": Configuration(
+    #     {"hop_proba": th.distributions.Beta(4, 2)},
+    #     generators.surfer_graph,
+    # ),
     "gn_graph": Configuration(
         {"gamma": th.distributions.Beta(1, 1)},
         _gn_graph,
     ),
-    "latent_space_graph": Configuration(
-        {"bias": th.distributions.Normal(1, 1), "scale": th.distributions.Gamma(2, 2)},
-        generators.latent_space_graph,
-        {"num_dims": 2},
-    ),
+    # "latent_space_graph": Configuration(
+    #     {"bias": th.distributions.Normal(1, 1), "scale": th.distributions.Gamma(2, 2)},
+    #     generators.latent_space_graph,
+    #     {"num_dims": 2},
+    # ),
 }

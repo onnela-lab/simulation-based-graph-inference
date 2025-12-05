@@ -57,6 +57,7 @@ def test_train_nn(configuration: str, dense: str, conv: str, tmpwd: str) -> None
         conv=conv,
         dense=dense,
         train="data",
+        validation="data",
         test="data",
         steps_per_epoch=steps_per_epoch,
         max_num_epochs=3,
@@ -78,7 +79,7 @@ def test_train_no_precomputed_clustering(tmpwd: str) -> None:
     steps_per_epoch = 7
     batch_size = 13
     num_batches = 11
-    configuration = "latent_space_graph"
+    configuration = "duplication_complementation_graph"
     args = dict2args(
         directory="data",
         configuration=configuration,
@@ -99,6 +100,7 @@ def test_train_no_precomputed_clustering(tmpwd: str) -> None:
         conv="2,3_insert-clustering_4,2",
         dense="2,3",
         train="data",
+        validation="data",
         test="data",
         steps_per_epoch=steps_per_epoch,
         max_num_epochs=3,

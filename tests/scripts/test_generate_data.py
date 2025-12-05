@@ -9,7 +9,7 @@ def test_generate_data(tmpwd: str):
     num_nodes = 97
     generate_data.__main__(
         dict2args(
-            configuration="poisson_random_attachment_graph",
+            configuration="redirection_graph",
             directory=tmpwd,
             num_batches=3,
             batch_size=2,
@@ -28,7 +28,7 @@ def test_generate_data_dtype_too_small(tmpwd: str):
     with pytest.raises(ValueError):
         generate_data.__main__(
             dict2args(
-                configuration="poisson_random_attachment_graph",
+                configuration="redirection_graph",
                 directory=tmpwd,
                 num_batches=2,
                 batch_size=3,

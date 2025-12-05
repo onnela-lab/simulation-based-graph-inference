@@ -17,7 +17,7 @@ REFERENCE_CONFIGURATIONS = [
     "watts_strogatz_graph",
     "localized_jackson_rogers_graph",
     # "degree_attachment_graph",
-    "latent_space_graph",
+    # "latent_space_graph",
     "newman_watts_strogatz_graph",
 ]
 ROOT = pathlib.Path("workspace")
@@ -37,7 +37,7 @@ di.SubprocessAction.set_global_env(
 # Load basic configuration from the environment.
 CONFIG = {
     "MAX_DEPTH": (int, 5),
-    "NUM_SEEDS": (int, 5),
+    "NUM_SEEDS": (int, 3),
     "NUM_NODES": (int, 1000),
 }
 CONFIG = {
@@ -132,6 +132,7 @@ for arch in ARCHITECTURE_SPECIFICATIONS.values():
 BATCH_SIZE = 100
 SPLITS = {
     "train": 10_000,
+    "validation": 1_000,
     "test": 1_000,
     "debug": 100,
 }

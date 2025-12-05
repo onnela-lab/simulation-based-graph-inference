@@ -155,9 +155,15 @@ def duplication_mutation_graph(
         )
 
         # Create connections to neighbors of source node.
+        any_retained = False
         for neighbor in graph.neighbors(source):
             if next(keep_sequence):
                 graph.add_edge(node, neighbor)
+                any_retained = True
+
+        # We don't keep nodes if none of the original edges were retained.
+        if not any_retained:
+            continue
 
         graph.add_edges_from((node, neighbor) for neighbor in random_neighbors)
 

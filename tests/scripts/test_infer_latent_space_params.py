@@ -1,12 +1,14 @@
 from doit_interface import dict2args
 import os
 import pickle
+import pytest
 from simulation_based_graph_inference.scripts import (
     generate_data,
     infer_latent_space_params,
 )
 
 
+@pytest.mark.skip(reason="Not included in config.")
 def test_infer_latent_space_params(tmpwd: str):
     n = 2
     iter_sampling = 3
