@@ -79,7 +79,7 @@ def test_train_no_precomputed_clustering(tmpwd: str) -> None:
     steps_per_epoch = 7
     batch_size = 13
     num_batches = 11
-    configuration = "latent_space_graph"
+    configuration = "duplication_complementation_graph"
     args = dict2args(
         directory="data",
         configuration=configuration,

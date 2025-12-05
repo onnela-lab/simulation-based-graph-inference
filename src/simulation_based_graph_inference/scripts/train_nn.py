@@ -112,9 +112,12 @@ def dense_from_str(
 
 
 def __main__(argv: typing.Optional[list[str]] = None) -> None:
-    if "CI" not in os.environ:  # pragma: no cover
+    try:
         th.set_num_threads(1)
         th.set_num_interop_threads(1)
+    except RuntimeError as ex:
+        if "number of interop threads" not in str(ex):
+            raise
     parser = get_parser()
     parser.add_argument(
         "--batch_size",
