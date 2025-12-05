@@ -250,7 +250,10 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         args.train, transform=ensure_long_edge_index, shuffle=True, num_concurrent=4
     )
     validation_dataset = BatchedDataset(
-        args.validation, transform=ensure_long_edge_index, shuffle=False, num_concurrent=1
+        args.validation,
+        transform=ensure_long_edge_index,
+        shuffle=False,
+        num_concurrent=1,
     )
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size)  # pyright: ignore[reportArgumentType]
     validation_loader = DataLoader(validation_dataset, batch_size=args.batch_size)  # pyright: ignore[reportArgumentType]
