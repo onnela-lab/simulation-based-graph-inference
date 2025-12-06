@@ -176,6 +176,12 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         default="concat",
         choices=["concat", "last"],
     )
+    parser.add_argument(
+        "--init-scale",
+        help="scale factor for all Linear layer weights after initialization (default: 1.0)",
+        type=float,
+        default=1.0,
+    )
     args = parser.parse_args(argv)
 
     # Set up the convoluational network for node-level representations.
@@ -247,6 +253,25 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     if isinstance(conv, list):
         conv = th.nn.ModuleList(conv)
     model = models.Model(conv, dense, dists, pooling=args.pooling)
+
+    # Apply weight scaling if specified (only for newly created models)
+    if args.init_scale != 1.0 and not args.dense.startswith("file:"):
+        # Create dummy batch to materialize lazy layers
+        # Minimal batch: 1 graph with 2 nodes and 1 edge
+        from torch_geometric.data import Batch, Data
+
+        dummy_graph = Data(
+            edge_index=th.tensor([[0], [1]], dtype=th.long),
+            num_nodes=2,
+        )
+        dummy_batch = Batch.from_data_list([dummy_graph])
+
+        # Materialize all lazy layers with dummy forward pass
+        with th.no_grad():
+            model(dummy_batch)
+
+        # Now scale all Linear layer weights
+        models.scale_linear_weights(model, args.init_scale)
 
     # Prepare the datasets and optimizer. Only shuffle the training set.
     train_dataset = BatchedDataset(

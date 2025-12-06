@@ -415,6 +415,15 @@ wheels = [
 ]
 
 [[package]]
+name = "collectiontools"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/a2/1ad4376dc8aedfd05e32ab64d3d9ac9e9fcb1aa1fef689c4260de85d6434/collectiontools-0.2.0.tar.gz", hash = "sha256:caa4fbc3ad68bb2ffce3febd9b5b1374d273d5273e93f8158fa0db7fce665590", size = 3951, upload-time = "2025-01-16T01:24:22.238Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/03/23/cc8274b1bea69605702297b2db5f0a8091e5e6f598615fc7b7509fc4362b/collectiontools-0.2.0-py3-none-any.whl", hash = "sha256:ba8308022a6bd3dbb9dcc6336eb864dd14f009a6dad2f392311f9a4e3afeb2f5", size = 4685, upload-time = "2025-01-16T01:24:20.972Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -2747,6 +2756,7 @@ version = "0.1"
 source = { editable = "." }
 dependencies = [
     { name = "cmdstanpy" },
+    { name = "collectiontools" },
     { name = "fasttr" },
     { name = "matplotlib" },
     { name = "scipy" },
@@ -2771,6 +2781,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cmdstanpy", specifier = ">=1.2.5" },
+    { name = "collectiontools", specifier = ">=0.2.0" },
     { name = "fasttr", git = "https://github.com/gstonge/fasttr" },
     { name = "matplotlib", specifier = ">=3.10.6" },
     { name = "scipy", specifier = ">=1.16.2" },

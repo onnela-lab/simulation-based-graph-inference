@@ -190,6 +190,24 @@ def create_dense_nn(
     return th.nn.Sequential(*layers)
 
 
+def scale_linear_weights(model: th.nn.Module, scale_factor: float) -> None:
+    """
+    Scale weights of all Linear layers by a constant factor.
+
+    Args:
+        model: PyTorch module containing Linear layers.
+        scale_factor: Factor to multiply all weights by (e.g., 0.01 for small init).
+
+    Note:
+        Only modifies weights, not biases. Works on materialized LazyLinear layers
+        (which become Linear layers after first forward pass).
+    """
+    for module in model.modules():
+        if isinstance(module, th.nn.Linear):
+            if module.weight is not None:
+                module.weight.data.mul_(scale_factor)
+
+
 class Model(th.nn.Module):
     """
     Model for conditional posterior density estimation for networks. The model comprises four
