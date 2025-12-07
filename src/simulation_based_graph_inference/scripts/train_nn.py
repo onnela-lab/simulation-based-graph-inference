@@ -182,6 +182,12 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         type=float,
         default=1.0,
     )
+    parser.add_argument(
+        "--final-activation",
+        help="whether to apply activation function after the final layer in dense networks (default: True)",
+        type=lambda x: x.lower() in ("true", "1", "yes"),
+        default=True,
+    )
     args = parser.parse_args(argv)
 
     # Set up the convoluational network for node-level representations.
@@ -213,10 +219,10 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
                 conv.append(th.nn.Dropout(float(proba)))
             elif layer.startswith("res"):
                 _, method, layer = layer.split("-")
-                nn = dense_from_str(layer, activation, True)
+                nn = dense_from_str(layer, activation, args.final_activation)
                 conv.append(models.Residual(tgnn.GINConv(nn), method=method))
             else:
-                nn = dense_from_str(layer, activation, True)
+                nn = dense_from_str(layer, activation, args.final_activation)
                 conv.append(tgnn.GINConv(nn))
 
     # Set up the dense network for transforming graph-level representations.
@@ -233,11 +239,11 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
             if block.startswith("res-"):
                 # Parse residual block: "res-scalar-8,8" -> residual around 2-layer MLP
                 _, method, layer = block.split("-", 2)
-                nn = dense_from_str(layer, activation, True)
+                nn = dense_from_str(layer, activation, args.final_activation)
                 dense_layers.append(models.DenseResidual(nn, method=method))
             else:
                 # Regular dense layers
-                nn = dense_from_str(block, activation, True)
+                nn = dense_from_str(block, activation, args.final_activation)
                 dense_layers.append(nn)
 
         # Combine into sequential or just use single module
