@@ -60,6 +60,7 @@ REFERENCE_ARCHITECTURES = {
     "residual-scalar-gin-narrow-small-init-no-final-act",
     "residual-scalar-gin-narrow-last-no-final-act",
     "residual-scalar-gin-narrow-last-small-init-no-final-act",
+    "residual-scalar-gin-narrow-last-no-final-act-fixed",
 }
 ARCHITECTURE_SPECIFICATIONS = {}
 for depth in DEPTHS:
@@ -157,6 +158,14 @@ for depth in DEPTHS:
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
         "pooling": "last",
         "init-scale": 0.01,
+        "final-activation": False,
+    }
+    ARCHITECTURE_SPECIFICATIONS[
+        ("residual-scalar-gin-narrow-last-no-final-act-fixed", f"depth-{depth}")
+    ] = {
+        "dense": "res-scalar-8,8_res-scalar-8,8",
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+        "pooling": "last",
         "final-activation": False,
     }
     ARCHITECTURE_SPECIFICATIONS[("gin-medium", f"depth-{depth}")] = {
