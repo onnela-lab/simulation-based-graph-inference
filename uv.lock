@@ -1383,6 +1383,15 @@ wheels = [
 ]
 
 [[package]]
+name = "localscope"
+version = "0.2.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/76/e9e240ac141c04b8542cd7b700fdb11a4df70f6c021ef3de2bc7890edf2f/localscope-0.2.5.tar.gz", hash = "sha256:ae68f1efb71e824bd78ccd367bb325cbc84647c2ce51f29e8c4a0a157366633a", size = 7930, upload-time = "2025-01-15T01:45:11.334Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2f/ce/1ee8eb2d2134247c069056be079268e4ea1c4214cdee59804af7237e0e5c/localscope-0.2.5-py3-none-any.whl", hash = "sha256:08f982aea3b1903b5fb4520144f1fc1b91c64ff64ea508a485324c357f8405f3", size = 7517, upload-time = "2025-01-15T01:45:09.995Z" },
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2771,6 +2780,7 @@ dev = [
     { name = "doit-interface" },
     { name = "jupyter" },
     { name = "jupytext" },
+    { name = "localscope" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -2795,6 +2805,7 @@ dev = [
     { name = "doit-interface", specifier = ">=0.1.10" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "jupytext", specifier = ">=1.17.3" },
+    { name = "localscope", specifier = ">=0.2.5" },
     { name = "pyright", specifier = ">=1.1.407" },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
