@@ -337,7 +337,10 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     # Evaluate on the test set using full batch evaluation.
     dataset = BatchedDataset(args.test, transform=ensure_long_edge_index)
     model.eval()
+    eval_start = datetime.now()
     result = run_epoch(model, DataLoader(dataset, len(dataset)), epsilon=0)  # pyright: ignore[reportArgumentType]
+    eval_end = datetime.now()
+    print(f"Evaluation on test set took {eval_end - eval_start}.")
     assert result["num_batches"] == 1, "got more than one evaluation batch"
     assert result["log_prob"].shape == (len(dataset),)
 
@@ -349,6 +352,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         "start": start,
         "end": end,
         "duration": (end - start).total_seconds(),
+        "eval_duration": (eval_end - eval_start).total_seconds(),
         "dists": result["dists"],
         "params": {key: result["batch"][key] for key in result["dists"]},
         "log_prob": result["log_prob"],
