@@ -300,9 +300,9 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
             args.max_num_epochs is None or epoch < args.max_num_epochs
         ):
             # Run one training epoch and evaluate the validation loss.
-            train_loss = run_epoch(
-                model, train_loader, args.epsilon, optimizer
-            )["epoch_loss"]
+            train_loss = run_epoch(model, train_loader, args.epsilon, optimizer)[
+                "epoch_loss"
+            ]
 
             # Print parameter count after first epoch (when lazy layers are initialized)
             if not params_printed:

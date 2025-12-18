@@ -32,7 +32,9 @@ class DistributionModule(th.nn.Module):
         *,
         squeeze: bool = True,
         transforms: typing.Optional[typing.Iterable] = None,
-        constraint_transforms: typing.Optional[typing.Mapping[str, th.distributions.transforms.Transform]] = None,
+        constraint_transforms: typing.Optional[
+            typing.Mapping[str, th.distributions.transforms.Transform]
+        ] = None,
         **params,
     ):
         super().__init__()
@@ -55,6 +57,7 @@ class DistributionModule(th.nn.Module):
                 constraint = self.distribution_cls.arg_constraints[key]  # type: ignore[attr-defined]
                 transform = th.distributions.transform_to(constraint)
             y = transform(y)
+            assert y is not None
             if self.squeeze:
                 y = y.squeeze(dim=-1)
             params[key] = y

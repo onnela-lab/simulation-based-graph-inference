@@ -56,16 +56,21 @@ class Configuration:
         estimator = {}
         for name, constraint in self.parameter_constraints.items():
             # "Safe" softplus with small addition to avoid numerical issues.
-            softplus = th.distributions.transforms.ComposeTransform([
-                th.distributions.transforms.SoftplusTransform(),
-                th.distributions.transforms.AffineTransform(1e-3, 1),
-            ])
+            softplus = th.distributions.transforms.ComposeTransform(
+                [
+                    th.distributions.transforms.SoftplusTransform(),
+                    th.distributions.transforms.AffineTransform(1e-3, 1),
+                ]
+            )
             if constraint is constraints.unit_interval:
                 estimator[name] = DistributionModule(
                     th.distributions.Beta,
                     concentration0=th.nn.LazyLinear(1),
                     concentration1=th.nn.LazyLinear(1),
-                    constraint_transforms={"concentration0": softplus, "concentration1": softplus},
+                    constraint_transforms={
+                        "concentration0": softplus,
+                        "concentration1": softplus,
+                    },
                 )
             elif constraint in {constraints.nonnegative, constraints.positive}:
                 estimator[name] = DistributionModule(
