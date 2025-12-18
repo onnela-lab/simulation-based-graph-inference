@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.17.3
+      jupytext_version: 1.18.1
   kernelspec:
     display_name: Python 3 (ipykernel)
     language: python
@@ -179,8 +179,8 @@ handles_labels = [
     (seed_handle, r"seed node $s\in S_{t}$"),
     (old_handle, r"other nodes"),
     (hop_handle, "redirection with\nprobability $\\theta$"),
-    (new_edge_handle, r"new edges $\epsilon_{t}$"),
-    (actual_handle, r"subgraph $B^{(k)}_{S_{t}}$"),
+    (new_edge_handle, r"new edge $\epsilon_{t}$"),
+    (actual_handle, r"subgraph $B^{(k)}_{s}$"),
     (possible_handle, r"receptive field $B^{(r)}_{\sigma_t}$"),
 ]
 ax.legend(*zip(*handles_labels), loc="lower right", frameon=False)
@@ -188,8 +188,4 @@ ax.legend(*zip(*handles_labels), loc="lower right", frameon=False)
 fig.tight_layout()
 fig.get_size_inches()
 fig.savefig("redirection-illustration.pdf", bbox_inches="tight")
-```
-
-```python
-
 ```
