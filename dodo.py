@@ -37,7 +37,7 @@ di.SubprocessAction.set_global_env(
 # Load basic configuration from the environment.
 CONFIG = {
     "MAX_DEPTH": (int, 5),
-    "NUM_SEEDS": (int, 3),
+    "NUM_SEEDS": (int, 5),
     "NUM_NODES": (int, 1000),
 }
 CONFIG = {
