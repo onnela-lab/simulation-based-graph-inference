@@ -21,6 +21,9 @@ class DistributionModule(th.nn.Module):
         params: Mapping of modules to parameter names.
         squeeze: Squeeze the last parameter dimension.
         transforms: Transformations to apply to the distribution.
+        constraint_transforms: Mapping from parameter names to transforms. If a parameter
+            name is present, the corresponding transform is used instead of the default
+            derived from the distribution's argument constraints.
     """
 
     def __init__(
@@ -29,6 +32,7 @@ class DistributionModule(th.nn.Module):
         *,
         squeeze: bool = True,
         transforms: typing.Optional[typing.Iterable] = None,
+        constraint_transforms: typing.Optional[typing.Mapping[str, th.distributions.transforms.Transform]] = None,
         **params,
     ):
         super().__init__()
@@ -38,14 +42,18 @@ class DistributionModule(th.nn.Module):
         self.params = params
         self.squeeze = squeeze
         self.transforms = transforms
+        self.constraint_transforms = constraint_transforms or {}
 
     def forward(self, x):
         # Obtain parameters and transform to the constraints of arguments.
         params = {}
         for key, module in self.params.items():
             y = module(x)
-            constraint = self.distribution_cls.arg_constraints[key]  # type: ignore[attr-defined]
-            transform = th.distributions.transform_to(constraint)
+            if key in self.constraint_transforms:
+                transform = self.constraint_transforms[key]
+            else:
+                constraint = self.distribution_cls.arg_constraints[key]  # type: ignore[attr-defined]
+                transform = th.distributions.transform_to(constraint)
             y = transform(y)
             if self.squeeze:
                 y = y.squeeze(dim=-1)

@@ -55,23 +55,31 @@ class Configuration:
     def create_estimator(self) -> th.nn.ModuleDict:
         estimator = {}
         for name, constraint in self.parameter_constraints.items():
+            # "Safe" softplus with small addition to avoid numerical issues.
+            softplus = th.distributions.transforms.ComposeTransform([
+                th.distributions.transforms.SoftplusTransform(),
+                th.distributions.transforms.AffineTransform(1e-3, 1),
+            ])
             if constraint is constraints.unit_interval:
                 estimator[name] = DistributionModule(
                     th.distributions.Beta,
                     concentration0=th.nn.LazyLinear(1),
                     concentration1=th.nn.LazyLinear(1),
+                    constraint_transforms={"concentration0": softplus, "concentration1": softplus},
                 )
             elif constraint in {constraints.nonnegative, constraints.positive}:
                 estimator[name] = DistributionModule(
                     th.distributions.Gamma,
                     concentration=th.nn.LazyLinear(1),
                     rate=th.nn.LazyLinear(1),
+                    constraint_transforms={"concentration": softplus, "rate": softplus},
                 )
             elif constraint is constraints.real:  # pragma: no cover
                 estimator[name] = DistributionModule(
                     th.distributions.Normal,
                     loc=th.nn.LazyLinear(1),
                     scale=th.nn.LazyLinear(1),
+                    constraint_transforms={"scale": softplus},
                 )
             else:
                 raise NotImplementedError(f"{constraint} constraint is not supported")
