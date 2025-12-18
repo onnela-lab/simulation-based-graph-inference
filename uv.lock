@@ -415,6 +415,15 @@ wheels = [
 ]
 
 [[package]]
+name = "collectiontools"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/a2/1ad4376dc8aedfd05e32ab64d3d9ac9e9fcb1aa1fef689c4260de85d6434/collectiontools-0.2.0.tar.gz", hash = "sha256:caa4fbc3ad68bb2ffce3febd9b5b1374d273d5273e93f8158fa0db7fce665590", size = 3951, upload-time = "2025-01-16T01:24:22.238Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/03/23/cc8274b1bea69605702297b2db5f0a8091e5e6f598615fc7b7509fc4362b/collectiontools-0.2.0-py3-none-any.whl", hash = "sha256:ba8308022a6bd3dbb9dcc6336eb864dd14f009a6dad2f392311f9a4e3afeb2f5", size = 4685, upload-time = "2025-01-16T01:24:20.972Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1371,6 +1380,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/da/34/28fff3ab31ccff1fd4f6c7c7b0ceb2b6968d8ea4950663eadcb5720591a0/lark-1.3.1.tar.gz", hash = "sha256:b426a7a6d6d53189d318f2b6236ab5d6429eaf09259f1ca33eb716eed10d2905", size = 382732, upload-time = "2025-10-27T18:25:56.653Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/82/3d/14ce75ef66813643812f3093ab17e46d3a206942ce7376d31ec2d36229e7/lark-1.3.1-py3-none-any.whl", hash = "sha256:c629b661023a014c37da873b4ff58a817398d12635d3bbb2c5a03be7fe5d1e12", size = 113151, upload-time = "2025-10-27T18:25:54.882Z" },
+]
+
+[[package]]
+name = "localscope"
+version = "0.2.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/76/e9e240ac141c04b8542cd7b700fdb11a4df70f6c021ef3de2bc7890edf2f/localscope-0.2.5.tar.gz", hash = "sha256:ae68f1efb71e824bd78ccd367bb325cbc84647c2ce51f29e8c4a0a157366633a", size = 7930, upload-time = "2025-01-15T01:45:11.334Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2f/ce/1ee8eb2d2134247c069056be079268e4ea1c4214cdee59804af7237e0e5c/localscope-0.2.5-py3-none-any.whl", hash = "sha256:08f982aea3b1903b5fb4520144f1fc1b91c64ff64ea508a485324c357f8405f3", size = 7517, upload-time = "2025-01-15T01:45:09.995Z" },
 ]
 
 [[package]]
@@ -2747,6 +2765,7 @@ version = "0.1"
 source = { editable = "." }
 dependencies = [
     { name = "cmdstanpy" },
+    { name = "collectiontools" },
     { name = "fasttr" },
     { name = "matplotlib" },
     { name = "scipy" },
@@ -2761,6 +2780,7 @@ dev = [
     { name = "doit-interface" },
     { name = "jupyter" },
     { name = "jupytext" },
+    { name = "localscope" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -2771,6 +2791,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cmdstanpy", specifier = ">=1.2.5" },
+    { name = "collectiontools", specifier = ">=0.2.0" },
     { name = "fasttr", git = "https://github.com/gstonge/fasttr" },
     { name = "matplotlib", specifier = ">=3.10.6" },
     { name = "scipy", specifier = ">=1.16.2" },
@@ -2784,6 +2805,7 @@ dev = [
     { name = "doit-interface", specifier = ">=0.1.10" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "jupytext", specifier = ">=1.17.3" },
+    { name = "localscope", specifier = ">=0.2.5" },
     { name = "pyright", specifier = ">=1.1.407" },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "pytest-cov", specifier = ">=7.0.0" },

@@ -40,15 +40,31 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     # Set up the generator and model.
     generator_config = config.GENERATOR_CONFIGURATIONS[args.configuration]
 
+    # Sample all parameters upfront for reproducibility and easier debugging.
+    num_samples = args.batch_size * args.num_batches
+    all_params = generator_config.sample_params(th.Size([num_samples]))
+
+    # Create an iterator that yields params for each sample.
+    params_iter = iter(
+        [{k: v[i] for k, v in all_params.items()} for i in range(num_samples)]
+    )
+
+    def generate_with_params():
+        return data.generate_data(
+            generator_config,
+            args.num_nodes,
+            dtype=dtype,
+            clustering=not args.no_clustering,
+            params=next(params_iter),
+        )
+
     # Prepare the dataset.
     start = datetime.now()
     meta = BatchedDataset.generate(
         args.directory,
         args.batch_size,
         args.num_batches,
-        data.generate_data,
-        (generator_config, args.num_nodes),
-        {"dtype": dtype, "clustering": not args.no_clustering},
+        generate_with_params,
         progress=True,
     )
     duration = datetime.now() - start

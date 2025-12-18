@@ -21,6 +21,9 @@ class DistributionModule(th.nn.Module):
         params: Mapping of modules to parameter names.
         squeeze: Squeeze the last parameter dimension.
         transforms: Transformations to apply to the distribution.
+        constraint_transforms: Mapping from parameter names to transforms. If a parameter
+            name is present, the corresponding transform is used instead of the default
+            derived from the distribution's argument constraints.
     """
 
     def __init__(
@@ -29,6 +32,9 @@ class DistributionModule(th.nn.Module):
         *,
         squeeze: bool = True,
         transforms: typing.Optional[typing.Iterable] = None,
+        constraint_transforms: typing.Optional[
+            typing.Mapping[str, th.distributions.transforms.Transform]
+        ] = None,
         **params,
     ):
         super().__init__()
@@ -38,15 +44,20 @@ class DistributionModule(th.nn.Module):
         self.params = params
         self.squeeze = squeeze
         self.transforms = transforms
+        self.constraint_transforms = constraint_transforms or {}
 
     def forward(self, x):
         # Obtain parameters and transform to the constraints of arguments.
         params = {}
         for key, module in self.params.items():
             y = module(x)
-            constraint = self.distribution_cls.arg_constraints[key]  # type: ignore[attr-defined]
-            transform = th.distributions.transform_to(constraint)
+            if key in self.constraint_transforms:
+                transform = self.constraint_transforms[key]
+            else:
+                constraint = self.distribution_cls.arg_constraints[key]  # type: ignore[attr-defined]
+                transform = th.distributions.transform_to(constraint)
             y = transform(y)
+            assert y is not None
             if self.squeeze:
                 y = y.squeeze(dim=-1)
             params[key] = y
@@ -188,6 +199,24 @@ def create_dense_nn(
     if not final_activation:
         layers.pop(-1)
     return th.nn.Sequential(*layers)
+
+
+def scale_linear_weights(model: th.nn.Module, scale_factor: float) -> None:
+    """
+    Scale weights of all Linear layers by a constant factor.
+
+    Args:
+        model: PyTorch module containing Linear layers.
+        scale_factor: Factor to multiply all weights by (e.g., 0.01 for small init).
+
+    Note:
+        Only modifies weights, not biases. Works on materialized LazyLinear layers
+        (which become Linear layers after first forward pass).
+    """
+    for module in model.modules():
+        if isinstance(module, th.nn.Linear):
+            if module.weight is not None:
+                module.weight.data.mul_(scale_factor)
 
 
 class Model(th.nn.Module):

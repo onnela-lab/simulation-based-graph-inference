@@ -37,7 +37,7 @@ di.SubprocessAction.set_global_env(
 # Load basic configuration from the environment.
 CONFIG = {
     "MAX_DEPTH": (int, 5),
-    "NUM_SEEDS": (int, 3),
+    "NUM_SEEDS": (int, 5),
     "NUM_NODES": (int, 1000),
 }
 CONFIG = {
@@ -53,7 +53,14 @@ REFERENCE_ARCHITECTURES = {
     # "residual-identity-gin-narrow",
     # "gin-narrow",
     "residual-scalar-gin-narrow",
+    "residual-scalar-gin-narrow-small-init",
     "residual-scalar-gin-narrow-last",
+    "residual-scalar-gin-narrow-last-small-init",
+    "residual-scalar-gin-narrow-no-final-act",
+    "residual-scalar-gin-narrow-small-init-no-final-act",
+    "residual-scalar-gin-narrow-last-no-final-act",
+    "residual-scalar-gin-narrow-last-small-init-no-final-act",
+    "residual-scalar-gin-narrow-last-no-final-act-fixed",
 }
 ARCHITECTURE_SPECIFICATIONS = {}
 for depth in DEPTHS:
@@ -89,6 +96,28 @@ for depth in DEPTHS:
         "dense": "8,8",
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
     }
+    ARCHITECTURE_SPECIFICATIONS[
+        ("residual-scalar-gin-narrow-small-init", f"depth-{depth}")
+    ] = {
+        "dense": "8,8",
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+        "init-scale": 0.01,
+    }
+    ARCHITECTURE_SPECIFICATIONS[
+        ("residual-scalar-gin-narrow-no-final-act", f"depth-{depth}")
+    ] = {
+        "dense": "8,8",
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+        "final-activation": False,
+    }
+    ARCHITECTURE_SPECIFICATIONS[
+        ("residual-scalar-gin-narrow-small-init-no-final-act", f"depth-{depth}")
+    ] = {
+        "dense": "8,8",
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+        "init-scale": 0.01,
+        "final-activation": False,
+    }
 
     # Create architecture specification with last-layer pooling and depth-compensated dense layers.
     # This ensures fair comparison by keeping total layer count constant across different GNN depths.
@@ -105,6 +134,39 @@ for depth in DEPTHS:
         "dense": dense_spec,
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
         "pooling": "last",
+    }
+    ARCHITECTURE_SPECIFICATIONS[
+        ("residual-scalar-gin-narrow-last-small-init", f"depth-{depth}")
+    ] = {
+        "dense": dense_spec,
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+        "pooling": "last",
+        "init-scale": 0.01,
+    }
+    ARCHITECTURE_SPECIFICATIONS[
+        ("residual-scalar-gin-narrow-last-no-final-act", f"depth-{depth}")
+    ] = {
+        "dense": dense_spec,
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+        "pooling": "last",
+        "final-activation": False,
+    }
+    ARCHITECTURE_SPECIFICATIONS[
+        ("residual-scalar-gin-narrow-last-small-init-no-final-act", f"depth-{depth}")
+    ] = {
+        "dense": dense_spec,
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+        "pooling": "last",
+        "init-scale": 0.01,
+        "final-activation": False,
+    }
+    ARCHITECTURE_SPECIFICATIONS[
+        ("residual-scalar-gin-narrow-last-no-final-act-fixed", f"depth-{depth}")
+    ] = {
+        "dense": "res-scalar-8,8_res-scalar-8,8",
+        "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
+        "pooling": "last",
+        "final-activation": False,
     }
     ARCHITECTURE_SPECIFICATIONS[("gin-medium", f"depth-{depth}")] = {
         "dense": "16,16",

@@ -18,6 +18,7 @@ def generate_data(
     num_nodes: int,
     dtype=th.long,
     clustering: bool = False,
+    params: typing.Optional[typing.Mapping[str, th.Tensor]] = None,
 ) -> Data:
     """
     Generate a graph in :mod:`torch_geometric` data format.
@@ -27,11 +28,13 @@ def generate_data(
         num_nodes: Number of nodes in the synthetic graph.
         dtype: Data type of the `edge_index` tensor.
         clustering: Precompute clustering coefficient and add it to the data.
+        params: Pre-sampled parameters. If None, parameters are sampled from the prior.
 
     Returns:
         data: Synthetic graph in :mod:`torch_geometric` data format.
     """
-    params = generator_config.sample_params()
+    if params is None:
+        params = generator_config.sample_params()
     graph: nx.Graph = generator_config.sample_graph(num_nodes, **params).to_undirected()
     if len(graph) != num_nodes:  # pragma: no cover
         raise ValueError(
