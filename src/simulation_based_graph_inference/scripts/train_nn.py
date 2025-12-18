@@ -1,6 +1,5 @@
 import contextlib
 from datetime import datetime
-import os
 import pickle
 import torch as th
 from torch_geometric import nn as tgnn
@@ -24,7 +23,6 @@ def run_epoch(
     loader: DataLoader,
     epsilon: float,
     optimizer: th.optim.Optimizer | None = None,
-    max_num_batches: int | None = None,
 ) -> dict:
     """
     Run one epoch for the model using data from the given loader.
@@ -34,7 +32,6 @@ def run_epoch(
         loader: Data loader yielding batches of graphs.
         epsilon: L2 penalty parameter for latent represenations after convolutional layer.
         optimizer: Optimizer to train the model. The model is not trained if no optimizer is given.
-        max_num_batches: Maximum number of optimization steps for this epoch.
 
     Returns:
         epoch_loss: Mean negative log-probability loss evaluated on data provided by the loader.
@@ -46,6 +43,7 @@ def run_epoch(
     dists = None
     log_prob = None
     features: th.Tensor | None = None
+    num_items = 0
     for batch in loader:
         # Reset gradients if we're training the model.
         if optimizer:
@@ -84,11 +82,9 @@ def run_epoch(
             loss.backward()
             optimizer.step()
 
-        epoch_loss += loss.item()
+        epoch_loss += batch.num_graphs * loss.item()
         num_batches += 1
-
-        if max_num_batches and num_batches >= max_num_batches:
-            break
+        num_items += batch.num_graphs
 
     if not num_batches:  # pragma: no cover
         raise RuntimeError("did not process any batch")
@@ -97,8 +93,9 @@ def run_epoch(
         "batch": batch,
         "dists": dists,
         "log_prob": log_prob,
-        "epoch_loss": epoch_loss / num_batches,
+        "epoch_loss": epoch_loss / num_items,
         "num_batches": num_batches,
+        "num_items": num_items,
         "features": features,
     }
 
@@ -123,13 +120,6 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         "--batch_size",
         "-b",
         help="batch size for each optimization step",
-        type=int,
-        default=32,
-    )
-    parser.add_argument(
-        "--steps_per_epoch",
-        "-e",
-        help="number of optimization steps per epoch",
         type=int,
         default=32,
     )
@@ -289,7 +279,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         shuffle=False,
         num_concurrent=1,
     )
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size)  # pyright: ignore[reportArgumentType]
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, drop_last=True)  # pyright: ignore[reportArgumentType]
     validation_loader = DataLoader(validation_dataset, batch_size=args.batch_size)  # pyright: ignore[reportArgumentType]
     optimizer = th.optim.Adam(
         (param for param in model.parameters() if param.requires_grad), lr=0.01
@@ -311,7 +301,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         ):
             # Run one training epoch and evaluate the validation loss.
             train_loss = run_epoch(
-                model, train_loader, args.epsilon, optimizer, args.steps_per_epoch
+                model, train_loader, args.epsilon, optimizer
             )["epoch_loss"]
 
             # Print parameter count after first epoch (when lazy layers are initialized)

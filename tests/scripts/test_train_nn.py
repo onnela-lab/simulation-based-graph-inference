@@ -6,7 +6,7 @@ from simulation_based_graph_inference import config
 from simulation_based_graph_inference.scripts import generate_data, train_nn
 
 
-def _check_result(filename: str, num_batches: int, batch_size: int) -> None:
+def _check_result(filename: str, num_batches: int, batch_size: int) -> dict:
     with open(filename, "rb") as fp:
         result = pickle.load(fp)
 
@@ -34,7 +34,6 @@ def _check_result(filename: str, num_batches: int, batch_size: int) -> None:
 )
 def test_train_nn(configuration: str, dense: str, conv: str, tmpwd: str) -> None:
     # Generate some data.
-    steps_per_epoch = 7
     batch_size = 13
     num_batches = 11
     args = dict2args(
@@ -59,7 +58,6 @@ def test_train_nn(configuration: str, dense: str, conv: str, tmpwd: str) -> None
         train="data",
         validation="data",
         test="data",
-        steps_per_epoch=steps_per_epoch,
         max_num_epochs=3,
     )
     train_nn.__main__(dict2args(args))
@@ -76,7 +74,6 @@ def test_train_nn(configuration: str, dense: str, conv: str, tmpwd: str) -> None
 
 def test_train_no_precomputed_clustering(tmpwd: str) -> None:
     # Generate some data.
-    steps_per_epoch = 7
     batch_size = 13
     num_batches = 11
     configuration = "duplication_complementation_graph"
@@ -102,7 +99,6 @@ def test_train_no_precomputed_clustering(tmpwd: str) -> None:
         train="data",
         validation="data",
         test="data",
-        steps_per_epoch=steps_per_epoch,
         max_num_epochs=3,
     )
     train_nn.__main__(dict2args(args))
