@@ -509,15 +509,15 @@ wheels = [
 
 [[package]]
 name = "cook-build"
-version = "0.7.3"
+version = "0.7.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama" },
     { name = "networkx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d2/c0/cd8da930402ac81788706e7633e85116d370f67e99be50abe473b582e2f0/cook_build-0.7.3.tar.gz", hash = "sha256:56f9f8e1c5d6120661c2dc7d719b49602d29e53e1125570b56eeb270f9033e54", size = 27876, upload-time = "2026-01-30T16:27:12.096Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/15/66053e5c7751185ff7120dd2bc0b3831ffd0544bf8163166c69ca99bef1e/cook_build-0.7.4.tar.gz", hash = "sha256:d2f9a78d90b02054f94d147cb55e4ab63573ae7f625159b927d4293c46c3dd82", size = 28922, upload-time = "2026-02-05T21:31:36.974Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/d9/c01aaa298caf0abfdfe03b4b40f76c70317ad833f913d043d478f1c51dd8/cook_build-0.7.3-py3-none-any.whl", hash = "sha256:b12a0a02ad6caccccb2ed96132b594d5763220f346966bef947335277a4a7712", size = 21666, upload-time = "2026-01-30T16:27:10.45Z" },
+    { url = "https://files.pythonhosted.org/packages/db/66/2b55c2bdc67f683e087cec738351798fcd5c110ac29a2b6a54b1f7c69a16/cook_build-0.7.4-py3-none-any.whl", hash = "sha256:3fe3acc7c3525c6c554c38d75923c3a2133ab77b15d876973ba1f169a49a0d69", size = 22243, upload-time = "2026-02-05T21:31:34.8Z" },
 ]
 
 [[package]]
@@ -2816,7 +2816,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "cook-build", specifier = ">=0.7.3" },
+    { name = "cook-build", specifier = ">=0.7.4" },
     { name = "doit-interface", specifier = ">=0.1.10" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "jupytext", specifier = ">=1.17.3" },

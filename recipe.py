@@ -3,7 +3,7 @@ import itertools as it
 import os
 from pathlib import Path
 
-from cook import create_task
+from cook import create_task, dict2args
 
 from simulation_based_graph_inference.config import GENERATOR_CONFIGURATIONS
 
@@ -17,21 +17,6 @@ os.environ.update(
         "MKL_NUM_THREADS": "1",
     }
 )
-
-
-def dict2args(**kwargs) -> list[str]:
-    """Convert keyword arguments to command-line arguments."""
-    args = []
-    for key, value in kwargs.items():
-        key = key.replace("_", "-")
-        if isinstance(value, bool):
-            if value:
-                args.append(f"--{key}")
-        elif isinstance(value, (list, tuple)):
-            args.append(f"--{key}={','.join(map(str, value))}")
-        else:
-            args.append(f"--{key}={value}")
-    return args
 
 
 # Generator configurations for which we run all architectures. This should include one from each
