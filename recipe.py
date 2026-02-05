@@ -1,10 +1,37 @@
 # type: ignore
-import doit_interface as di
-from doit_interface import dict2args
 import itertools as it
 import os
-import pathlib
+from pathlib import Path
+
+from cook import create_task
+
 from simulation_based_graph_inference.config import GENERATOR_CONFIGURATIONS
+
+
+# Prevent each process from parallelizing which can lead to competition across processes.
+os.environ.update(
+    {
+        "NUMEXPR_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+    }
+)
+
+
+def dict2args(**kwargs) -> list[str]:
+    """Convert keyword arguments to command-line arguments."""
+    args = []
+    for key, value in kwargs.items():
+        key = key.replace("_", "-")
+        if isinstance(value, bool):
+            if value:
+                args.append(f"--{key}")
+        elif isinstance(value, (list, tuple)):
+            args.append(f"--{key}={','.join(map(str, value))}")
+        else:
+            args.append(f"--{key}={value}")
+    return args
 
 
 # Generator configurations for which we run all architectures. This should include one from each
@@ -20,19 +47,7 @@ REFERENCE_CONFIGURATIONS = [
     # "latent_space_graph",
     "newman_watts_strogatz_graph",
 ]
-ROOT = pathlib.Path("workspace")
-DOIT_CONFIG = di.DOIT_CONFIG
-manager = di.Manager.get_instance()
-
-# Prevent each process from parallelizing which can lead to competition across processes.
-di.SubprocessAction.set_global_env(
-    {
-        "NUMEXPR_NUM_THREADS": 1,
-        "OPENBLAS_NUM_THREADS": 1,
-        "OMP_NUM_THREADS": 1,
-        "MKL_NUM_THREADS": 1,
-    }
-)
+ROOT = Path("workspace")
 
 # Load basic configuration from the environment.
 CONFIG = {
@@ -41,7 +56,7 @@ CONFIG = {
     "NUM_NODES": (int, 1000),
 }
 CONFIG = {
-    key: type(os.environ.get(key, default)) for key, (type, default) in CONFIG.items()
+    key: type_(os.environ.get(key, default)) for key, (type_, default) in CONFIG.items()
 }
 
 # Set up different architecture specifications that we would like to compare.
@@ -50,16 +65,7 @@ SEEDS = range(CONFIG["NUM_SEEDS"])
 
 # This is the architecture we apply to all generators, not just the reference generators.
 REFERENCE_ARCHITECTURES = {
-    # "residual-identity-gin-narrow",
-    # "gin-narrow",
-    "residual-scalar-gin-narrow",
-    "residual-scalar-gin-narrow-small-init",
-    "residual-scalar-gin-narrow-last",
-    "residual-scalar-gin-narrow-last-small-init",
-    "residual-scalar-gin-narrow-no-final-act",
-    "residual-scalar-gin-narrow-small-init-no-final-act",
     "residual-scalar-gin-narrow-last-no-final-act",
-    "residual-scalar-gin-narrow-last-small-init-no-final-act",
     "residual-scalar-gin-narrow-last-no-final-act-fixed",
 }
 ARCHITECTURE_SPECIFICATIONS = {}
@@ -199,9 +205,11 @@ SPLITS = {
     "debug": 100,
 }
 
-reference_configurations = di.group_tasks("reference_configurations")
-reference_architecture = di.group_tasks("reference_architecture")
-transfer_learning = di.group_tasks("transfer_learning")
+
+# Collect tasks for groups (we'll create group tasks at the end)
+reference_configuration_tasks = []
+reference_architecture_tasks = []
+
 
 for configuration in GENERATOR_CONFIGURATIONS:
     # Generate the data.
@@ -215,7 +223,7 @@ for configuration in GENERATOR_CONFIGURATIONS:
         target = directory / "meta.json"
         datasets.append(target)
         args = [
-            "$!",
+            "python",
             "-m",
             "simulation_based_graph_inference.scripts.generate_data",
         ] + dict2args(
@@ -226,11 +234,9 @@ for configuration in GENERATOR_CONFIGURATIONS:
             num_batches=num_samples // BATCH_SIZE,
             num_nodes=CONFIG["NUM_NODES"],
         )
-        manager(
-            basename=data_basename,
-            name=split,
-            actions=[args],
-            uptodate=[True],
+        create_task(
+            f"{data_basename}:{split}",
+            action=args,
             targets=[target],
         )
 
@@ -256,54 +262,21 @@ for configuration in GENERATOR_CONFIGURATIONS:
                 if split != "debug"
             }
         )
-        args = ["$!", "-m", "simulation_based_graph_inference.scripts.train_nn"]
-        task = manager(
-            basename=basename,
-            name=name,
-            actions=[args + dict2args(kwargs)],
+        args = [
+            "python",
+            "-m",
+            "simulation_based_graph_inference.scripts.train_nn",
+        ] + dict2args(**kwargs)
+        task = create_task(
+            f"{basename}:{name}",
+            action=args,
             targets=[target],
-            uptodate=[True],
-            file_dep=datasets,
+            dependencies=datasets,
         )
         if configuration in REFERENCE_CONFIGURATIONS:
-            reference_configurations(task)
+            reference_configuration_tasks.append(task)
         if architecture in REFERENCE_ARCHITECTURES:
-            reference_architecture(task)
-
-        # NOTE: Do not run transfer learning.
-        continue
-
-        # Skip transfer learning if this is not the reference configuration.
-        if architecture not in REFERENCE_ARCHITECTURES:
-            continue
-
-        # Run transfer learning for this configuration given features extractetd from all other
-        # models. This may seem reversed from what we'd actually do in terms of procedural
-        # execution, but we're only declaring tasks here. I.e., `transfer_configuration` is the
-        # model that extracts the features.
-        for transfer_configuration in GENERATOR_CONFIGURATIONS:
-            # Don't need to do transfer learning if the two configurations are the same.
-            if transfer_configuration == configuration:
-                continue
-            other_basename = f"{transfer_configuration}/{architecture}/{depth}"
-            other_target = ROOT / f"{other_basename}/{name}.pkl"
-            kwargs["conv"] = f"file:{other_target}"
-            kwargs["dense"] = f"file:{other_target}"
-
-            transfer_basename = (
-                f"{configuration}/transfer/{transfer_configuration}/"
-                f"{architecture}/{depth}"
-            )
-            transfer_target = ROOT / f"{transfer_basename}/{name}.pkl"
-            kwargs["result"] = transfer_target
-            task = manager(
-                basename=transfer_basename,
-                name=name,
-                actions=[args + dict2args(kwargs)],
-                targets=[transfer_target],
-                file_dep=datasets + [other_target],
-            )
-            transfer_learning(task)
+            reference_architecture_tasks.append(task)
 
 
 # Inference for trees using a different method to compare with.
@@ -311,15 +284,15 @@ config = "gn_graph"
 test_data = ROOT / config / "data/test"
 target = ROOT / config / "cantwell/result.pkl"
 args = [
-    "$!",
+    "python",
     "-m",
     "simulation_based_graph_inference.scripts.infer_tree_kernel",
 ] + dict2args(test=test_data, result=target)
-manager(
-    basename=f"{config}/cantwell",
-    file_dep=[test_data / "meta.json"],
+create_task(
+    f"{config}/cantwell",
+    dependencies=[test_data / "meta.json"],
     targets=[target],
-    actions=[args],
+    action=args,
 )
 
 
@@ -328,15 +301,15 @@ config = "latent_space_graph"
 test_data = ROOT / config / "data/test"
 target = ROOT / config / "mcmc/result.pkl"
 args = [
-    "$!",
+    "python",
     "-m",
     "simulation_based_graph_inference.scripts.infer_latent_space_params",
 ] + dict2args(test=test_data, result=target)
-manager(
-    basename=f"{config}/mcmc",
-    file_dep=[test_data / "meta.json"],
+create_task(
+    f"{config}/mcmc",
+    dependencies=[test_data / "meta.json"],
     targets=[target],
-    actions=[args],
+    action=args,
 )
 
 
@@ -344,28 +317,47 @@ manager(
 for configuration in GENERATOR_CONFIGURATIONS:
     basename = f"profile/{configuration}"
     target = ROOT / f"{basename}.prof"
-    args = ["$!", "-m", "cProfile", "-o", "$@", "$^"] + dict2args(
-        configuration=configuration, num_nodes=CONFIG["NUM_NODES"]
-    )
-    manager(
-        basename=basename,
-        name="prof",
+    profile_script = Path("src/simulation_based_graph_inference/scripts/profile.py")
+    args = [
+        "python",
+        "-m",
+        "cProfile",
+        "-o",
+        str(target),
+        str(profile_script),
+    ] + dict2args(configuration=configuration, num_nodes=CONFIG["NUM_NODES"])
+    create_task(
+        f"{basename}:prof",
         targets=[target],
-        actions=[args],
-        file_dep=["src/simulation_based_graph_inference/scripts/profile.py"],
+        action=args,
+        dependencies=[profile_script],
     )
 
     target = ROOT / f"{basename}.lineprof"
-    actions = [
-        f"$! -m kernprof -l -z -o $@.tmp $^ --configuration={configuration} "
-        f"--num_nodes={CONFIG['NUM_NODES']}",  # noqa: E131
-        "$! -m line_profiler $@.tmp > $@",
-        "rm -f $@.tmp",
-    ]
-    manager(
-        basename=basename,
-        name="lineprof",
+    # Line profiling requires sequential commands, so use shell action
+    action = (
+        f"python -m kernprof -l -z -o {target}.tmp {profile_script} "
+        f"--configuration={configuration} --num_nodes={CONFIG['NUM_NODES']} && "
+        f"python -m line_profiler {target}.tmp > {target} && "
+        f"rm -f {target}.tmp"
+    )
+    create_task(
+        f"{basename}:lineprof",
         targets=[target],
-        actions=actions,
-        file_dep=["simulation_based_graph_inference/scripts/profile.py"],
+        action=action,
+        dependencies=[profile_script],
+    )
+
+
+# Create group tasks for convenience.
+if reference_configuration_tasks:
+    create_task(
+        "reference_configurations",
+        task_dependencies=reference_configuration_tasks,
+    )
+
+if reference_architecture_tasks:
+    create_task(
+        "reference_architecture",
+        task_dependencies=reference_architecture_tasks,
     )
