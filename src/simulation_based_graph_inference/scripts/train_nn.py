@@ -1,5 +1,6 @@
 import contextlib
 from datetime import datetime
+import numpy as np
 import pickle
 import torch as th
 from torch_geometric import nn as tgnn
@@ -303,6 +304,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
             train_loss = run_epoch(model, train_loader, args.epsilon, optimizer)[
                 "epoch_loss"
             ]
+            assert np.isfinite(train_loss), f"Loss is not finite: {train_loss}"
 
             # Print parameter count after first epoch (when lazy layers are initialized)
             if not params_printed:
