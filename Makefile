@@ -1,6 +1,6 @@
-.PHONY : docs doctests lint sync tests clean clean-docs doit-list
+.PHONY : docs doctests lint sync tests clean clean-docs cook-list
 
-build : lint tests docs doctests doit-list
+build : lint tests docs doctests cook-list
 
 lint :
 	ruff format --check .
@@ -29,5 +29,5 @@ clean-docs :
 	rm -rf docs/_build
 	${MAKE} docs
 
-doit-list : dodo.py
-	doit list
+cook-list : recipe.py
+	cook ls '*'

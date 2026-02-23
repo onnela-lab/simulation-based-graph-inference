@@ -1,4 +1,4 @@
-from doit_interface import dict2args
+from cook import dict2args
 import os
 import pickle
 import pytest

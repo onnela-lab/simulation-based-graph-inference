@@ -1,4 +1,4 @@
-from doit_interface import dict2args
+from cook import dict2args
 import numpy as np
 import pickle
 import pytest
@@ -60,13 +60,13 @@ def test_train_nn(configuration: str, dense: str, conv: str, tmpwd: str) -> None
         test="data",
         max_num_epochs=3,
     )
-    train_nn.__main__(dict2args(args))
+    train_nn.__main__(dict2args(**args))
     _check_result(filename, batch_size, num_batches)
 
     # Apply transfer learning using the other configuration.
     filename = "transfer_result.pkl"
     args.update(conv="file:result.pkl", dense="file:result.pkl", result=filename)
-    train_nn.__main__(dict2args(args))
+    train_nn.__main__(dict2args(**args))
     result = _check_result(filename, batch_size, num_batches)
     assert result["dense"] == "file:result.pkl"
     assert result["conv"] == "file:result.pkl"
@@ -101,5 +101,5 @@ def test_train_no_precomputed_clustering(tmpwd: str) -> None:
         test="data",
         max_num_epochs=3,
     )
-    train_nn.__main__(dict2args(args))
+    train_nn.__main__(dict2args(**args))
     _check_result(filename, batch_size, num_batches)
