@@ -1,4 +1,4 @@
-from doit_interface import dict2args
+from cook import dict2args
 import pytest
 from simulation_based_graph_inference import config
 from simulation_based_graph_inference.scripts import profile
