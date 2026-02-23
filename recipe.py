@@ -281,23 +281,6 @@ create_task(
 )
 
 
-# Monte Carlo sampling for the latent space model.
-config = "latent_space_graph"
-test_data = ROOT / config / "data/test"
-target = ROOT / config / "mcmc/result.pkl"
-args = [
-    "python",
-    "-m",
-    "simulation_based_graph_inference.scripts.infer_latent_space_params",
-] + dict2args(test=test_data, result=target)
-create_task(
-    f"{config}/mcmc",
-    dependencies=[test_data / "meta.json"],
-    targets=[target],
-    action=args,
-)
-
-
 # Profiling targets.
 for configuration in GENERATOR_CONFIGURATIONS:
     basename = f"profile/{configuration}"
