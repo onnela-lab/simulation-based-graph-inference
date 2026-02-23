@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "simulation_based_graph_inference"
 version = "0.1"
 dependencies = [
-    "cmdstanpy>=1.2.5",
     "collectiontools>=0.2.0",
     "fasttr",
     "matplotlib>=3.10.6",
