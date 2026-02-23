@@ -86,6 +86,22 @@ class Configuration:
                     scale=th.nn.LazyLinear(1),
                     constraint_transforms={"scale": softplus},
                 )
+            elif isinstance(constraint, constraints.interval):
+                estimator[name] = DistributionModule(
+                    th.distributions.Beta,
+                    concentration0=th.nn.LazyLinear(1),
+                    concentration1=th.nn.LazyLinear(1),
+                    constraint_transforms={
+                        "concentration0": softplus,
+                        "concentration1": softplus,
+                    },
+                    transforms=[
+                        th.distributions.AffineTransform(
+                            loc=constraint.lower_bound,
+                            scale=constraint.upper_bound - constraint.lower_bound,
+                        )
+                    ],
+                )
             else:
                 raise NotImplementedError(f"{constraint} constraint is not supported")
         return th.nn.ModuleDict(estimator)
@@ -192,6 +208,10 @@ GENERATOR_CONFIGURATIONS = {
     # ),
     "gn_graph": Configuration(
         {"gamma": th.distributions.Beta(1, 1)},
+        _gn_graph,
+    ),
+    "gn_graph02": Configuration(
+        {"gamma": th.distributions.Uniform(0, 2)},
         _gn_graph,
     ),
     # "latent_space_graph": Configuration(
