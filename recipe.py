@@ -272,7 +272,7 @@ for config in ["gn_graph02", "gn_graph"]:
         "python",
         "-m",
         "simulation_based_graph_inference.scripts.infer_tree_kernel",
-    ] + dict2args(test=test_data, result=target)
+    ] + dict2args(test=test_data, result=target, config=config)
     create_task(
         f"{config}/cantwell",
         dependencies=[test_data / "meta.json"],
