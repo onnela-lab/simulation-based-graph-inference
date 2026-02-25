@@ -44,7 +44,10 @@ class TreeKernelPosterior:
             optimize.minimize_scalar(
                 lambda gamma: -self.log_target(gamma),
                 method="bounded",
-                bounds=[self.support.lower_bound, self.support.upper_bound],
+                bounds=[
+                    float(self.support.lower_bound),
+                    float(self.support.upper_bound),
+                ],
             ),
         )
         assert result.success
@@ -82,7 +85,7 @@ class TreeKernelPosterior:
         """
         Evaluate the log posterior.
         """
-        if isinstance(gamma, float):
+        if np.ndim(gamma) == 0:
             return self.log_target(gamma) - self.log_norm
         return np.reshape([self.log_prob(x) for x in np.ravel(gamma)], np.shape(gamma))
 
@@ -93,9 +96,10 @@ def __main__(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--result", help="path at which to store evaluation on test set", required=True
     )
+    parser.add_argument("--config", choices={"gn_graph", "gn_graph02"})
     args = parser.parse_args(argv)
 
-    prior = GENERATOR_CONFIGURATIONS["gn_graph"].priors["gamma"]
+    prior = GENERATOR_CONFIGURATIONS[args.config].priors["gamma"]
     # Use 101 elements just to catch accidental issues with tensor shapes.
     assert isinstance(prior.support, constraints.interval), (
         f"Interval support required, got: {prior.support}"
