@@ -21,6 +21,7 @@ dev = [
     "cook-build>=0.7.4",
     "jupyter>=1.1.1",
     "jupytext>=1.17.3",
+    "line-profiler>=5.0.2",
     "localscope>=0.2.5",
     "pyright>=1.1.407",
     "pytest>=8.4.2",
