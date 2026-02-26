@@ -50,59 +50,100 @@ SEEDS = range(CONFIG["NUM_SEEDS"])
 
 # This is the architecture we apply to all generators, not just the reference generators.
 REFERENCE_ARCHITECTURES = {
-    "residual-scalar-gin-narrow-last-no-final-act",
-    "residual-scalar-gin-narrow-last-no-final-act-fixed",
+    "conv_8x2_res_scalar-dense_8x2_res_scalar_comp_depth-pool_last-no_final_act-init_normal",
+    "conv_8x2_res_scalar-dense_8x2_res_scalar_fixed_depth-pool_last-no_final_act-init_normal",
 }
 ARCHITECTURE_SPECIFICATIONS = {}
 for depth in DEPTHS:
     # Create simple convolutional isomorphism layers with normalization for all but the first layer.
     conv = ["simple"] + ["norm"] * (depth - 1) if depth else ["none"]
-    ARCHITECTURE_SPECIFICATIONS[("simple-narrow", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        (
+            "conv_simple_norm-dense_8x2-pool_concat-final_act-init_normal",
+            f"depth_{depth}",
+        )
+    ] = {
         "dense": "8,8",
         "conv": conv,
     }
-    ARCHITECTURE_SPECIFICATIONS[("simple-deep", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        (
+            "conv_simple_norm-dense_8x4-pool_concat-final_act-init_normal",
+            f"depth_{depth}",
+        )
+    ] = {
         "dense": "8,8,8,8",
         "conv": conv,
     }
-    ARCHITECTURE_SPECIFICATIONS[("simple-wide", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        (
+            "conv_simple_norm-dense_64x2-pool_concat-final_act-init_normal",
+            f"depth_{depth}",
+        )
+    ] = {
         "dense": "64,64",
         "conv": conv,
     }
 
     # Create convolutional isomorphism layers with two-layer dense networks after each layer.
-    ARCHITECTURE_SPECIFICATIONS[("gin-narrow", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        ("conv_8x2-dense_8x2-pool_concat-final_act-init_normal", f"depth_{depth}")
+    ] = {
         "dense": "8,8",
         "conv": ["8,8"] * depth if depth else ["none"],
     }
-    ARCHITECTURE_SPECIFICATIONS[("gin-narrow-dropout", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        (
+            "conv_8x2_dropout-dense_8x2-pool_concat-final_act-init_normal",
+            f"depth_{depth}",
+        )
+    ] = {
         "dense": "8,8",
         "conv": (["8,8"] * depth if depth else ["none"]) + ["dropout-0.5"],
     }
-    ARCHITECTURE_SPECIFICATIONS[("residual-identity-gin-narrow", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        (
+            "conv_8x2_res_identity-dense_8x2-pool_concat-final_act-init_normal",
+            f"depth_{depth}",
+        )
+    ] = {
         "dense": "8,8",
         "conv": ["res-identity-8,8"] * depth if depth else ["none"],
     }
-    ARCHITECTURE_SPECIFICATIONS[("residual-scalar-gin-narrow", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        (
+            "conv_8x2_res_scalar-dense_8x2-pool_concat-final_act-init_normal",
+            f"depth_{depth}",
+        )
+    ] = {
         "dense": "8,8",
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
     }
     ARCHITECTURE_SPECIFICATIONS[
-        ("residual-scalar-gin-narrow-small-init", f"depth-{depth}")
+        (
+            "conv_8x2_res_scalar-dense_8x2-pool_concat-final_act-init_small",
+            f"depth_{depth}",
+        )
     ] = {
         "dense": "8,8",
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
         "init-scale": 0.01,
     }
     ARCHITECTURE_SPECIFICATIONS[
-        ("residual-scalar-gin-narrow-no-final-act", f"depth-{depth}")
+        (
+            "conv_8x2_res_scalar-dense_8x2-pool_concat-no_final_act-init_normal",
+            f"depth_{depth}",
+        )
     ] = {
         "dense": "8,8",
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
         "final-activation": False,
     }
     ARCHITECTURE_SPECIFICATIONS[
-        ("residual-scalar-gin-narrow-small-init-no-final-act", f"depth-{depth}")
+        (
+            "conv_8x2_res_scalar-dense_8x2-pool_concat-no_final_act-init_small",
+            f"depth_{depth}",
+        )
     ] = {
         "dense": "8,8",
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
@@ -120,14 +161,20 @@ for depth in DEPTHS:
     dense_blocks = ["res-scalar-8,8"] * num_dense_blocks
     dense_spec = "_".join(dense_blocks)
     ARCHITECTURE_SPECIFICATIONS[
-        ("residual-scalar-gin-narrow-last", f"depth-{depth}")
+        (
+            "conv_8x2_res_scalar-dense_8x2_res_scalar_comp_depth-pool_last-final_act-init_normal",
+            f"depth_{depth}",
+        )
     ] = {
         "dense": dense_spec,
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
         "pooling": "last",
     }
     ARCHITECTURE_SPECIFICATIONS[
-        ("residual-scalar-gin-narrow-last-small-init", f"depth-{depth}")
+        (
+            "conv_8x2_res_scalar-dense_8x2_res_scalar_comp_depth-pool_last-final_act-init_small",
+            f"depth_{depth}",
+        )
     ] = {
         "dense": dense_spec,
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
@@ -135,7 +182,10 @@ for depth in DEPTHS:
         "init-scale": 0.01,
     }
     ARCHITECTURE_SPECIFICATIONS[
-        ("residual-scalar-gin-narrow-last-no-final-act", f"depth-{depth}")
+        (
+            "conv_8x2_res_scalar-dense_8x2_res_scalar_comp_depth-pool_last-no_final_act-init_normal",
+            f"depth_{depth}",
+        )
     ] = {
         "dense": dense_spec,
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
@@ -143,7 +193,10 @@ for depth in DEPTHS:
         "final-activation": False,
     }
     ARCHITECTURE_SPECIFICATIONS[
-        ("residual-scalar-gin-narrow-last-small-init-no-final-act", f"depth-{depth}")
+        (
+            "conv_8x2_res_scalar-dense_8x2_res_scalar_comp_depth-pool_last-no_final_act-init_small",
+            f"depth_{depth}",
+        )
     ] = {
         "dense": dense_spec,
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
@@ -152,14 +205,19 @@ for depth in DEPTHS:
         "final-activation": False,
     }
     ARCHITECTURE_SPECIFICATIONS[
-        ("residual-scalar-gin-narrow-last-no-final-act-fixed", f"depth-{depth}")
+        (
+            "conv_8x2_res_scalar-dense_8x2_res_scalar_fixed_depth-pool_last-no_final_act-init_normal",
+            f"depth_{depth}",
+        )
     ] = {
         "dense": "res-scalar-8,8_res-scalar-8,8",
         "conv": ["res-scalar-8,8"] * depth if depth else ["none"],
         "pooling": "last",
         "final-activation": False,
     }
-    ARCHITECTURE_SPECIFICATIONS[("gin-medium", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        ("conv_16x2-dense_16x2-pool_concat-final_act-init_normal", f"depth_{depth}")
+    ] = {
         "dense": "16,16",
         "conv": ["16,16"] * depth if depth else ["none"],
     }
@@ -173,7 +231,12 @@ for depth in DEPTHS:
         conv.append("dropout-0.5")
     else:
         conv = ["none"]
-    ARCHITECTURE_SPECIFICATIONS[("gin-narrow-clustering", f"depth-{depth}")] = {
+    ARCHITECTURE_SPECIFICATIONS[
+        (
+            "conv_8x2_dropout-dense_8x2-pool_concat-final_act-init_normal-with_clustering",
+            f"depth_{depth}",
+        )
+    ] = {
         # We may want slightly deeper dense network if we're injecting the clustering because it's
         # an "engineered" feature.
         "dense": "8,8",
@@ -235,7 +298,7 @@ for configuration in GENERATOR_CONFIGURATIONS:
             and configuration not in REFERENCE_CONFIGURATIONS
         ):
             continue
-        name = f"seed-{seed}"
+        name = f"seed_{seed}"
         basename = f"{configuration}/{architecture}/{depth}"
         target = ROOT / f"{basename}/{name}.pkl"
         kwargs = (
