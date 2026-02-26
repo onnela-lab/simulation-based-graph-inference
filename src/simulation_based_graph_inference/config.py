@@ -133,45 +133,68 @@ def _gn_graph(num_nodes: int, gamma: float, **kwargs) -> nx.Graph:
 # Mapping from configuration name to generator function and constant arguments, i.e., not dependent
 # on the prior. TODO: reinstate some of the missing generators as `Configuration` objects.
 GENERATOR_CONFIGURATIONS = {
-    # "poisson_random_attachment_graph": Configuration(
-    #     {"rate": th.distributions.Gamma(2, 1)},
-    #     _poisson_random_attachment_graph,
-    #     localization=0,
-    # ),
+    # Random attachment with Poisson-distributed degree. Gamma(2,1) gives mean=2 attachments.
+    "poisson_random_attachment_graph": Configuration(
+        {"rate": th.distributions.Gamma(2, 1)},
+        _poisson_random_attachment_graph,
+        localization=0,
+    ),
+    # Erdos-Renyi random graph. Uniform prior explores full density range.
+    # Reference: Erdos & Renyi (1959) https://doi.org/10.5486/PMD.1959.6.3-4.12
     "random_connection_graph": Configuration(
         {"proba": th.distributions.Beta(1, 1)},
         generators.random_connection_graph,
         localization=0,
     ),
+    # Small-world properties emerge at p ~ 0.01-0.1. Beta(1,9) concentrates mass there (mean=0.1).
+    # Reference: Newman & Watts (1999) https://doi.org/10.1016/S0375-9601(99)00757-4
     "newman_watts_strogatz_graph": Configuration(
-        {"p": th.distributions.Beta(1, 1)},
+        {"p": th.distributions.Beta(1, 9)},
         nx.newman_watts_strogatz_graph,
         {"k": 5},
         localization=0,
     ),
+    # Redirection model for web/citation networks. Beta(2,2) concentrates in [0.2, 0.8].
+    # Reference: Krapivsky & Redner (2001) https://doi.org/10.1103/PhysRevE.63.066123
     "redirection_graph": Configuration(
-        {"redirection_proba": th.distributions.Beta(1, 1)},
+        {"redirection_proba": th.distributions.Beta(2, 2)},
         generators.redirection_graph,
         {"max_num_connections": 1},
         localization=1,
     ),
+    # Phase transition at p=0.5: sparse networks for p<0.5, dense for p>=0.5.
+    # Beta(2,5) mean=0.29, keeps mass in sparse regime. ABC studies use Uniform[0.15, 0.35].
+    # References:
+    # - Lambiotte et al. (2016) https://doi.org/10.1103/PhysRevLett.117.218301
+    # - Sheridan et al. (2022) https://doi.org/10.1214/22-BA1321
     "copy_graph": Configuration(
-        {"copy_proba": th.distributions.Beta(1, 2)},
+        {"copy_proba": th.distributions.Beta(2, 5)},
         generators.copy_graph,
         localization=1,
     ),
+    # Duplication-mutation model for PPI networks.
+    # - mutation_proba: typically 0.1-0.5, Beta(2,3) mean=0.4
+    # - divergence_proba: ~0.6 from fitting to yeast/fly/human PPI, Beta(3,2) mean=0.6
+    # References:
+    # - Vazquez et al. (2003) https://doi.org/10.1159/000067642
+    # - Ispolatov et al. (2005) https://doi.org/10.1103/PhysRevE.71.061911
     "duplication_mutation_graph": Configuration(
         {
-            "mutation_proba": th.distributions.Beta(1, 2),
-            "divergence_proba": th.distributions.Beta(2, 1),
+            "mutation_proba": th.distributions.Beta(2, 3),
+            "divergence_proba": th.distributions.Beta(3, 2),
         },
         generators.duplication_mutation_graph,
         localization=1,
     ),
+    # Duplication-mutation with complementarity (DMC) model for PPI networks.
+    # - divergence_proba: ~0.6 from fitting to yeast/fly/human PPI, Beta(3,2) mean=0.6
+    # References:
+    # - Li et al. (2015) https://doi.org/10.1089/cmb.2015.0072
+    # - Ispolatov et al. (2005) https://doi.org/10.1103/PhysRevE.71.061911
     "duplication_complementation_graph": Configuration(
         {
-            "interaction_proba": th.distributions.Beta(1, 2),
-            "divergence_proba": th.distributions.Beta(2, 1),
+            "interaction_proba": th.distributions.Beta(2, 3),
+            "divergence_proba": th.distributions.Beta(3, 2),
         },
         generators.duplication_complementation_graph,
     ),
@@ -179,8 +202,10 @@ GENERATOR_CONFIGURATIONS = {
     # waxman_graph: (nx.waxman_graph, {}),
     # web_graph: (generators.web_graph, {"dist_degree_new": np.arange(3) == 2}),
     # planted_partition_graph: (_planted_partition_graph, {"num_groups": 2}),
+    # Small-world properties emerge at p ~ 0.01-0.1. Beta(1,9) mean=0.1.
+    # Reference: Watts & Strogatz (1998) https://doi.org/10.1038/30918
     "watts_strogatz_graph": Configuration(
-        {"p": th.distributions.Beta(1, 1)}, nx.watts_strogatz_graph, {"k": 5}
+        {"p": th.distributions.Beta(1, 9)}, nx.watts_strogatz_graph, {"k": 5}
     ),
     # latent_space_graph: (_latent_space_graph, {"dim": 2}),
     # Start with two connected nodes as described in 10.1155/2008/190836 for numerical experiments.
@@ -189,6 +214,8 @@ GENERATOR_CONFIGURATIONS = {
     # geographical_threshold_graph: (nx.geographical_threshold_graph, {}),
     # degree_attachment_graph: (generators.degree_attachment_graph, {"m": 4}),
     # rank_attachment_graph: (generators.rank_attachment_graph, {"m": 4}),
+    # Social network formation via random and network-based meetings.
+    # Reference: Jackson & Rogers (2007) https://doi.org/10.1257/aer.97.3.890
     "jackson_rogers_graph": Configuration(
         {
             "pr": th.distributions.Beta(1, 1),
@@ -206,10 +233,17 @@ GENERATOR_CONFIGURATIONS = {
     #     {"hop_proba": th.distributions.Beta(4, 2)},
     #     generators.surfer_graph,
     # ),
+    # Citation network with preferential attachment. gamma=1 is linear PA.
+    # Empirical estimates suggest gamma ~ 0.8-1.0 for most networks.
+    # Reference: Krapivsky et al. (2000) https://doi.org/10.1103/PhysRevLett.85.4629
     "gn_graph": Configuration(
         {"gamma": th.distributions.Beta(1, 1)},
         _gn_graph,
     ),
+    # Extended range gamma in [0, 2] for sub/superlinear attachment.
+    # gamma < 1: sublinear (stretched exponential degree dist)
+    # gamma > 1: superlinear (winner-take-all dynamics)
+    # Reference: Krapivsky et al. (2000) https://doi.org/10.1103/PhysRevLett.85.4629
     "gn_graph02": Configuration(
         {"gamma": th.distributions.Uniform(0, 2)},
         _gn_graph,
