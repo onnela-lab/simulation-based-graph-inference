@@ -16,9 +16,10 @@ def generator_configuration(request):
 def batch(generator_configuration: str) -> Data:
     configuration = config.GENERATOR_CONFIGURATIONS[generator_configuration]
     dataset = data.SimulatedDataset(data.generate_data, (configuration, 12))
-    loader = DataLoader(dataset, batch_size=32)
+    loader = DataLoader(dataset, batch_size=32)  # type: ignore[arg-type]
     for batch in loader:
         return batch
+    raise RuntimeError("No batch generated")
 
 
 MODEL_CONFIGURATIONS = [
@@ -58,11 +59,13 @@ MODEL_CONFIGURATIONS = [
 
 @pytest.mark.parametrize("model_configuration", MODEL_CONFIGURATIONS)
 def test_model_with_architectures(
-    generator_configuration: str, batch, model_configuration: str
+    generator_configuration: str, batch, model_configuration: dict
 ):
     dists = config.GENERATOR_CONFIGURATIONS[generator_configuration].create_estimator()
     model = models.Model(
-        model_configuration["conv"], model_configuration["dense"], dists
+        model_configuration["conv"],
+        model_configuration["dense"],
+        dists,  # type: ignore[arg-type]
     )
 
     # Check that the features for the initial and transformed graph representation are on a sensible
@@ -86,7 +89,7 @@ def test_normalize_mean_degree(batch):
     conv = [
         models.Normalize(tgnn.GINConv(lambda x: x), "mean_degree+1"),
     ]
-    model = models.Model(conv, None, None)
+    model = models.Model(conv, None, None)  # type: ignore[arg-type]
     graph_features = model.evaluate_graph_features(batch)
     th.testing.assert_close(graph_features, th.ones((batch.num_graphs, 1)))
 
@@ -113,13 +116,14 @@ def test_distribution_module():
 
 
 def test_residual_module(batch: Data) -> None:
+    assert batch.num_nodes is not None
     residual = models.Residual(lambda x, edge_index: 0)
-    x = th.randn((batch.num_nodes, 3))
+    x = th.randn(batch.num_nodes, 3)
     np.testing.assert_allclose(x, residual(x, batch.edge_index))
 
     residual = models.Residual(lambda x, edge_index: 2, method="scalar")
     residual._scalar = th.nn.Parameter(7 * th.ones([]))
-    x = th.randn((batch.num_nodes, 3))
+    x = th.randn(batch.num_nodes, 3)
     np.testing.assert_allclose(2 + 7 * x, residual(x, batch.edge_index).detach())
 
 

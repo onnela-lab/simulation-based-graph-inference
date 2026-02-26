@@ -45,7 +45,7 @@ def test_interleaved_dataset(longest):
     datasets = [
         TensorDataset(i * th.ones((10 + i, 3)), i * th.ones(10 + i)) for i in range(5)
     ]
-    interleaved = data.InterleavedDataset(datasets, longest)
+    interleaved = data.InterleavedDataset(datasets, longest)  # type: ignore[arg-type]
 
     if longest:
         assert len(interleaved) == 60
@@ -66,7 +66,7 @@ def test_batched_dataset_generate(
     sequence = it.count()
     iterator = iter(sequence)
     meta = data.BatchedDataset.generate(
-        tmpwd, 3, 7, next, [iterator], progress=progress
+        pathlib.Path(tmpwd), 3, 7, next, [iterator], progress=progress
     )
 
     assert len(meta["filenames"]) == meta["num_batches"]
@@ -89,5 +89,8 @@ def test_batched_dataset_generate(
     # Check we get a complaint if the indices are wrong.
     with pytest.raises(ValueError):
         data.BatchedDataset(
-            tmpwd, num_concurrent, shuffle, index_batches=[None for _ in range(5)]
+            tmpwd,
+            num_concurrent,
+            shuffle,
+            index_batches=[None for _ in range(5)],  # type: ignore[list-item]
         )

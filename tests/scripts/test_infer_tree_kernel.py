@@ -20,7 +20,9 @@ def test_infer_tree_kernel(tmpwd: str):
         )
     )
     filename = os.path.join(tmpwd, "result.pkl")
-    infer_tree_kernel.__main__(dict2args(test=datadir, result=filename))
+    infer_tree_kernel.__main__(
+        dict2args(test=datadir, result=filename, config="gn_graph")
+    )
 
     with open(filename, "rb") as fp:
         result = pickle.load(fp)
@@ -32,5 +34,5 @@ def test_infer_tree_kernel(tmpwd: str):
 
     # Check true and inferred are correlated.
     pearsonr, pval = stats.pearsonr(result["gamma"], result["argmax"])
-    assert pearsonr > 0.5
-    assert pval < 0.1
+    assert pearsonr > 0.5  # type: ignore[operator]
+    assert pval < 0.1  # type: ignore[operator]

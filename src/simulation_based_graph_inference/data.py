@@ -3,7 +3,6 @@ from datetime import datetime
 import itertools as it
 import json
 import networkx as nx
-import numpy as np
 import pathlib
 import torch as th
 from torch_geometric.data import Data

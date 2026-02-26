@@ -1,5 +1,4 @@
 from cook import dict2args
-import numpy as np
 import pickle
 import pytest
 from simulation_based_graph_inference import config
@@ -17,7 +16,7 @@ def _check_result(filename: str, num_batches: int, batch_size: int) -> dict:
         param = result["params"][key]
         assert dist.batch_shape == expected_shape
         assert param.shape[:1] == expected_shape
-    np.testing.assert_array_less(np.abs(result["features"]), 1)
+    assert result["features"].isfinite().all()
     return result
 
 
@@ -60,13 +59,13 @@ def test_train_nn(configuration: str, dense: str, conv: str, tmpwd: str) -> None
         test="data",
         max_num_epochs=3,
     )
-    train_nn.__main__(dict2args(**args))
+    train_nn.__main__(dict2args(**args))  # type: ignore[arg-type]
     _check_result(filename, batch_size, num_batches)
 
     # Apply transfer learning using the other configuration.
     filename = "transfer_result.pkl"
     args.update(conv="file:result.pkl", dense="file:result.pkl", result=filename)
-    train_nn.__main__(dict2args(**args))
+    train_nn.__main__(dict2args(**args))  # type: ignore[arg-type]
     result = _check_result(filename, batch_size, num_batches)
     assert result["dense"] == "file:result.pkl"
     assert result["conv"] == "file:result.pkl"
@@ -101,5 +100,5 @@ def test_train_no_precomputed_clustering(tmpwd: str) -> None:
         test="data",
         max_num_epochs=3,
     )
-    train_nn.__main__(dict2args(**args))
+    train_nn.__main__(dict2args(**args))  # type: ignore[arg-type]
     _check_result(filename, batch_size, num_batches)

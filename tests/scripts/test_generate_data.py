@@ -17,7 +17,7 @@ def test_generate_data(tmpwd: str):
         )
     )
     dataset = BatchedDataset(tmpwd)
-    loader = DataLoader(dataset, batch_size=3)
+    loader = DataLoader(dataset, batch_size=3)  # type: ignore[arg-type]
     batch_size = 3
     for batch in loader:
         assert batch.num_nodes == num_nodes * batch_size

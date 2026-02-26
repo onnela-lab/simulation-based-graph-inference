@@ -116,9 +116,9 @@ def test_clustering_coefficient(directed: bool) -> None:
     if directed:
         pytest.xfail("directed doesn't seem to work; not a problem for our models")
     graph = nx.erdos_renyi_graph(100, 0.1, directed=directed)
-    expected = th.as_tensor(
-        [value for _, value in sorted(nx.clustering(graph).items())]
-    )
+    clustering = nx.clustering(graph)
+    assert isinstance(clustering, dict)
+    expected = th.as_tensor([value for _, value in sorted(clustering.items())])
     data = from_networkx(graph)
     actual = util.clustering_coefficient(data.edge_index, data.num_nodes)
     np.testing.assert_allclose(actual, expected)
