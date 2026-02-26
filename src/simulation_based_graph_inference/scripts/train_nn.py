@@ -1,4 +1,5 @@
 import contextlib
+import copy
 from datetime import datetime
 import numpy as np
 import pickle
@@ -102,10 +103,13 @@ def run_epoch(
 
 
 def dense_from_str(
-    layer: str, activation: typing.Callable, final_activation: bool
+    layer: str,
+    activation: typing.Callable,
+    final_activation: bool,
+    use_layer_norm: bool = False,
 ) -> th.nn.Module:
     return models.create_dense_nn(
-        map(int, layer.split(",")), activation, final_activation
+        map(int, layer.split(",")), activation, final_activation, use_layer_norm
     )
 
 
@@ -182,7 +186,8 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     args = parser.parse_args(argv)
 
     # Set up the convoluational network for node-level representations.
-    activation = th.nn.Tanh()
+    activation = th.nn.ReLU()
+    use_layer_norm = True
     conv: list[th.nn.Module] | th.nn.ModuleList | None
     if args.conv.startswith("none"):
         conv = None
@@ -210,10 +215,14 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
                 conv.append(th.nn.Dropout(float(proba)))
             elif layer.startswith("res"):
                 _, method, layer = layer.split("-")
-                nn = dense_from_str(layer, activation, args.final_activation)
+                nn = dense_from_str(
+                    layer, activation, args.final_activation, use_layer_norm
+                )
                 conv.append(models.Residual(tgnn.GINConv(nn), method=method))
             else:
-                nn = dense_from_str(layer, activation, args.final_activation)
+                nn = dense_from_str(
+                    layer, activation, args.final_activation, use_layer_norm
+                )
                 conv.append(tgnn.GINConv(nn))
 
     # Set up the dense network for transforming graph-level representations.
@@ -230,11 +239,15 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
             if block.startswith("res-"):
                 # Parse residual block: "res-scalar-8,8" -> residual around 2-layer MLP
                 _, method, layer = block.split("-", 2)
-                nn = dense_from_str(layer, activation, args.final_activation)
+                nn = dense_from_str(
+                    layer, activation, args.final_activation, use_layer_norm
+                )
                 dense_layers.append(models.DenseResidual(nn, method=method))
             else:
                 # Regular dense layers
-                nn = dense_from_str(block, activation, args.final_activation)
+                nn = dense_from_str(
+                    block, activation, args.final_activation, use_layer_norm
+                )
                 dense_layers.append(nn)
 
         # Combine into sequential or just use single module
@@ -291,6 +304,8 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
 
     losses = {}
     best_loss = float("inf")
+    best_conv = None
+    best_dense = None
     num_bad_epochs = 0
     epoch = 0
 
@@ -327,6 +342,8 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
 
             if validation_loss + 1e-6 < best_loss:
                 best_loss = validation_loss
+                best_conv = copy.deepcopy(model.conv)
+                best_dense = copy.deepcopy(model.dense)
                 num_bad_epochs = 0
             else:
                 num_bad_epochs += 1
@@ -336,15 +353,37 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
             )
             epoch += 1
 
-    # Evaluate on the test set using full batch evaluation.
+    # Evaluate on the test set using full batch evaluation with both last and best models.
     dataset = BatchedDataset(args.test, transform=ensure_long_edge_index)
+    test_loader = DataLoader(dataset, len(dataset))  # pyright: ignore[reportArgumentType]
     model.eval()
+
+    # Evaluate with last model (save references before potential swap).
+    last_conv = model.conv
+    last_dense = model.dense
     eval_start = datetime.now()
-    result = run_epoch(model, DataLoader(dataset, len(dataset)), epsilon=0)  # pyright: ignore[reportArgumentType]
+    last_result = run_epoch(model, test_loader, epsilon=0)
     eval_end = datetime.now()
-    print(f"Evaluation on test set took {eval_end - eval_start}.")
-    assert result["num_batches"] == 1, "got more than one evaluation batch"
-    assert result["log_prob"].shape == (len(dataset),)
+    last_eval_duration = (eval_end - eval_start).total_seconds()
+    print(f"Evaluation (last model) on test set took {eval_end - eval_start}.")
+    assert last_result["num_batches"] == 1, "got more than one evaluation batch"
+    assert last_result["log_prob"].shape == (len(dataset),)
+
+    # Evaluate with best model.
+    if best_conv is not None and best_dense is not None:
+        model.conv = best_conv
+        model.dense = best_dense
+        eval_start = datetime.now()
+        best_result = run_epoch(model, test_loader, epsilon=0)
+        eval_end = datetime.now()
+        best_eval_duration = (eval_end - eval_start).total_seconds()
+        print(f"Evaluation (best model) on test set took {eval_end - eval_start}.")
+        assert best_result["num_batches"] == 1, "got more than one evaluation batch"
+        assert best_result["log_prob"].shape == (len(dataset),)
+    else:
+        # No best model saved (e.g., loaded from file), use last as best.
+        best_result = last_result
+        best_eval_duration = last_eval_duration
 
     # Store the distributions, batch parameters, and the evaluated log probability.
     end = datetime.now()
@@ -354,15 +393,25 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         "start": start,
         "end": end,
         "duration": (end - start).total_seconds(),
-        "eval_duration": (eval_end - eval_start).total_seconds(),
-        "dists": result["dists"],
-        "params": {key: result["batch"][key] for key in result["dists"]},
-        "log_prob": result["log_prob"],
-        "features": result["features"],
+        "eval_duration": last_eval_duration,
+        "best_eval_duration": best_eval_duration,
+        # Results from last model.
+        "dists": last_result["dists"],
+        "params": {key: last_result["batch"][key] for key in last_result["dists"]},
+        "log_prob": last_result["log_prob"],
+        "features": last_result["features"],
+        # Results from best model.
+        "best_dists": best_result["dists"],
+        "best_params": {key: best_result["batch"][key] for key in best_result["dists"]},
+        "best_log_prob": best_result["log_prob"],
+        "best_features": best_result["features"],
+        # Training info.
         "num_epochs": epoch,
         "losses": {key: th.as_tensor(value) for key, value in losses.items()},
-        "conv": args.conv if args.conv.startswith("file:") else model.conv,
-        "dense": args.dense if args.dense.startswith("file:") else model.dense,
+        "conv": args.conv if args.conv.startswith("file:") else last_conv,
+        "dense": args.dense if args.dense.startswith("file:") else last_dense,
+        "best_conv": args.conv if args.conv.startswith("file:") else best_conv,
+        "best_dense": args.dense if args.dense.startswith("file:") else best_dense,
     }
     with open(args.result, "wb") as fp:
         pickle.dump(result, fp)

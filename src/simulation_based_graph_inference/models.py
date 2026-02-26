@@ -180,6 +180,7 @@ def create_dense_nn(
     units: typing.Iterable[int],
     activation: th.nn.Module | Callable,
     final_activation: bool,
+    use_layer_norm: bool = False,
 ) -> th.nn.Sequential:
     """
     Get a dense neural network with a given activation between layers.
@@ -188,6 +189,7 @@ def create_dense_nn(
         units: Number of units per layer.
         activation: Activation function between layers.
         final_activation: Whether to add an activation to the last layer.
+        use_layer_norm: Whether to add LayerNorm before each activation.
 
     Returns:
         dense: Dense neural network conforming to the inputs.
@@ -195,6 +197,8 @@ def create_dense_nn(
     layers = []
     for num in units:
         layers.append(th.nn.LazyLinear(num))
+        if use_layer_norm:
+            layers.append(th.nn.LayerNorm(num))
         layers.append(activation)
     if not final_activation:
         layers.pop(-1)
