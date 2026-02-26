@@ -4,6 +4,8 @@ build : lint tests docs doctests cook-list
 
 lint :
 	ruff format --check .
+	ruff check .
+	pyright
 
 tests :
 	CI=true pytest tests -v --cov=simulation_based_graph_inference \
