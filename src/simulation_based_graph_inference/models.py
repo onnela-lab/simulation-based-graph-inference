@@ -12,6 +12,44 @@ from .util import clustering_coefficient
 warnings.filterwarnings("ignore", message="Lazy modules are a new feature")
 
 
+class LogisticNormalModule(th.nn.Module):
+    """
+    Module that outputs a Logistic Normal distribution for bounded intervals.
+
+    The distribution is constructed as: Normal(loc, scale) → Sigmoid → AffineTransform.
+    This provides similar flexibility to Beta but with more stable gradients near boundaries.
+
+    Args:
+        lower: Lower bound of the interval.
+        upper: Upper bound of the interval.
+        min_scale: Minimum scale to ensure numerical stability.
+    """
+
+    def __init__(
+        self, lower: float = 0.0, upper: float = 1.0, min_scale: float = 0.1
+    ) -> None:
+        super().__init__()
+        self.lower = lower
+        self.upper = upper
+        self.min_scale = min_scale
+        self.loc_layer = th.nn.LazyLinear(1)
+        self.scale_layer = th.nn.LazyLinear(1)
+        self.softplus = th.nn.Softplus()
+
+    def forward(self, x: th.Tensor) -> th.distributions.Distribution:
+        loc = self.loc_layer(x).squeeze(-1)
+        scale = self.softplus(self.scale_layer(x).squeeze(-1)) + self.min_scale
+        return th.distributions.TransformedDistribution(
+            th.distributions.Normal(loc, scale),
+            [
+                th.distributions.transforms.SigmoidTransform(),
+                th.distributions.transforms.AffineTransform(
+                    self.lower, self.upper - self.lower
+                ),
+            ],
+        )
+
+
 class DistributionModule(th.nn.Module):
     """
     Module to obtain distributions.

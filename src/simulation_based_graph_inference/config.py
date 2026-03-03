@@ -9,7 +9,7 @@ import networkx as nx
 import torch as th
 from torch.distributions import constraints
 from typing import Any, Callable, Mapping, Optional
-from .models import DistributionModule
+from .models import DistributionModule, LogisticNormalModule
 from . import generators
 
 
@@ -52,7 +52,27 @@ class Configuration:
             return self.generator(num_nodes, **kwargs, **self.generator_kwargs)
         raise NotImplementedError
 
-    def create_estimator(self) -> th.nn.ModuleDict:
+    def create_estimator(
+        self, distribution: str = "logistic_normal"
+    ) -> th.nn.ModuleDict:
+        """
+        Create distribution estimator modules for each parameter.
+
+        Args:
+            distribution: Distribution type for bounded intervals. Options:
+                - "logistic_normal": Logistic Normal (Normal → Sigmoid → Affine).
+                  More stable gradients, lower variance across seeds. Default.
+                - "beta": Beta distribution. Flexible but has unbounded
+                  gradients near boundaries.
+
+        Returns:
+            Module dict mapping parameter names to distribution modules.
+        """
+        if distribution not in ("beta", "logistic_normal"):
+            raise ValueError(
+                f"distribution must be 'beta' or 'logistic_normal', got {distribution!r}"
+            )
+
         estimator = {}
         for name, constraint in self.parameter_constraints.items():
             # "Safe" softplus with small addition to avoid numerical issues.
@@ -63,15 +83,18 @@ class Configuration:
                 ]
             )
             if constraint is constraints.unit_interval:
-                estimator[name] = DistributionModule(
-                    th.distributions.Beta,
-                    concentration0=th.nn.LazyLinear(1),
-                    concentration1=th.nn.LazyLinear(1),
-                    constraint_transforms={
-                        "concentration0": softplus,
-                        "concentration1": softplus,
-                    },
-                )
+                if distribution == "logistic_normal":
+                    estimator[name] = LogisticNormalModule(lower=0.0, upper=1.0)
+                else:
+                    estimator[name] = DistributionModule(
+                        th.distributions.Beta,
+                        concentration0=th.nn.LazyLinear(1),
+                        concentration1=th.nn.LazyLinear(1),
+                        constraint_transforms={
+                            "concentration0": softplus,
+                            "concentration1": softplus,
+                        },
+                    )
             elif constraint in {constraints.nonnegative, constraints.positive}:
                 estimator[name] = DistributionModule(
                     th.distributions.Gamma,
@@ -87,21 +110,26 @@ class Configuration:
                     constraint_transforms={"scale": softplus},
                 )
             elif isinstance(constraint, constraints.interval):
-                estimator[name] = DistributionModule(
-                    th.distributions.Beta,
-                    concentration0=th.nn.LazyLinear(1),
-                    concentration1=th.nn.LazyLinear(1),
-                    constraint_transforms={
-                        "concentration0": softplus,
-                        "concentration1": softplus,
-                    },
-                    transforms=[
-                        th.distributions.AffineTransform(
-                            loc=constraint.lower_bound,
-                            scale=constraint.upper_bound - constraint.lower_bound,
-                        )
-                    ],
-                )
+                if distribution == "logistic_normal":
+                    estimator[name] = LogisticNormalModule(
+                        lower=constraint.lower_bound, upper=constraint.upper_bound
+                    )
+                else:
+                    estimator[name] = DistributionModule(
+                        th.distributions.Beta,
+                        concentration0=th.nn.LazyLinear(1),
+                        concentration1=th.nn.LazyLinear(1),
+                        constraint_transforms={
+                            "concentration0": softplus,
+                            "concentration1": softplus,
+                        },
+                        transforms=[
+                            th.distributions.AffineTransform(
+                                loc=constraint.lower_bound,
+                                scale=constraint.upper_bound - constraint.lower_bound,
+                            )
+                        ],
+                    )
             else:
                 raise NotImplementedError(f"{constraint} constraint is not supported")
         return th.nn.ModuleDict(estimator)
