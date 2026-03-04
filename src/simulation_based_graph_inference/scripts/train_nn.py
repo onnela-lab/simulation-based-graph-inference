@@ -379,6 +379,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         model.conv = best_conv
         model.dense = best_dense
         model.dists = best_dists
+        model.eval()
         eval_start = datetime.now()
         best_result = run_epoch(model, test_loader, epsilon=0)
         eval_end = datetime.now()
