@@ -87,7 +87,7 @@ def web_graph(
                 node = randint(rng, len(graph))
             else:
                 node = _sample_by_degree(rng, edges)
-            dist_degree = dist_degree_new
+            dist_degree = dist_degree_old
             proba_uniform = proba_uniform_old2
 
         # Sample degree and connect the node to sampled neighbors.

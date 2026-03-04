@@ -81,6 +81,8 @@ def duplication_complementation_graph(
             graph.add_edge(source, node)
 
         # Explicitly add the node. This is a no-op if the node has connections and adds it if not.
+        # Note: if no edges are added and add_isolated_nodes=False, len(graph) doesn't increase and
+        # the loop retries with a different random draw. This is intentional.
         if add_isolated_nodes:
             graph.add_node(node)
 

@@ -209,6 +209,9 @@ def jackson_rogers_graph(
         neighbors = rng.choice(list(neighbors), num_neighbors, replace=False)
         graph.add_edges_from((node, neighbor) for neighbor in neighbors)
 
+        # Note: if no edges are added, len(graph) doesn't increase and the loop retries with a
+        # different random draw. This is intentional—isolated nodes are not added to the graph.
+
     return graph
 
 
