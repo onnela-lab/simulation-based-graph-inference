@@ -136,7 +136,7 @@ def duplication_mutation_graph(
     """
     assert_interval("num_nodes", num_nodes, 0, None, inclusive_low=False)
     assert_interval("mutation_proba", mutation_proba, 0, 1)
-    assert_interval("divergence_proba", divergence_proba, 0, 1)
+    assert_interval("divergence_proba", divergence_proba, 0, 1, inclusive_high=False)
     rng = rng or np.random.default_rng()
     if not graph:
         graph = nx.Graph()

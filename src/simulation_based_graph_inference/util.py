@@ -59,7 +59,7 @@ def assert_interval(
     ) or (
         high is not None
         and (
-            (value > high) and inclusive_high or (value >= high and not inclusive_high)
+            (value > high and inclusive_high) or (value >= high and not inclusive_high)
         )
     )
     if outside:

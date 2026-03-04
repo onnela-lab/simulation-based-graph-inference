@@ -228,7 +228,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     # Set up the dense network for transforming graph-level representations.
     if args.dense.startswith("file:"):
         # This must be a previously-saved result file.
-        with open(args.conv.removeprefix("file:"), "rb") as fp:
+        with open(args.dense.removeprefix("file:"), "rb") as fp:
             dense: th.nn.Module = pickle.load(fp)["dense"]
         for parameter in dense.parameters():
             parameter.requires_grad = False
@@ -306,6 +306,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     best_loss = float("inf")
     best_conv = None
     best_dense = None
+    best_dists = None
     num_bad_epochs = 0
     epoch = 0
 
@@ -332,9 +333,11 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
                     f"Model parameters: {total_params:,} total, {trainable_params:,} trainable"
                 )
                 params_printed = True
+            model.eval()
             validation_loss = run_epoch(model, validation_loader, args.epsilon)[
                 "epoch_loss"
             ]
+            model.train()
             losses.setdefault("train", []).append(train_loss)
             losses.setdefault("validation", []).append(validation_loss)
             progress.update()
@@ -344,6 +347,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
                 best_loss = validation_loss
                 best_conv = copy.deepcopy(model.conv)
                 best_dense = copy.deepcopy(model.dense)
+                best_dists = copy.deepcopy(model.dists)
                 num_bad_epochs = 0
             else:
                 num_bad_epochs += 1
@@ -361,6 +365,7 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     # Evaluate with last model (save references before potential swap).
     last_conv = model.conv
     last_dense = model.dense
+    last_dists = model.dists
     eval_start = datetime.now()
     last_result = run_epoch(model, test_loader, epsilon=0)
     eval_end = datetime.now()
@@ -370,9 +375,10 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
     assert last_result["log_prob"].shape == (len(dataset),)
 
     # Evaluate with best model.
-    if best_conv is not None and best_dense is not None:
+    if best_conv is not None and best_dense is not None and best_dists is not None:
         model.conv = best_conv
         model.dense = best_dense
+        model.dists = best_dists
         eval_start = datetime.now()
         best_result = run_epoch(model, test_loader, epsilon=0)
         eval_end = datetime.now()
@@ -410,8 +416,10 @@ def __main__(argv: typing.Optional[list[str]] = None) -> None:
         "losses": {key: th.as_tensor(value) for key, value in losses.items()},
         "conv": args.conv if args.conv.startswith("file:") else last_conv,
         "dense": args.dense if args.dense.startswith("file:") else last_dense,
+        "dist_modules": last_dists,
         "best_conv": args.conv if args.conv.startswith("file:") else best_conv,
         "best_dense": args.dense if args.dense.startswith("file:") else best_dense,
+        "best_dist_modules": best_dists,
     }
     with open(args.result, "wb") as fp:
         pickle.dump(result, fp)

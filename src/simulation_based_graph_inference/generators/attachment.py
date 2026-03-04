@@ -37,8 +37,7 @@ def random_attachment_graph(
     elif not isinstance(m, typing.Callable):
         raise ValueError("m must be an integer or callable that returns an integer")
     rng = rng or np.random.default_rng()
-    graph = graph or nx.Graph()
-    assert_normalized_nodel_labels(graph)
+    graph = assert_normalized_nodel_labels(graph or nx.Graph())
 
     for node in range(len(graph), num_nodes):
         graph.add_node(node)
@@ -84,10 +83,7 @@ def degree_attachment_graph(
         graph.add_edge(0, 1)
     if not len(graph.edges):
         raise ValueError("graph must have at least one edge")
-    assert_normalized_nodel_labels(graph)
-
-    if graph is None:
-        graph = typing.cast(nx.Graph, nx.empty_graph())
+    graph = assert_normalized_nodel_labels(graph)
 
     degrees = [graph.degree[node] for node in sorted(graph)]  # pyright: ignore[reportIndexIssue]
     while (node := len(graph)) < num_nodes:
@@ -137,7 +133,7 @@ def rank_attachment_graph(
     if not graph:
         graph = nx.Graph()
         graph.add_node(0)
-    assert_normalized_nodel_labels(graph)
+    graph = assert_normalized_nodel_labels(graph)
 
     ranks = [node + 1 for node in sorted(graph)]
     while (node := len(graph)) < num_nodes:
