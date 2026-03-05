@@ -327,6 +327,67 @@ for configuration in GENERATOR_CONFIGURATIONS:
             reference_architecture_tasks.append(task)
 
 
+# Summary-based training: generate summaries and train density estimators using summary statistics.
+SUMMARY_DENSE_SPECS = {
+    "dense_8x2_res_scalar": "res-scalar-8,8_res-scalar-8,8",
+}
+
+summary_tasks = []
+
+for configuration in GENERATOR_CONFIGURATIONS:
+    data_basename = f"{configuration}/data"
+
+    # Generate summaries for each split.
+    summaries = {}
+    for split in SPLITS:
+        if split == "debug":
+            continue
+        data_dir = ROOT / data_basename / split
+        summary_file = ROOT / f"{configuration}/summaries/{split}.pkl"
+        summaries[split] = summary_file
+        args = [
+            "python",
+            "-m",
+            "simulation_based_graph_inference.scripts.generate_summaries",
+            str(data_dir),
+            str(summary_file),
+        ] + dict2args(configuration=configuration)
+        create_task(
+            f"{configuration}/summaries:{split}",
+            action=args,
+            targets=[summary_file],
+            dependencies=[data_dir / "meta.json"],
+        )
+
+    # Train summary-based models.
+    for seed, (dense_name, dense_spec) in it.product(
+        SEEDS, SUMMARY_DENSE_SPECS.items()
+    ):
+        name = f"seed_{seed}"
+        basename = f"{configuration}/summary/{dense_name}"
+        target = ROOT / f"{basename}/{name}.pkl"
+        args = [
+            "python",
+            "-m",
+            "simulation_based_graph_inference.scripts.train_summary",
+        ] + dict2args(
+            seed=seed,
+            configuration=configuration,
+            dense=dense_spec,
+            result=target,
+            train=summaries["train"],
+            validation=summaries["validation"],
+            test=summaries["test"],
+        )
+        task = create_task(
+            f"{basename}:{name}",
+            action=args,
+            targets=[target],
+            dependencies=list(summaries.values()),
+        )
+        summary_tasks.append(task)
+
+
 # Inference for trees using a different method to compare with.
 for config in ["gn_graph02", "gn_graph"]:
     test_data = ROOT / config / "data/test"
@@ -391,4 +452,10 @@ if reference_architecture_tasks:
     create_task(
         "reference_architecture",
         task_dependencies=reference_architecture_tasks,
+    )
+
+if summary_tasks:
+    create_task(
+        "summary_training",
+        task_dependencies=summary_tasks,
     )

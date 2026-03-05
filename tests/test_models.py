@@ -138,3 +138,39 @@ def test_dense_residual_module() -> None:
     residual._scalar = th.nn.Parameter(7 * th.ones([]))
     x = th.randn((10, 3))
     np.testing.assert_allclose(2 + 7 * x, residual(x).detach())
+
+
+@pytest.mark.parametrize(
+    "configuration_name", list(config.GENERATOR_CONFIGURATIONS.keys())
+)
+def test_summary_model(configuration_name: str) -> None:
+    configuration = config.GENERATOR_CONFIGURATIONS[configuration_name]
+    dists = configuration.create_estimator()
+
+    # Create a simple dense network.
+    dense = th.nn.Sequential(
+        th.nn.Linear(10, 8),
+        th.nn.ReLU(),
+        th.nn.Linear(8, 5),
+    )
+
+    model = models.SummaryModel(dense, dists)
+
+    # Create mock input features.
+    batch_size = 16
+    num_features = 10
+    features = th.randn(batch_size, num_features)
+
+    # Run forward pass.
+    output_dists, output_features = model(features)
+
+    # Validate outputs.
+    assert output_features.shape == (batch_size, 5)
+    assert set(output_dists.keys()) == set(configuration.priors.keys())
+    for key, dist in output_dists.items():
+        assert dist.batch_shape == (batch_size,)
+        sample = dist.sample()
+        assert sample.shape == (batch_size,)
+        log_prob = dist.log_prob(sample)
+        assert log_prob.shape == (batch_size,)
+        assert log_prob.isfinite().all()

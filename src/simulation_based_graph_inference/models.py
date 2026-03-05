@@ -368,3 +368,41 @@ class Model(th.nn.Module):
         self, batch
     ) -> typing.Tuple[typing.Mapping[str, th.distributions.Distribution], th.Tensor]:
         return super().__call__(batch)
+
+
+class SummaryModel(th.nn.Module):
+    """
+    Simplified model for density estimation using pre-computed summary statistics.
+
+    This model bypasses graph convolution/pooling and directly feeds aggregated graph
+    statistics into a dense network followed by distribution estimators.
+
+    Args:
+        dense: Dense network that transforms summary features.
+        dists: Mapping of modules that evaluate distributions keyed by parameter names.
+    """
+
+    def __init__(
+        self,
+        dense: th.nn.Module,
+        dists: th.nn.ModuleDict,
+    ) -> None:
+        super().__init__()
+        self.dense = dense
+        self.dists = dists
+
+    def forward(
+        self, features: th.Tensor
+    ) -> typing.Tuple[typing.Mapping[str, th.distributions.Distribution], th.Tensor]:
+        """
+        Evaluate posterior density estimates and latent features.
+
+        Args:
+            features: Pre-computed summary features (batch_size x num_features).
+
+        Returns:
+            dists: Mapping from parameter names to mean-field posterior density estimates.
+            x: Features after dense transformation.
+        """
+        x = self.dense(features)
+        return {key: module(x) for key, module in self.dists.items()}, x

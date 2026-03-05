@@ -3,7 +3,9 @@ from datetime import datetime
 import itertools as it
 import json
 import networkx as nx
+import numpy as np
 import pathlib
+import pickle
 import torch as th
 from torch_geometric.data import Data
 from tqdm import tqdm
@@ -267,3 +269,37 @@ class InterleavedDataset(th.utils.data.IterableDataset):
                 return
             for element in filtered_batch:
                 yield element
+
+
+class SummaryDataset(th.utils.data.Dataset):
+    """
+    Dataset for pre-computed summaries with ground truth parameters.
+
+    Args:
+        path: Path to the pickle file containing summaries and parameters.
+    """
+
+    def __init__(self, path: pathlib.Path | str) -> None:
+        with open(path, "rb") as fp:
+            data = pickle.load(fp)
+
+        # Stack summary features into tensor (N x num_features), sorted for consistency.
+        self.feature_names = sorted(data["summaries"].keys())
+        self.features = th.as_tensor(
+            np.stack([data["summaries"][name] for name in self.feature_names], axis=1),
+        ).to(th.get_default_dtype())
+
+        # Load params, sorted for consistency.
+        self.param_names = sorted(data["params"].keys())
+        self.params = {
+            name: th.as_tensor(data["params"][name]).to(th.get_default_dtype())
+            for name in self.param_names
+        }
+
+    def __len__(self) -> int:
+        return self.features.shape[0]
+
+    def __getitem__(self, idx: int) -> tuple[th.Tensor, dict[str, th.Tensor]]:
+        features = self.features[idx]
+        params = {name: self.params[name][idx] for name in self.param_names}
+        return features, params

@@ -1,6 +1,7 @@
 import itertools as it
 import numpy as np
 import pathlib
+import pickle
 import pytest
 from simulation_based_graph_inference import data
 import torch as th
@@ -94,3 +95,40 @@ def test_batched_dataset_generate(
             shuffle,
             index_batches=[None for _ in range(5)],  # type: ignore[list-item]
         )
+
+
+def test_summary_dataset(tmpwd: str):
+    # Create a mock summaries file.
+    summaries = {
+        "feature_a_mean": np.array([1.0, 2.0, 3.0]),
+        "feature_a_std": np.array([0.1, 0.2, 0.3]),
+        "feature_b_mean": np.array([4.0, 5.0, 6.0]),
+    }
+    params = {
+        "param1": np.array([0.1, 0.2, 0.3]),
+        "param2": np.array([0.4, 0.5, 0.6]),
+    }
+    output = {"summaries": summaries, "params": params, "configuration": "test"}
+    path = pathlib.Path(tmpwd) / "summaries.pkl"
+    with open(path, "wb") as fp:
+        pickle.dump(output, fp)
+
+    # Load the dataset.
+    dataset = data.SummaryDataset(path)
+    assert len(dataset) == 3
+    assert dataset.feature_names == sorted(summaries.keys())
+    assert dataset.param_names == sorted(params.keys())
+
+    # Check individual items.
+    features, item_params = dataset[0]
+    assert features.shape == (3,)  # 3 summary features
+    assert set(item_params.keys()) == {"param1", "param2"}
+    np.testing.assert_allclose(item_params["param1"].item(), 0.1)
+    np.testing.assert_allclose(item_params["param2"].item(), 0.4)
+
+    # Check DataLoader compatibility.
+    loader = DataLoader(dataset, batch_size=2)
+    for batch_features, batch_params in loader:
+        assert batch_features.shape[1] == 3
+        assert "param1" in batch_params
+        break
