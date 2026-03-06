@@ -158,7 +158,7 @@ def __main__(argv: list[str] | None = None) -> None:
             parameter.requires_grad = False
     else:
         # Parse dense specification, supporting residual blocks.
-        dense_layers = []
+        dense_layers: list[th.nn.Module] = []
         for block in args.dense.split("_"):
             if block.startswith("res-"):
                 # Parse residual block: "res-scalar-8,8" -> residual around 2-layer MLP.
@@ -166,6 +166,11 @@ def __main__(argv: list[str] | None = None) -> None:
                 nn = dense_from_str(
                     layer, activation, args.final_activation, use_layer_norm
                 )
+                # The first residual block needs a projection if input features
+                # don't match the block's output size.
+                if not dense_layers:
+                    out_features = int(layer.split(",")[-1])
+                    dense_layers.append(th.nn.LazyLinear(out_features))
                 dense_layers.append(models.DenseResidual(nn, method=method))
             else:
                 # Regular dense layers.
@@ -199,9 +204,15 @@ def __main__(argv: list[str] | None = None) -> None:
         # Now scale all Linear layer weights.
         models.scale_linear_weights(model, args.init_scale)
 
-    # Prepare the datasets and optimizer.
+    # Prepare the datasets and standardize features using training set statistics.
     train_dataset = SummaryDataset(args.train)
+    feature_mean = train_dataset.features.mean(dim=0)
+    feature_std = train_dataset.features.std(dim=0).clamp(min=1e-8)
+    train_dataset.features = (train_dataset.features - feature_mean) / feature_std
     validation_dataset = SummaryDataset(args.validation)
+    validation_dataset.features = (
+        validation_dataset.features - feature_mean
+    ) / feature_std
     train_loader = DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
     )
@@ -270,6 +281,7 @@ def __main__(argv: list[str] | None = None) -> None:
 
     # Evaluate on the test set using full batch evaluation with both last and best models.
     test_dataset = SummaryDataset(args.test)
+    test_dataset.features = (test_dataset.features - feature_mean) / feature_std
     test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
     model.eval()
 
