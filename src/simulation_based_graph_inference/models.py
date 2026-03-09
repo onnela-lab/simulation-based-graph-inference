@@ -1,8 +1,7 @@
 import inspect
 import torch as th
 from torch_geometric.data import Data
-from torch_geometric.utils import degree
-import torch_scatter as ts
+from torch_geometric.utils import degree, scatter
 import typing
 from typing import Callable
 import warnings
@@ -337,7 +336,7 @@ class Model(th.nn.Module):
             )
 
         # Mean-pool stratified by graph.
-        x = ts.scatter(x, batch.batch, dim=0, reduce="mean")
+        x = scatter(x, batch.batch, dim=0, reduce="mean")
         if x.shape != (
             shape := (batch.num_graphs, num_conv_features)
         ):  # pragma: no cover
