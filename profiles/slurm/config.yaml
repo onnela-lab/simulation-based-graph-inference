@@ -1,0 +1,24 @@
+executor: slurm
+jobs: 200
+
+# Default resources for all rules unless overridden in the rule itself.
+# runtime is in minutes; mem_mb in MB.
+# shared is the standard multi-tenant CPU partition.
+# Switch to serial_requeue for opportunistic/lower-priority jobs, or hsph for dedicated access.
+default-resources:
+  slurm_partition: shared
+  slurm_account: onnela_lab
+  mem_mb: 4000
+  runtime: 60    # 1 hour; conservative default, override per rule for long jobs
+
+# Retry failed jobs once (e.g. preemption on requeue partition).
+retries: 1
+
+# Keep going with independent jobs if one fails.
+keep-going: true
+
+# Print shell commands in the log.
+printshellcmds: true
+
+# Rerun jobs whose params or code changed, not just missing outputs.
+rerun-incomplete: true

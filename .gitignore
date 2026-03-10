@@ -4,6 +4,7 @@ __pycache__
 .doit.db*
 .DS_Store
 .ipynb_checkpoints
+.snakemake/
 .venv/
 .vscode/
 *.egg-info
